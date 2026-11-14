@@ -20,12 +20,28 @@ FARM = {
 
 CROPS = ["corn", "soybeans", "winter_wheat", "sorghum"]
 
-# One fixed color per crop, used in every chart.
+# One fixed color per crop, used in every chart. Soft tones, checked so that
+# all four stay distinguishable for colour-blind readers.
 CROP_COLORS = {
-    "corn": "#E3B505",
-    "soybeans": "#4E8E2F",
-    "winter_wheat": "#C77D3A",
-    "sorghum": "#9B2D20",
+    "corn": "#F8E68E",
+    "soybeans": "#72BFB0",
+    "winter_wheat": "#F0A972",
+    "sorghum": "#C77882",
+}
+
+# Display only: how each crop is shown to the user. Code and data files keep
+# using the plain keys above ("winter_wheat"), never these labels.
+CROP_LABELS = {
+    "corn": "Corn",
+    "soybeans": "Soybeans",
+    "winter_wheat": "Winter wheat",
+    "sorghum": "Sorghum",
+}
+CROP_ICONS = {
+    "corn": "\U0001F33D",          # ear of corn
+    "soybeans": "\U0001F331",      # seedling
+    "winter_wheat": "\U0001F33E",  # sheaf
+    "sorghum": "\U0001F33F",       # herb
 }
 
 # Default priorities, each 0-10. Normalize in code with normalize_weights().
