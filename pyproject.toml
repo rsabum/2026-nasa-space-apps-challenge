@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "field-shift"
+version = "0.1.0"
+description = "Crop-rotation planner for NASA Space Apps 2026 Field Shift challenge"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Field Shift Contributors" }]
+dependencies = [
+  "pandas>=2.0",
+  "numpy>=1.26",
+  "xarray>=2024.1",
+  "requests>=2.31",
+  "pulp>=2.8,<4",
+  "streamlit>=1.32",
+  "plotly>=5.20",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
