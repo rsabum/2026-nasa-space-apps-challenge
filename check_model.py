@@ -176,14 +176,8 @@ water = [o["total_shortfall_acre_in"] + o["total_irrigation_acre_in"] for o in o
 check("several distinct options", len(opts) >= 3, f"{len(opts)} options")
 check("more profit costs more water", profits == sorted(profits) and water == sorted(water))
 
-# ---------------------------------------------------------------- 8. fake_model still works
-print("8. fake_model.py still runs with a goal name")
-import fake_model  # noqa: E402
-t = fake_model.solve(FARM, None, "max_profit", "average", CONSTRAINTS)
-check("fake_model.solve(goal=...)", len(t) == 16)
-
-# ---------------------------------------------------------------- 10. rotation length and the cycle
-print("10. Rotation length (2-5 years) and the repeating cycle")
+# ---------------------------------------------------------------- 8. rotation length and the cycle
+print("8. Rotation length (2-5 years) and the repeating cycle")
 two = {"North": ["soybeans", "corn"], "South": ["corn", "soybeans"],
        "East": ["soybeans", "corn"], "West": ["corn", "soybeans"]}
 four = {k: v * 2 for k, v in two.items()}
@@ -219,8 +213,8 @@ t = model.solve({**FARM, "years": 3}, None, "min_water", "average",
 check("…and 90% (beyond any 3-year rotation) is reported as unmet", len(t.attrs["unmet"]) == 1,
       t.attrs["unmet"][0] if t.attrs["unmet"] else "")
 
-# ---------------------------------------------------------------- 11. limit ranges
-print("11. limit_ranges brackets what the optimizer can reach")
+# ---------------------------------------------------------------- 9. limit ranges
+print("9. limit_ranges brackets what the optimizer can reach")
 use_solver(solvers()[0])
 for L in (2, 4):
     farm_l = {**FARM, "years": L}
@@ -240,8 +234,8 @@ for L in (2, 4):
 check("production ranges only for allowed crops",
       set(model.limit_ranges(FARM, None, "average", {**CONSTRAINTS, "allowed_crops": ["corn", "soybeans"]})["production_min"]) <= {"corn", "soybeans"})
 
-# ---------------------------------------------------------------- 9. timing
-print("9. Timing: what one app rerun costs (solve + evaluate + 2 backtests)")
+# ---------------------------------------------------------------- 10. timing
+print("10. Timing: what one app rerun costs (solve + evaluate + 2 backtests)")
 for name in solvers():
     use_solver(name)
     model._candidates_cached.cache_clear()

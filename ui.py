@@ -18,7 +18,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-import model  # Robert's optimizer. fake_model.py is the old stand-in: `import fake_model as model`
+import model  # Robert's optimizer
 from contract import (CONSTRAINTS, CROP_LABELS, CROPS, DEFAULT_LIMITS, FARM, GOAL_HELP,
                       GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, WORST_SHARE, baseline_plan)
 
@@ -582,9 +582,7 @@ def objective_controls():
 
 def reachable(ctx):
     """What the farm can reach on each limit's measure (slider ranges), for the optimizer's
-    rotation length and ground rules. Empty when the model doesn't offer it (fake_model)."""
-    if not hasattr(model, "limit_ranges"):
-        return {}
+    rotation length and ground rules."""
     _, worst = read_objective()
     return model.limit_ranges(with_years(ctx["farm"], search_length()), None, "average",
                               {**read_rules(), "worst_share": worst})
@@ -702,8 +700,7 @@ def optimization(ctx):
     constraints = {**read_rules(), "worst_share": worst}
     table = model.solve(farm, None, goal, "average", {**constraints, "limits": limits})
     plan = model.table_to_plan(table)
-    covers = model.table_to_covers(table) if hasattr(model, "table_to_covers") else None
-    bt = model.backtest(plan, farm, covers=covers) if covers else model.backtest(plan, farm)
+    bt = model.backtest(plan, farm, covers=model.table_to_covers(table))
     return {"farm": farm, "goal": goal, "limits": limits, "ranges": ranges,
             "constraints": constraints, "years": search_length(), "table": table, "plan": plan,
             "bt": bt, "driest": int(bt.loc[bt["growing_season_rain_mm"].idxmin(), "year"])}

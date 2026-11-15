@@ -23,7 +23,7 @@ Claude Code reads it automatically at the start of every session in this folder.
 | Track | Owner | Delivers |
 |---|---|---|
 | Data | Tebit | CSVs: NASA POWER weather 1981–2024, crop table (yields, prices, costs, water need), fields.csv from Web Soil Survey |
-| Optimization | Robert (GitHub `rsabum`) | `model.py` (in, Nov 15): the real optimizer, same functions as `fake_model.py`; PuLP, solved by Gurobi or CBC. Works on branch **`robert`** |
+| Optimization | Robert (GitHub `rsabum`) | `model.py` (in, Nov 15): the real optimizer, with the contract's functions; PuLP, solved by Gurobi or CBC. Works on branch **`robert`** |
 | Software | Claude-Thomas (me) | This Streamlit app |
 
 Planning docs (claude.ai, shared with the team):
@@ -48,20 +48,19 @@ Planning docs (claude.ai, shared with the team):
 | `views/optimize.py` | **Rotation optimizer**: "01 · Your objective" (the goal only, plus "Bad years to protect" for the bad-year goal), "02 · Constraints" (Rotation: length to search 2–5; Limits: absolute sliders spanning what the farm can reach, from `model.limit_ranges`; Ground rules: crops you'd grow, most acres in one crop, no back-to-back, soybean year), "03 · Optimized rotation" (tiles, rule + water-stress chips, "About this plan", crop mix, **Use this rotation**), its key numbers, "04 · Tested on NASA weather" for the recommendation alone. **Independent of the evaluator** (Robert, Nov 15): no comparisons with the farmer's rotation anywhere |
 | `ui.py` | Everything the pages share: crop colours/icons, tiles, field map, charts (`backtest_chart(bt, name=…)`, with replay), `plan_chips_html`, `about_plan_html`, page header + logo directory, `metric_row(table)`, the objective/limit/rule controls, cross-page state, and the two independent calculations `evaluation(ctx)` (the farmer's rotation) and `optimization(ctx)` (the recommendation): the only places that call the model |
 | `style.css` | All custom styling; loaded by app.py. Any `st.container(key="card_...")` gets the panel look |
-| `contract.py` | Shared names: FARM, CROPS, CROP_COLORS/LABELS/ICONS, CONSTRAINTS, column lists, `baseline_plan()`, and (Nov 15) GOALS, GOAL_HELP, LIMIT_LABELS, DEFAULT_LIMITS, GOAL_OWN_LIMITS, WORST_SHARE. WEIGHTS is deprecated. **Change only with the whole team.** |
+| `contract.py` | Shared names: FARM, CROPS, CROP_COLORS/LABELS/ICONS, CONSTRAINTS, column lists, `baseline_plan()`, and (Nov 15) GOALS, GOAL_HELP, LIMIT_LABELS, DEFAULT_LIMITS, GOAL_OWN_LIMITS, WORST_SHARE, ROTATION_LENGTHS. (The old WEIGHTS / `normalize_weights()` were removed with the fake model.) **Change only with the whole team.** |
 | `model.py` | Robert's optimizer, "Enumerate, Simulate, Assign": every rotation of the chosen length per field (4 crops × yes/no rye cover after each year: 4,096 at 4 years, 32,768 at 5, built in chunks), filtered by `rules.py`, scored by table lookups into `crop_sim.py`, then a PuLP integer program picks one per field. Gurobi when licensed, else CBC (`FIELD_SHIFT_SOLVER=gurobi\|cbc` forces one) |
 | `crop_sim.py` | Stage 1 crop model: daily soil-water bucket (FAO-56) + FAO-33 yield, with irrigation and rye's spring water draw, precomputed per (soil, crop, rye before, irrigated, year) |
 | `synthetic_data.py` | Synthetic stand-in for Tebit's data (weather 1981–2024 with POWER column names, crops, rotation effects, soils, site). `python synthetic_data.py` writes `data/synthetic/*.csv` + README as the format spec |
 | `check_model.py` | `python check_model.py`: 43 checks, incl. MILP = brute force on a 2-field farm for every goal, on both solvers. Keep it passing |
-| `fake_model.py` | The old stand-in with fake numbers (accepts a goal name). Fallback only |
 | `requirements-gurobi.txt` | `gurobipy` for Robert's Mac only; kept out of requirements.txt (unlicensed pip gurobipy is capped at 2,000 variables, so the cloud uses CBC) |
 | `assets/logo.svg`, `assets/icon.png` | Our original logo (classical column with three flutes and a sprout). Nov 15: recoloured to the theme: NASA-blue gradient tile, mint / blue / NASA-red gradient flutes, mint-to-blue sprout, sharper corners. icon.png is rendered from the SVG (`qlmanage -t -s 256`, corners masked with Pillow). |
 | `.streamlit/config.toml` | Dark theme colours, font name, corner radius (restart Streamlit after editing) |
 | `assistant.py` | The "Ask Field Shift" chat bubble (bottom right). Claude mode (Opus 5.5, streamed, low effort, server-side refusal fallback) when `ANTHROPIC_API_KEY` is in `.streamlit/secrets.toml` (git-ignored) or the environment; otherwise keyword-matched quick answers. Both use only the live numbers app.py passes in (`ui.faq_context`). It knows the three pages. |
-| `rules.py` | Plain-English check of a rotation against the ground rules (used by the pages, model.py's filter and fake_model.py) |
+| `rules.py` | Plain-English check of a rotation against the ground rules (used by model.py's filter and the optimizer page; the evaluator never checks the farmer's rotation) |
 | `requirements.txt` | streamlit, pandas, plotly, pulp, requests, anthropic (0.125 is the newest that runs on Python 3.9) |
 
-The app uses the real `model.py` (`import model` at the top of ui.py). To fall back to fake numbers: `import fake_model as model`.
+The app uses the real `model.py` (`import model` at the top of ui.py). The old `fake_model.py` stand-in was removed on Nov 15.
 
 ### The interface contract (Reference Sheet v2.01, updated Nov 15 for goals + limits and 2–5 year cycles)
 

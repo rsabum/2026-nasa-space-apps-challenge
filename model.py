@@ -14,7 +14,8 @@ Lasdon & Wismer 1971). limit_ranges() says what the farm can reach on each measu
 the app's sliders. Impossible limits never crash: the plan comes back with
 table.attrs["unmet"] explaining what couldn't be met.
 
-Same functions as fake_model.py, so app.py only changes `import fake_model as model`.
+The app (ui.py) imports this module as `model`; the function signatures are the team's
+interface contract (see contract.py and CLAUDE.md).
 """
 import functools
 import itertools

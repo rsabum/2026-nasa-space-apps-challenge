@@ -50,10 +50,6 @@ CROP_ICONS = {
     "sorghum": "\U0001F33F",       # herb
 }
 
-# DEPRECATED (kept so older code still runs): slider weights. The optimizer now takes one
-# explicit goal plus explicit limits instead; see GOALS and DEFAULT_LIMITS below.
-WEIGHTS = {"profit": 5, "water": 5, "soil": 5}
-
 # The farmer picks ONE goal. Everything else becomes a limit (epsilon-constraint method).
 GOALS = {
     "max_profit": "Most profit",
@@ -127,14 +123,6 @@ BACKTEST_COLUMNS = [
     "year", "growing_season_rain_mm",
     "total_profit_usd", "total_shortfall_acre_in", "soil_score_change",
 ]
-
-
-def normalize_weights(weights):
-    """Turn 0-10 slider values into weights that sum to 1."""
-    total = sum(weights.values())
-    if total == 0:
-        return {k: 1 / len(weights) for k in weights}
-    return {k: v / total for k, v in weights.items()}
 
 
 def baseline_plan(farm):

@@ -1,7 +1,8 @@
 """Check a rotation against the farmer's ground rules, in plain English.
 
-Owner: Claude-Thomas. Used by app.py (to check the farmer's own rotation and the
-suggestion) and by fake_model.py (so the fake suggestion follows the rules too).
+Owner: Claude-Thomas. Used by model.py (to filter the rotations the optimizer may choose)
+and by the Rotation optimizer page (to report any rule the recommendation can't meet). The
+farmer's own rotation in the evaluator is never checked against the rules.
 The rules themselves are named in contract.CONSTRAINTS.
 """
 from contract import CROP_LABELS
