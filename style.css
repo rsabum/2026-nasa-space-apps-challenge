@@ -850,3 +850,20 @@ div.fs-step {cursor: default;}
     [data-testid="stPopoverBody"]:has([class*="st-key-pick-"]), [class*="st-key-pick-"],
     [class*="st-key-pick-"] button, [class*="st-key-cell-"] button {animation: none !important;}
 }
+
+/* ---------- Calmer entrance for the rotation cards ----------
+   "What you plan to plant" had three animations at once (page fade-up, the card sliding
+   up and growing as it scrolled in, every tile fading down), which felt jerky. Now: one
+   slow opacity fade for the card, no movement, and a gentle opacity fade for its tiles.
+   A tile you change still fades in on its own (its key changes, so it's a new element). */
+.st-key-card_mine, .st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto !important; animation-range: normal !important;}
+.st-key-card_plan {animation: fs-orbit 8s linear infinite, fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto, auto !important;}
+@keyframes fs-soft-in {from {opacity: 0;}}
+[class*="st-key-cell-"] button {animation: fs-soft-in .7s ease-out both !important;}
+/* The recommended plan's tiles: the same soft fade, no bouncy pop. */
+.rg > .rg-cell {animation: fs-soft-in .8s ease-out both !important;}
+@media (prefers-reduced-motion: reduce) {
+    .st-key-card_mine, .st-key-card_plan, [class*="st-key-cell-"] button, .rg > .rg-cell {animation: none !important;}
+}

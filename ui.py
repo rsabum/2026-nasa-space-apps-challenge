@@ -66,32 +66,44 @@ def crop_key_html():
 
 
 def crop_mix_chart(plans, farm):
-    """Acres of each crop, year by year, for each plan side by side: stacked bars in the
-    crop colours. Built only from the plans and field acres, so nothing is invented."""
+    """Acres of each crop, year by year, for each plan side by side: slim stacked bars in the
+    crop colours, rounded on top, with the acres written inside each crop's segment. Built
+    only from the plans and field acres, so nothing is invented."""
     acres = {f["name"]: f["acres"] for f in farm["fields"]}
+    single = len(plans) == 1
     fig = make_subplots(rows=1, cols=len(plans), shared_yaxes=True, horizontal_spacing=0.06,
-                        subplot_titles=list(plans))
+                        subplot_titles=None if single else list(plans))
+    total = sum(float(a) for a in acres.values()) or 1
     for col, plan in enumerate(plans.values(), start=1):
         n_years = len(next(iter(plan.values())))     # each plan's own rotation length
         years = [f"Year {i + 1}" for i in range(n_years)]
         for crop in CROPS:
             ys = [sum(acres.get(f, 0) for f, cs in plan.items() if cs[i] == crop)
                   for i in range(n_years)]
+            if not any(ys):
+                continue                               # crops this plan never plants stay out of the legend
             fig.add_trace(go.Bar(
                 x=years, y=ys, name=CROP_LABELS[crop], legendgroup=crop, showlegend=(col == 1),
-                marker=dict(color=CROP_COLORS[crop], line=dict(color="#0A0E1F", width=1.5)),
+                marker=dict(color=CROP_COLORS[crop], line=dict(color="#121838", width=2)),
+                # Acres inside the segment, only where there's room for the label.
+                text=[f"{v:g} ac" if v / total >= 0.12 else "" for v in ys], textposition="inside",
+                insidetextanchor="middle", textfont=dict(color="#141830", size=11, family="Inter, sans-serif"),
                 hovertemplate=f"{CROP_LABELS[crop]}: %{{y:g}} ac<extra></extra>"), row=1, col=col)
     fig.update_layout(
-        barmode="stack", height=270, margin=dict(l=0, r=0, t=28, b=0), bargap=0.32,
+        barmode="stack", barcornerradius=7, bargap=0.45, height=280,
+        margin=dict(l=0, r=0, t=36 if single else 52, b=0), hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", color=MUTED),
+        font=dict(family="Inter, sans-serif", color=MUTED), uniformtext=dict(minsize=9, mode="hide"),
         hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.28, x=0))
-    fig.update_annotations(font=dict(color=INK, size=13))
-    fig.update_xaxes(gridcolor=GRID, zeroline=False)
-    fig.update_yaxes(gridcolor=GRID, zeroline=False)
-    fig.update_yaxes(title_text="Acres", row=1, col=1)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=INK, size=12),
+                    itemclick=False, itemdoubleclick=False))
+    fig.update_annotations(font=dict(color=INK, size=13), y=1.12)
+    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(color=INK, size=12))
+    fig.update_yaxes(gridcolor=GRID, griddash="dot", zeroline=False, ticksuffix=" ac",
+                     range=[0, total * 1.04])
     return fig
+
+
 # Our own crop icons: matching line art (24x24, drawn in the text colour, with a light
 # duotone fill), so the app doesn't look like stock emoji. contract.py's CROP_ICONS
 # emoji stay untouched for the team; dropdowns show the plain label, since they can't
@@ -814,7 +826,9 @@ def page_end_nav(current):
 
 
 def money(v):
-    """$12,345 or −$8,208 (minus sign before the dollar sign)."""
+    """$12,345 or −$8,208 (minus sign before the dollar sign). Rounded first, so a value
+    just below zero shows as $0, not −$0."""
+    v = round(float(v))
     return f"{'−' if v < 0 else ''}${abs(v):,.0f}"
 
 
@@ -871,7 +885,10 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
             animated.append((len(fig.data) - 1, lambda k: [floor] * (k + 1)))
         fig.add_trace(go.Scatter(
             x=years, y=ys, name=name, line=dict(color=color, width=width, shape="spline", smoothing=0.6),
-            fill="tonexty" if star else None, fillcolor="rgba(191,215,255,0.12)" if star else None,
+            # The fill under the starring line fades from soft ice-blue at the top to nothing.
+            fill="tonexty" if star else None,
+            fillgradient=dict(type="vertical", colorscale=[[0, "rgba(191,215,255,0)"],
+                                                           [1, "rgba(191,215,255,0.30)"]]) if star else None,
             hovertemplate="$%{y:,.0f}"), row=1, col=1)
         animated.append((len(fig.data) - 1, lambda k, ys=ys: ys[:k + 1]))
         if star:
@@ -883,11 +900,17 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
     # Rain bars: driest quarter of seasons NASA red, wettest quarter NASA blue, the rest navy.
     low, high = mm.quantile(0.25), mm.quantile(0.75)
     fig.add_trace(go.Bar(x=years, y=rain, name="Growing-season rain",
-                         marker=dict(color=[DRY if v <= low else WET if v >= high else NORMAL for v in mm]),
+                         marker=dict(color=[DRY if v <= low else WET if v >= high else NORMAL for v in mm],
+                                     opacity=0.85, line=dict(width=0)),
                          hovertemplate="%{y:.0f} mm rain", showlegend=False), row=2, col=1)
     animated.append((len(fig.data) - 1, lambda k: rain[:k + 1]))
     fig.add_hline(y=mm.mean(), line=dict(color=MUTED, width=1, dash="dot"), row=2, col=1)
     fig.add_vrect(x0=driest - 0.5, x1=driest + 0.5, fillcolor=DRY, opacity=0.12, line_width=0)
+    star_ys = next(ys for _, ys, _, _, st in lines if st)
+    avg = sum(star_ys) / len(star_ys)
+    fig.add_hline(y=avg, line=dict(color="rgba(191,215,255,0.35)", width=1, dash="dot"), row=1, col=1)
+    if floor < 0 < top:   # break-even, only when some seasons lose money
+        fig.add_hline(y=0, line=dict(color="rgba(252,61,33,0.35)", width=1, dash="dash"), row=1, col=1)
 
     # A marker on each line at the current season (empty until the replay runs).
     fig.add_trace(go.Scatter(x=[], y=[], mode="markers", hoverinfo="skip", showlegend=False,
@@ -897,6 +920,29 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
 
     driest_note = dict(x=driest + 0.6, y=0.995, xref="x", yref="paper", xanchor="left", yanchor="top",
                        showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11))
+    # Labels for the reference lines, and callouts on the best and toughest seasons of the
+    # starring line (these appear in the replay once the line reaches them).
+    line_notes = [dict(x=1, xref="paper", xanchor="right", y=avg, yref="y", yanchor="bottom",
+                       showarrow=False, text=f"average {money(avg)}",
+                       font=dict(color="rgba(191,215,255,0.75)", size=10))]
+    if floor < 0 < top:
+        line_notes.append(dict(x=0, xref="paper", xanchor="left", y=0, yref="y", yanchor="bottom",
+                               showarrow=False, text="break-even", font=dict(color="rgba(252,61,33,0.8)", size=10)))
+    i_best = max(range(len(years)), key=lambda i: star_ys[i])
+    i_worst = min(range(len(years)), key=lambda i: star_ys[i])
+
+    def callout(i, label, color, ay):
+        return dict(x=years[i], y=star_ys[i], xref="x", yref="y", text=f"{label} {years[i]}",
+                    showarrow=True, arrowhead=0, arrowwidth=1, arrowcolor=color, ax=0, ay=ay,
+                    font=dict(color=color, size=10), bgcolor="rgba(10,14,31,0.75)", borderpad=3)
+
+    def notes(k):
+        out = [driest_note] + line_notes
+        if i_best <= k:
+            out.append(callout(i_best, "Best", ACCENT, -26))
+        if i_worst <= k:
+            out.append(callout(i_worst, "Toughest", "#E9A866", 26))
+        return out
 
     def tally(k):
         so_far = " so far" if k < len(years) - 1 else ""
@@ -913,12 +959,13 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
         name=str(years[k]), traces=[i for i, _ in animated] + [marker],
         data=[(go.Bar if i == animated[-1][0] else go.Scatter)(x=years[:k + 1], y=f(k)) for i, f in animated]
         + [go.Scatter(x=[years[k]] * len(lines), y=[y[k] for _, y, *_ in lines])],
-        layout=dict(annotations=[driest_note, tally(k)])) for k in range(len(years))]
+        layout=dict(annotations=notes(k) + [tally(k)])) for k in range(len(years))]
 
     step = dict(frame=dict(duration=0, redraw=True), mode="immediate", transition=dict(duration=0))
     fig.update_layout(
-        annotations=[driest_note, tally(len(years) - 1)],
-        height=500, margin=dict(l=0, r=6, t=34, b=0), hovermode="x unified", bargap=0.25,
+        annotations=notes(len(years) - 1) + [tally(len(years) - 1)],
+        height=500, margin=dict(l=0, r=6, t=34, b=0), hovermode="x unified", bargap=0.35,
+        barcornerradius=3, showlegend=rec is not None,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=MUTED),
         hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
@@ -942,8 +989,10 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
             currentvalue=dict(prefix="Season: ", font=dict(color=INK, size=12), xanchor="right"),
             steps=[dict(label=str(y), method="animate", args=[[str(y)], step]) for y in years])])
     # Fixed axes, so nothing jumps around while the replay runs.
-    fig.update_xaxes(gridcolor=GRID, zeroline=False, range=[years[0] - 0.7, years[-1] + 0.7])
-    fig.update_yaxes(gridcolor=GRID, zeroline=False)
+    fig.update_xaxes(showgrid=False, zeroline=False, range=[years[0] - 0.7, years[-1] + 0.7], dtick=5,
+                     showspikes=True, spikemode="across", spikethickness=1, spikedash="dot",
+                     spikecolor="rgba(191,215,255,0.35)")
+    fig.update_yaxes(gridcolor=GRID, griddash="dot", zeroline=False)
     fig.update_yaxes(title_text="Net profit", tickprefix="$", range=[floor, top + 0.06 * abs(top)], row=1, col=1)
     fig.update_yaxes(title_text="Rain (mm)", range=[0, max(rain) * 1.12], row=2, col=1)
     return fig
