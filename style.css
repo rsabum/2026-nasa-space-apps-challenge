@@ -111,7 +111,8 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 @media (max-width: 760px) {.fs-flow {grid-template-columns: 1fr 1fr;}}
 
 /* ---------- Section panels ---------- */
-.st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario {
+/* Any container with a key starting "card_" is a panel (st.container(key="card_...")). */
+[class*="st-key-card_"] {
     position: relative;
     /* Two backgrounds: the panel fill inside, and a blue-to-ice gradient showing through
        the transparent border. That's how CSS draws a gradient border with rounded corners. */
@@ -119,10 +120,10 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
     border: 1px solid transparent; border-radius: var(--r-card);
     padding: 26px 28px 22px 28px; box-shadow: var(--shadow);}
 /* Section titles inside panels: white fading to pale NASA blue. */
-.st-key-card_mine h3, .st-key-card_plan h3, .st-key-card_test h3 {
+[class*="st-key-card_"] h3 {
     background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
 /* A thin glowing line along the top edge of each panel. */
-.st-key-card_mine::before, .st-key-card_plan::before, .st-key-card_test::before {
+[class*="st-key-card_"]:not(.st-key-card_scenario)::before {
     content: ""; position: absolute; top: -1px; left: 28px; right: 28px; height: 1px;
     background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .8;}
 .st-key-card_plan::before {background: linear-gradient(90deg, transparent, var(--accent), transparent);}
@@ -769,3 +770,18 @@ a.fs-step:nth-of-type(4) {--sc: #E0879A;}
    (and its menu) above them. */
 .fs-hero {position: relative; z-index: 30;}
 .fs-flow {position: relative; z-index: 1;}
+
+/* ---------- Multi-page additions ---------- */
+/* Tool pages get a smaller hero than Home. */
+.fs-hero-compact {padding-bottom: 16px;}
+.fs-hero-compact .fs-hero-title {font-size: 2rem;}
+.fs-hero-compact svg {width: 56px; height: 56px;}
+/* The "How it works" steps on Home are plain tiles, not links. */
+div.fs-step {cursor: default;}
+/* Page links (st.page_link) as pill buttons inside the panels. */
+[class*="st-key-card_"] [data-testid="stPageLink"] a {
+    display: inline-flex; margin-top: 6px; padding: 8px 18px; border-radius: 999px;
+    background: var(--accent-soft); border: 1px solid rgba(191, 215, 255, .35); font-weight: 650;}
+[class*="st-key-card_"] [data-testid="stPageLink"] a:hover {background: var(--blue-soft); border-color: var(--border-glow);}
+/* Gaps between the stacked panels. */
+[class*="st-key-card_"] {margin-bottom: 6px;}

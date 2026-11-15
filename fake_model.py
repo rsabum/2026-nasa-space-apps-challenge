@@ -42,11 +42,12 @@ def evaluate(plan, farm, data=None, scenario="average"):
     return pd.DataFrame(rows, columns=PLAN_COLUMNS)
 
 
-def solve(farm, data=None, weights=None, scenario="average", constraints=None):
-    """Return a random plan that follows every ground rule (if one can be found), scored by evaluate()."""
+def solve(farm, data=None, goal="max_profit", scenario="average", constraints=None):
+    """Return a random plan that follows every ground rule (if one can be found), scored by evaluate().
+    `goal` is a key of contract.GOALS (older callers passed a weights dict; both are accepted)."""
     constraints = constraints or {}
     allowed = constraints.get("allowed_crops") or ["corn", "soybeans"]
-    r = _rng("solve", tuple(sorted((weights or {}).items())), scenario,
+    r = _rng("solve", repr(goal), scenario,
              repr(sorted(constraints.items())), repr(farm["fields"]))
     best, best_broken = {}, None
     for attempt in range(500):   # draw random plans; keep the one that breaks the fewest rules
