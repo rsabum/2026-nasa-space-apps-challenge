@@ -768,3 +768,43 @@ div.fs-step {cursor: default;}
 [class*="st-key-pick-"] button {justify-content: flex-start; border-radius: var(--r-tag) !important; font-weight: 650;}
 [class*="st-key-pick-"] button p {color: var(--on-crop) !important;}
 .rp-cycle {font-family: var(--mono); font-size: .7rem; letter-spacing: .04em; color: var(--text-3); margin: 6px 0 4px;}
+
+/* ---------- Going back to Home from the tool pages ---------- */
+/* Top bar on the tool pages: same pill bar as the home page, built from real Streamlit
+   elements so the Home button is a page link (instant, keeps your inputs). */
+.st-key-fs_topnav {background: rgba(18, 24, 56, .7); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px 6px 6px !important; margin-bottom: 26px; backdrop-filter: blur(8px);
+    animation: fs-in-down .6s ease-out both;}
+.st-key-fs_topnav [data-testid="stHorizontalBlock"] {gap: 12px; align-items: center;}
+.st-key-fs_topnav .fs-status {justify-content: flex-end;}
+.st-key-fs_topnav [data-testid="stMarkdownContainer"] p {margin: 0;}
+
+/* The Home button: a glowing pill; the arrow nudges left on hover. */
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] {background: var(--grad-brand) !important;
+    border-radius: 999px !important; padding: 6px 16px 6px 12px !important; width: fit-content;
+    box-shadow: 0 0 18px rgba(79, 139, 255, .35); transition: transform .18s ease, box-shadow .18s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] p,
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] span {color: var(--bg) !important; font-weight: 750 !important;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(191, 215, 255, .6);}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] [data-testid="stIconMaterial"] {transition: transform .2s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover [data-testid="stIconMaterial"] {transform: translateX(-4px);}
+
+/* "Where next?" card at the bottom of each tool page. */
+.st-key-fs_endnav {margin-top: 26px; padding: 20px 24px 16px !important; border: 1px solid transparent;
+    border-radius: var(--r-card); background: var(--grad-panel) padding-box, var(--grad-edge) border-box;}
+.fs-endnav-title {font-weight: 750; font-size: 1.1rem; color: var(--text);}
+.fs-endnav-sub {font-size: .85rem; color: var(--text-3); margin-bottom: 6px;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] {border: 1px solid var(--border); border-radius: 12px !important;
+    background: var(--raised); padding: 10px 14px !important; transition: transform .18s ease, border-color .18s ease, background .18s ease;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-2px); border-color: var(--blue);
+    background: var(--blue-soft);}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] p {font-weight: 650 !important;}
+
+/* A soft fade-up every time a page opens, so switching feels like a transition. */
+.block-container {animation: fs-page-in .45s ease-out both;}
+@keyframes fs-page-in {from {opacity: 0; transform: translateY(8px);}}
+
+@media (prefers-reduced-motion: reduce) {
+    .st-key-fs_topnav, .block-container {animation: none !important;}
+}

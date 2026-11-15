@@ -760,14 +760,37 @@ def directory_html(logo, groups):
             f'<span>Click the logo again to close</span></div>{out}</nav></details>')
 
 
+HOME_PAGE = "views/home.py"
+TOOL_PAGES = {   # the two tools, for "where next?" links
+    "Rotation evaluator": ("views/evaluate.py", ":material/fact_check:"),
+    "Rotation optimizer": ("views/optimize.py", ":material/auto_awesome:"),
+}
+
+
+def _status_html():
+    return (f'<div class="fs-status"><span class="fs-live"><i></i>Lat {FARM["lat"]} · Lon {FARM["lon"]}</span>'
+            '<span class="fs-live">Sample data</span></div>')
+
+
 def page_header(crumb, title, tag, groups, compact=False):
-    """Top bar, then the hero: logo (directory), title, tagline and badges."""
+    """Top bar, then the hero: logo (directory), title, tagline and badges. On the tool
+    pages the top bar starts with a "Home" button: a real Streamlit page link, so going
+    back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
+    if crumb == "Home":
+        show_html('<div class="fs-topbar">'
+                  f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
+                  + _status_html() + '</div>')
+    else:
+        with st.container(key="fs_topnav"):
+            back, where, status = st.columns([1, 2.6, 2.4], vertical_alignment="center", gap="small")
+            back.page_link(HOME_PAGE, label="Home", icon=":material/arrow_back:",
+                           help="Back to the home page. Your fields, rotation and settings stay as they are.")
+            with where:
+                show_html(f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>')
+            with status:
+                show_html(_status_html())
     show_html(
-        '<div class="fs-topbar">'
-        f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
-        f'<div class="fs-status"><span class="fs-live"><i></i>Lat {FARM["lat"]} · Lon {FARM["lon"]}</span>'
-        '<span class="fs-live">Sample data</span></div></div>'
         f'<div class="fs-hero{" fs-hero-compact" if compact else ""}">' + directory_html(logo, groups) +
         '<div><div class="fs-hero-sub">NASA <em>climate</em>-powered crop rotation planner</div>'
         f'<div class="fs-hero-title">{title}</div>'
@@ -775,6 +798,19 @@ def page_header(crumb, title, tag, groups, compact=False):
         '<div class="fs-hero-badges">'
         '<span class="fs-badge fs-badge-data">🛰️ NASA POWER weather · 1981–2024</span>'
         '<span class="fs-badge">Team Athens</span></div></div>')
+
+
+def page_end_nav(current):
+    """Bottom of a tool page: back to Home, or on to the other tool, so nobody has to
+    scroll back up. Page links again, so nothing the farmer entered is lost."""
+    other = next(name for name in TOOL_PAGES if name != current)
+    page, icon = TOOL_PAGES[other]
+    with st.container(key="fs_endnav"):
+        show_html('<div class="fs-endnav-title">Where next?</div>'
+                  '<div class="fs-endnav-sub">Your fields, rotation and settings come with you.</div>')
+        home_col, other_col, _ = st.columns([1, 1.3, 1.2], gap="small")
+        home_col.page_link(HOME_PAGE, label="Back to Home", icon=":material/home:")
+        other_col.page_link(page, label=f"Open the {other.lower()}", icon=icon)
 
 
 def money(v):

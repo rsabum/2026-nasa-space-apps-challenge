@@ -114,3 +114,5 @@ with st.container(key="card_test"):
         st.caption(ui.BACKTEST_CAPTION)
 
 ui.details_table(plan_table, "See the numbers behind the plan")
+
+ui.page_end_nav("Rotation optimizer")

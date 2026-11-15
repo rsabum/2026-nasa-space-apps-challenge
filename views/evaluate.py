@@ -69,3 +69,5 @@ with st.container(key="card_test"):
         st.caption(ui.BACKTEST_CAPTION)
 
 ui.details_table(a["table"], "See the numbers behind your rotation")
+
+ui.page_end_nav("Rotation evaluator")
