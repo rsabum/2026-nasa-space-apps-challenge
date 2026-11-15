@@ -219,3 +219,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 .DS_Store
+
+# Solver logs and model files (Gurobi / PuLP)
+gurobi.log
+*.lp
+*.sol
+*.mps

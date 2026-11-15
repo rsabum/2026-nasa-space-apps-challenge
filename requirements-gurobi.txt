@@ -1,0 +1,5 @@
+# Optional: the Gurobi solver for model.py (Robert's Mac, academic license in ~/gurobi.lic).
+# Kept out of requirements.txt on purpose: without a license file, pip's gurobipy is limited
+# to 2,000 variables, so Streamlit Cloud and teammates' laptops use the free CBC solver instead.
+# Install with:  pip install -r requirements-gurobi.txt
+gurobipy==13.0.2

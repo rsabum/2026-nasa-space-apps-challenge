@@ -5,6 +5,7 @@ Everyone imports names from here so a typo fails loudly.
 """
 
 # Sample farm used until Tebit supplies real fields from Web Soil Survey.
+# Each field may also carry "irrigated": True/False (missing = rain-fed).
 FARM = {
     "name": "Demo farm, central Illinois",
     "lat": 40.1,
@@ -19,6 +20,11 @@ FARM = {
 }
 
 CROPS = ["corn", "soybeans", "winter_wheat", "sorghum"]
+
+# A rotation is a repeating cycle of 2-5 years: {field: [crop for year 1, ..., year L]},
+# and year 1 follows year L. farm["years"] is the length to plan or search (FARM's 4 is
+# only the default). model.py reports every measure per season (per year of the cycle).
+ROTATION_LENGTHS = [2, 3, 4, 5]
 
 # One fixed color per crop, used in every chart. Soft tones, checked so that
 # all four stay distinguishable for colour-blind readers.
@@ -44,8 +50,51 @@ CROP_ICONS = {
     "sorghum": "\U0001F33F",       # herb
 }
 
-# Default priorities, each 0-10. Normalize in code with normalize_weights().
-WEIGHTS = {"profit": 5, "water": 5, "soil": 5}
+# The farmer picks ONE goal. Everything else becomes a limit (epsilon-constraint method).
+GOALS = {
+    "max_profit": "Most profit",
+    "min_water": "Least water",
+    "max_worst_profit": "Best bad-year profit",
+    "max_soil": "Healthiest soil",
+}
+GOAL_HELP = {
+    "max_profit": "Highest average net profit a year over 1981–2024 weather.",
+    "min_water": "Least water the crops need beyond rain: shortfall on rain-fed fields "
+                 "plus irrigation on irrigated ones.",
+    "max_worst_profit": "Best average profit across your worst seasons (the worst 10% of "
+                        "1981-2024 by default), so a drought hurts less.",
+    "max_soil": "Most soil-health points: legumes, small grains, residue and rye cover.",
+}
+
+# Limits are ABSOLUTE farm totals per year (per season of the repeating rotation), never
+# relative to the farmer's rotation: profit_min / worst_profit_min in $/yr, shortfall_max in
+# acre-in/yr, irrigation_max in acre-in in every season, soil_min in points per acre per year,
+# production_min as {crop: bu/yr}. None or missing = off. model.limit_ranges() gives what a
+# farm can reach on each, which the app uses as slider ranges.
+LIMIT_LABELS = {
+    "profit_min": "Profit at least",
+    "worst_profit_min": "Bad-year profit at least",
+    "shortfall_max": "Water shortfall at most",
+    "irrigation_max": "Irrigation at most, every season",
+    "soil_min": "Soil health at least",
+    "production_min": "Harvest at least",
+}
+# The limits each goal switches on to start with, and where each starts along its slider:
+# 0 = the least the farm can reach on that measure, 1 = the most (from model.limit_ranges).
+DEFAULT_LIMITS = {
+    "max_profit": {"shortfall_max": 0.5},
+    "min_water": {"profit_min": 0.75},
+    "max_worst_profit": {"profit_min": 0.75},
+    "max_soil": {"profit_min": 0.75, "shortfall_max": 0.5},
+}
+# Each goal's own measure: a limit on it would fight the goal, so it is not offered.
+GOAL_OWN_LIMITS = {
+    "max_profit": ["profit_min"],
+    "min_water": ["shortfall_max", "irrigation_max"],
+    "max_worst_profit": ["worst_profit_min"],
+    "max_soil": ["soil_min"],
+}
+WORST_SHARE = 0.10   # "bad years" = the worst 10% of seasons, unless constraints say otherwise
 
 # Default constraints the farmer can change in the sidebar.
 CONSTRAINTS = {
@@ -74,14 +123,6 @@ BACKTEST_COLUMNS = [
     "year", "growing_season_rain_mm",
     "total_profit_usd", "total_shortfall_acre_in", "soil_score_change",
 ]
-
-
-def normalize_weights(weights):
-    """Turn 0-10 slider values into weights that sum to 1."""
-    total = sum(weights.values())
-    if total == 0:
-        return {k: 1 / len(weights) for k in weights}
-    return {k: v / total for k, v in weights.items()}
 
 
 def baseline_plan(farm):

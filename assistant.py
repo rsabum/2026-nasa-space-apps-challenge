@@ -6,8 +6,8 @@ Two modes:
 - Quick-answer mode: otherwise (and as a fallback if the API fails), answers come
   from the built-in FAQ below, which also uses the live numbers.
 
-app.py calls render(ctx) once, at the end of the page, with a dict of what the
-farmer is looking at (see app.py: faq_context).
+app.py calls render(ctx) once per run, after the open page, with a dict of what the
+farmer is looking at (see ui.py: faq_context).
 """
 import os
 import re
@@ -21,8 +21,8 @@ HISTORY_TURNS = 10   # how many recent messages Claude sees
 QUICK_QUESTIONS = [
     "What does Field Shift do?",
     "How do I enter my rotation?",
-    "How did the recommendation do?",
-    "What does the dry-year switch do?",
+    "How did my rotation do?",
+    "How do dry years affect my plan?",
     "Where does the data come from?",
 ]
 
@@ -30,24 +30,36 @@ STABLE_SYSTEM = """You are the built-in assistant for Field Shift, a crop rotati
 built by Team Athens for the NASA Space Apps Challenge 2026 ("Field Shift: Adapting Farms \
 with NASA Data").
 
-What the app does: a farmer enters a 4-year crop rotation for each field (corn, soybeans, \
-winter wheat, sorghum) plus priorities and ground rules. The app backtests that rotation on \
+What the app does: a farmer enters a crop rotation of 2-5 years that repeats (year 1 follows \
+the last year), for each field (corn, soybeans, \
+winter wheat, sorghum). The app backtests that rotation on \
 every growing season of NASA POWER weather from 1981 to 2024, and an optimizer suggests a \
-better rotation that is backtested the same way.
+better rotation, for one objective within the farmer's constraints (absolute limits such as \
+"profit at least $40,000 a year", plus ground rules), that is \
+backtested the same way. Ground rules only limit what the optimizer may suggest; the \
+farmer's own rotation is never checked against them.
 
-Where things are on the page:
-- Left panel: "Your fields" (field map; Edit fields to change names, acres, soil, last crop), \
-"What matters most" (Profit / Water / Soil health sliders, 0-10), "Ground rules" (crops you'd \
-grow, no back-to-back crops, at least one soybean year per field, most acres in one crop).
-- Drought check: switch between planning for a typical year or a dry year.
-- 01 Your rotation: tiles of what they plan to plant; "Edit rotation" to change crops.
-- 02 Optimized rotation: the recommendation, chips comparing it to their rotation, \
-"Why this plan", and "Apply recommendation" to copy it into their rotation.
-- Key numbers: net profit, water shortfall (acre-inches; lower is better), soil health.
-- 03 Tested on NASA weather: ring = seasons the recommendation out-earned their rotation; \
-profit lines over growing-season rain bars; "Replay 1981-2024" plays the seasons; slider \
-jumps to a year.
-- Clicking the logo opens a directory of every section.
+Where things are: the app has three pages, picked from the menu at the top of the left panel.
+- Left panel, on every page: the page menu, "Your fields" (field map; Edit fields to change \
+names, acres, soil, irrigated, last crop).
+- Home: what Field Shift does, buttons to the two tools, how it works, the farm at a glance, \
+and the data sources.
+- Rotation evaluator: "01 Your rotation" (a "Rotation \
+length" switch, 2-5 years; then a grid of crop tiles, field by year: click a tile and pick a \
+crop from its little menu; Reset to corn-soy), key numbers for their rotation, and "02 \
+Tested on NASA weather" (ring = seasons the rotation made money; profit line over \
+growing-season rain bars; Replay 1981-2024 plays the seasons).
+- Rotation optimizer: "01 Your objective" (pick one: most profit, least water, best bad-year \
+profit, healthiest soil), "02 Constraints" (Rotation: the length to search, 2-5 years; Limits: \
+tick a limit and set it on a slider that spans what the farm can reach, in dollars, \
+acre-inches, points or bushels a year, not relative to their rotation; Ground rules: crops \
+you'd grow, most acres in one crop, no back-to-back crops, a soybean year per field), "03 Optimized \
+rotation" (the recommended plan, rule and water-stress chips, About this plan, and "Use this \
+rotation", which loads it into the Rotation evaluator and switches there), its key numbers, and \
+"04 Tested on NASA weather" (ring = seasons the recommended rotation made money).
+- The evaluator and the optimizer are independent: neither compares with the other. The only \
+link is "Use this rotation".
+- Clicking the logo opens a directory of the open page's sections.
 
 Rules:
 - The user is a working farmer. Use plain farming language, short paragraphs, and keep \
@@ -99,53 +111,59 @@ def offline_answer(question, ctx):
         return any((k in q) if (" " in k or len(k) > 4) else (k in words) for k in keys)
 
     if has("how did", "results", "result", "perform", "win", "wins", "better than", "out-earn", "how good"):
-        return (f"Over **{ctx['seasons_tested']} real seasons** (1981–2024), the recommendation "
-                f"out-earned your rotation in **{ctx['seasons_recommendation_won']}**. "
-                f"For four {ctx['planning_for']} years it changes profit by "
-                f"**{ctx['profit_change_vs_yours']}**, water shortfall by "
-                f"**{ctx['water_shortfall_change_vs_yours']}** and soil health by "
-                f"**{ctx['soil_health_change_vs_yours']}**.\n\n"
-                "Watch it season by season with **▶ Replay** in "
-                "[03 · Tested on NASA weather](#backtest). *(Sample numbers for now.)*")
+        mine = (f"**Your rotation** (Rotation evaluator) earns **{ctx['your_profit_per_year']} a "
+                f"year** and made money in **{ctx['your_profitable_seasons']}** real seasons "
+                f"(1981–2024); its toughest was {ctx['your_toughest_season']}.")
+        rec = (f"\n\nThe **Rotation optimizer**'s plan earns **{ctx['recommended_profit_per_year']} "
+               f"a year** and made money in **{ctx['recommended_profitable_seasons']}** seasons."
+               if "recommended_profit_per_year" in ctx else "")
+        return (mine + rec + "\n\nWatch any of them season by season with **▶ Replay** in "
+                "**Tested on NASA weather**. *(Sample numbers for now.)*")
     if has("enter", "edit", "change my", "my rotation", "plant", "type in", "input"):
-        return ("Go to [01 · Your rotation](#rotation) and press **Edit rotation**. Click any "
-                "cell to pick a crop for that field and year. The tiles, the rule check and the "
-                "NASA weather test all update right away.\n\nLike the suggestion better? Press "
-                "**Apply recommendation** in [02](#recommendation) to copy it in, then tweak it.")
+        return ("Open the **Rotation evaluator** page (menu at the top of the left panel). First "
+                "pick your **Rotation length** (2 to 5 years before it repeats), then **click any "
+                "tile** in the grid and pick the crop for that field and year. The rule check and "
+                "the NASA weather test update right away.\n\nTo start from the optimizer's plan, press "
+                "**Use this rotation** on the **Rotation optimizer** page: it loads the plan here.")
     if has("dry", "drought", "typical", "rain", "weather switch", "scenario"):
-        return (f"You're planning for a **{ctx['planning_for']} year**. The switch in "
-                "[Drought check](#weather) sets which rain the recommendation and the four-year "
-                "numbers assume: average growing-season rain, or a dry season from the NASA "
-                "record. A dry year favors crops that need less water, like sorghum and winter "
-                "wheat.\n\nThe 1981–2024 test always runs every real year, wet and dry.")
+        return ("Every number in Field Shift is an **average over all 44 growing seasons, "
+                "1981–2024**, wet and dry, from NASA weather. To see dry years one by one, look "
+                "at **Tested on NASA weather** on either tool page: red bars are the driest "
+                f"seasons (the driest was **{ctx['driest_season']}**), and ▶ Replay plays them in "
+                "order.\n\nTo plan for drought, pick **Least water** or **Best bad-year profit** "
+                "as your objective on the **Rotation optimizer**, or set a water-shortfall limit.")
     if has("nasa", "data", "source", "power", "satellite", "soil survey", "where"):
         return ("Weather is **NASA POWER**: monthly rain, temperature, sunlight and soil "
                 "wetness for your farm's location since 1981. Soil comes from USDA Web Soil "
                 "Survey, past crops from CropScape, and county yields from USDA NASS to "
-                "sanity-check the model. Links are in [Data sources](#sources).\n\n"
+                "sanity-check the model. Links are under **Data sources** on the Home page.\n\n"
                 "*Sample values are shown until the NASA data is connected.*")
     if has("test", "backtest", "1981", "history", "replay", "season", "chart", "graph", "ring"):
         return ("Every rotation is run against each real season from 1981 to 2024. The ring "
-                f"shows the recommendation won **{ctx['seasons_recommendation_won']}** seasons. "
+                f"shows how many seasons it made money (yours: **{ctx['your_profitable_seasons']}**). "
                 "The top chart is profit per season and the bars underneath are that season's "
                 f"rain; red marks the driest seasons (the driest was **{ctx['driest_season']}**).\n\n"
-                "Press **▶ Replay 1981–2024** or drag the slider in [03](#backtest).")
-    if has("slider", "priorit", "matter", "weight", "profit", "water", "soil health"):
-        return ("The **What matters most** sliders in the left panel tell the optimizer what to "
-                f"favor (now Profit {ctx['priority_profit']}, Water {ctx['priority_water']}, "
-                f"Soil health {ctx['priority_soil']}). Only the balance matters: 5/5/5 is the "
-                "same as 2/2/2. Raise Water to favor crops that hold up when rain runs short, "
-                "or Soil health for legumes and residue.")
+                "Press **▶ Replay 1981–2024** or drag the slider, on either tool page.")
+    if has("goal", "limit", "slider", "priorit", "matter", "weight", "profit", "water", "soil health"):
+        return (f"The optimizer's objective is **{ctx.get('optimizer_objective', 'not set yet')}**\n\n"
+                f"Limits: **{ctx.get('optimizer_limits', 'none')}**. "
+                "The optimizer makes the objective as good as it can without breaking a limit. "
+                "On the **Rotation optimizer** page, card 01 sets the objective and card 02 the "
+                "constraints: each limit's slider spans what your farm can reach. Pick *Least "
+                "water* to favor crops that hold up when rain runs short, or *Healthiest soil* "
+                "for legumes, small grains and rye cover.")
     if has("rule", "back-to-back", "back to back", "soybean year", "acres in one", "constraint"):
-        return ("**Ground rules** (left panel) are limits the recommendation must follow: which "
-                "crops you'd grow, no crop two years running, at least one soybean year per "
-                "field, and a cap on how much land one crop can take in a year. "
-                f"Your rotation currently {ctx['your_rotation_rules']}.")
+        return ("**Ground rules** (card 02 on the **Rotation optimizer** page) limit what the "
+                "optimizer may suggest: which crops you'd grow, no crop two years running, at "
+                "least one soybean year per field, and a cap on how much land one crop can take "
+                "in a year. Your own rotation is yours to choose, so the evaluator doesn't "
+                "check it against them.")
     if has("recommend", "optimiz", "suggest", "why", "apply", "better plan"):
-        return ("The optimizer looks for the rotation that best fits your priorities and ground "
-                f"rules. It's {ctx['recommendation_vs_yours']}. The **Why this plan** box in "
-                "[02 · Optimized rotation](#recommendation) explains the biggest change. Press "
-                "**Apply recommendation** to copy it into your rotation and adjust from there.")
+        return ("The optimizer tries every legal rotation on every field and picks the best one "
+                "for your objective, within your constraints"
+                + (f": now {ctx['recommended_rotation']}" if "recommended_rotation" in ctx else "")
+                + ". The **About this plan** box on the **Rotation optimizer** page sums it up. "
+                "Press **Use this rotation** to load it into the Rotation evaluator and adjust it there.")
     if has("fields", "my field", "map", "acre", "acres", "soil type"):
         return (f"Your farm has **{ctx['total_acres']} acres** in {ctx['fields']}. Each plot on the "
                 "map in the left panel is sized by acres and tinted by last season's crop. "
@@ -155,12 +173,12 @@ def offline_answer(question, ctx):
            "help", "hello", "hi", "hey", "start", "get started"):
         return ("**Field Shift** tests your crop rotation against 44 seasons of real NASA "
                 "weather (1981–2024), then suggests a better one and tests that too.\n\n"
-                "1. Set your fields, priorities and ground rules in the left panel.\n"
-                "2. Enter your rotation in [01](#rotation).\n"
-                "3. Compare it with the recommendation in [02](#recommendation).\n"
-                "4. See how both held up in [03](#backtest).")
-    return ("I can help with entering your rotation, the dry-year switch, the recommendation, "
-            "the NASA weather test, the sliders and ground rules, and where the data comes from. "
+                "1. Set up your fields in the left panel.\n"
+                "2. Enter your rotation in the **Rotation evaluator**.\n"
+                "3. Pick a goal in the **Rotation optimizer** and compare.\n"
+                "4. See how both held up on 44 seasons of NASA weather.")
+    return ("I can help with entering your rotation, dry years, the recommendation, the NASA "
+            "weather test, your objective and constraints, and where the data comes from. "
             "Try one of the suggested questions above.")
 
 
