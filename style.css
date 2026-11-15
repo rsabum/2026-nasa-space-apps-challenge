@@ -813,7 +813,7 @@ div.fs-step {cursor: default;}
    Tiles are popovers keyed "cell-<crop>-<field>-<year>"; their menus hold one button per
    crop keyed "pick-<crop>-…" ("-sel" on the current crop). --cc is the crop's colour. */
 
-/* 1. Opening the menu: it grows out of the tile, then the choices slide in one by one. */
+/* 1. Opening the menu: it fades down from the tile, then the choices fade down in turn. */
 [data-testid="stPopoverBody"]:has([class*="st-key-pick-"]) {
     animation: fs-menu-open .3s ease-out both;}
 @keyframes fs-menu-open {from {opacity: 0; transform: translateY(-6px);}}
@@ -824,7 +824,7 @@ div.fs-step {cursor: default;}
 [class*="st-key-pick-sorghum-"] {animation-delay: .12s;}
 @keyframes fs-choice-in {from {opacity: 0; transform: translateY(-4px);}}
 
-/* 2. In the menu: hover lifts the crop with a glow in its own colour and wiggles its icon;
+/* 2. In the menu: hover nudges the crop with a soft glow in its own colour;
       a click presses it in; the current crop has a soft pulsing ring. */
 [class*="st-key-pick-"] button {transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;}
 [class*="st-key-pick-"] button:hover {transform: translateX(2px); filter: brightness(1.04);
@@ -836,7 +836,7 @@ div.fs-step {cursor: default;}
     50%      {box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, #BFD7FF) 28%, transparent);}
 }
 
-/* 3. The tiles: a changed tile flips in with its new crop (its key includes the crop, so
+/* 3. The tiles: a changed tile fades down into place with its new crop (its key includes the crop, so
       only the tile you changed is new and animates). Hover lifts with a matching glow. */
 [class*="st-key-cell-"] button {transition: transform .18s ease, box-shadow .18s ease;
     animation: fs-tile-fade .45s ease-out both;}
