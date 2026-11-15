@@ -499,14 +499,15 @@ a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
    stays off screen until the 25 s loop starts again. */
 [data-testid="stApp"] {isolation: isolate;}
 [data-testid="stApp"]::before {content: ""; position: fixed; left: 0; top: 0; z-index: -1;
-    width: 150px; height: 256px; pointer-events: none; opacity: .4;
+    width: 440px; height: 750px;   /* about 3x the first version */ pointer-events: none; opacity: .4;
     background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 205%22 fill=%22none%22 stroke=%22%23BFD7FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cdefs%3E%3Cfilter id=%22p%22 x=%22-10%25%22 y=%22-10%25%22 width=%22120%25%22 height=%22120%25%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.9%22 numOctaves=%222%22 seed=%223%22 result=%22n%22/%3E%3CfeDisplacementMap in=%22SourceGraphic%22 in2=%22n%22 scale=%222.2%22/%3E%3C/filter%3E%3C/defs%3E%3Cg filter=%22url(%23p)%22%3E%3Cg stroke-width=%222%22%3E%3Cpath d=%22M60 12C79 32 86 62 86 100v40H34v-40c0-38 7-68 26-88z%22/%3E%3Ccircle cx=%2260%22 cy=%2272%22 r=%2212%22/%3E%3Cpath d=%22M34 108l-20 40 20-7M86 108l20 40-20-7M44 140l-4 12h40l-4-12%22/%3E%3Cpath d=%22M50 158c1 12 6 20 10 32 4-12 9-20 10-32%22/%3E%3C/g%3E%3Cg stroke-width=%221.1%22 stroke-opacity=%22.6%22%3E%3Cpath d=%22M61.5 10.5C81 31 87.5 62 87.2 101l.3 38.5M32.8 139.5l.5-39c.5-37 7.5-67 27-89%22/%3E%3Ccircle cx=%2260.8%22 cy=%2271.2%22 r=%227.5%22/%3E%3Cpath d=%22M35 122h50M35 126h50M55 160c1 8 3 13 5 19 2-6 4-11 5-19%22/%3E%3Cpath d=%22M40 50l6-6M38 60l8-8M37 70l7-7M36 80l6-6M36 90l5-5%22/%3E%3Cpath d=%22M60 196v4M52 194l-2 5M68 194l2 5%22 stroke-dasharray=%222 3%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
     animation: fs-rocket 25s linear infinite;}
 @keyframes fs-rocket {
-    0%   {transform: translate(18vw, 112vh) rotate(38deg);}
-    20%  {transform: translate(55vw, 48vh) rotate(42deg);}
-    40%  {transform: translate(105vw, -40vh) rotate(36deg);}
-    100% {transform: translate(105vw, -40vh) rotate(36deg);}
+    /* Starts and ends further off screen now that the rocket is bigger. */
+    0%   {transform: translate(0vw, 110vh) rotate(38deg);}
+    20%  {transform: translate(45vw, 25vh) rotate(42deg);}
+    40%  {transform: translate(110vw, -95vh) rotate(36deg);}
+    100% {transform: translate(110vw, -95vh) rotate(36deg);}
 }
 @media (prefers-reduced-motion: reduce) {
     [data-testid="stApp"]::before {animation: none; display: none;}
