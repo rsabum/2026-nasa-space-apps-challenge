@@ -437,6 +437,84 @@ def faq_context(farm, scenario, weights, plan_table, base_table, wins, n_seasons
     }
 
 
+@st.cache_data(show_spinner="Finding trade-off plans…")
+def pareto_options(farm, scenario, constraints):
+    """The optimizer's trade-off plans, cached so the real (slower) solver only runs when
+    the fields, the weather mode or the ground rules change. Duplicate plans are dropped
+    and each gets a letter. The plan may come back as a table or as {field: [crops]}."""
+    seen, options = set(), []
+    for opt in model.solve_pareto(farm, None, scenario, constraints):
+        plan = opt["plan"]
+        plan = model.table_to_plan(plan) if hasattr(plan, "groupby") else dict(plan)
+        tag = str(sorted(plan.items()))
+        if tag in seen:
+            continue
+        seen.add(tag)
+        options.append({"profit": float(opt["total_profit_usd"]),
+                        "water": float(opt["total_shortfall_acre_in"]),
+                        "soil": float(opt["soil_score_change"]), "plan": plan})
+    options.sort(key=lambda o: o["water"])
+    for i, o in enumerate(options):
+        o["label"] = chr(ord("A") + i)
+    return options
+
+
+def frontier(options):
+    """The best trade-offs: going left to right (more water shortfall), keep only the
+    options that earn more than every option to their left."""
+    best, out = float("-inf"), []
+    for o in sorted(options, key=lambda o: (o["water"], -o["profit"])):
+        if o["profit"] > best:
+            out.append(o)
+            best = o["profit"]
+    return out
+
+
+def tradeoff_chart(options, mine, rec):
+    """Profit (up) against water shortfall (left is less), one dot per option, coloured
+    by soil health. Your rotation is a diamond, the recommendation a star."""
+    fig = go.Figure()
+    edge = frontier(options)
+    fig.add_trace(go.Scatter(
+        x=[o["water"] for o in edge], y=[o["profit"] for o in edge], mode="lines",
+        line=dict(color="rgba(191,215,255,0.45)", width=2, dash="dash", shape="spline", smoothing=0.5),
+        hoverinfo="skip", name="Best trade-offs"))
+    fig.add_trace(go.Scatter(
+        x=[o["water"] for o in options], y=[o["profit"] for o in options], mode="markers+text",
+        text=[o["label"] for o in options], textposition="middle center",
+        textfont=dict(color="#141830", size=11, family="Inter, sans-serif"),
+        marker=dict(size=26, color=[o["soil"] for o in options], line=dict(color="#0A0E1F", width=2),
+                    colorscale=[[0, "#E0879A"], [0.35, "#E9A866"], [0.65, "#F5C94C"], [1, "#6FD49B"]],
+                    colorbar=dict(title=dict(text="Soil<br>health", font=dict(color=MUTED, size=11)),
+                                  thickness=10, len=0.8, tickfont=dict(color=MUTED, size=10),
+                                  outlinewidth=0)),
+        customdata=[[o["label"], o["soil"]] for o in options], name="Options",
+        hovertemplate="<b>Option %{customdata[0]}</b><br>Profit $%{y:,.0f}<br>"
+                      "Water shortfall %{x:,.0f} acre-in<br>Soil health %{customdata[1]:+.1f}<extra></extra>"))
+    for point, name, symbol, color, size in (
+            (mine, "Your rotation", "diamond", MINE, 18),
+            (rec, "Recommended", "star", ACCENT, 24)):
+        fig.add_trace(go.Scatter(
+            x=[point[1]], y=[point[0]], mode="markers", name=name,
+            marker=dict(symbol=symbol, size=size, color=color, line=dict(color="#0A0E1F", width=2)),
+            hovertemplate=f"<b>{name}</b><br>Profit $%{{y:,.0f}}<br>Water shortfall %{{x:,.0f}} acre-in<extra></extra>"))
+    fig.update_layout(
+        height=420, margin=dict(l=0, r=0, t=10, b=0), hovermode="closest",
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", color=MUTED),
+        hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
+        legend=dict(orientation="h", yanchor="top", y=-0.16, x=0))
+    fig.update_xaxes(title_text="← less water shortfall (acre-in, 4 years)", gridcolor=GRID, zeroline=False)
+    fig.update_yaxes(title_text="Net profit, 4 years ↑", tickprefix="$", gridcolor=GRID, zeroline=False)
+    return fig
+
+
+def option_label(o):
+    """'Option A · $154,240 · 271 acre-in · soil +12.2' for the picker."""
+    return (f"Option {o['label']} · ${o['profit']:,.0f} · {o['water']:,.0f} acre-in short · "
+            f"soil {o['soil']:+.1f}")
+
+
 def field_map_html(fields):
     """Draw the farm from above: one plot per field, sized by its acres and
     tinted by the crop that grew there last season."""
@@ -498,6 +576,7 @@ DIRECTORY = [
     ]),
     ("Proof", "Check the evidence", [
         ("backtest", "🛰️", "NASA weather test", "Every season, 1981–2024"),
+        ("tradeoffs", "⚖️", "Trade-offs", "Other good plans and what each gives up"),
         ("details", "📋", "Numbers behind the plan", "Field-by-field table"),
         ("sources", "📚", "Data sources", "Where every number comes from"),
     ]),
@@ -825,6 +904,37 @@ with st.container(key="card_test"):
                    "Bottom panel: growing-season rain from NASA POWER, dotted line = average, "
                    ":red[red] = driest quarter of seasons, :blue[blue] = wettest. "
                    "Sample values until the NASA data is connected.")
+
+# ---------- 04 · Trade-offs (from solve_pareto) ----------
+with st.container(key="card_trade"):
+    eyebrow("04 · Trade-offs")
+    st.subheader("Other good plans, and what each one gives up", anchor="tradeoffs")
+    st.caption("The optimizer re-ran with profit and water weighed differently. Each dot is a plan: "
+               "higher earns more, further left runs shorter of water, greener builds more soil. "
+               "The dashed line links the best trade-offs, where you can't earn more without "
+               "accepting more water shortfall.")
+    try:
+        options = pareto_options(farm, scenario, constraints)
+    except Exception as e:  # keep the rest of the page working if the solver struggles
+        options = []
+        st.info(f"Trade-off plans aren't available right now ({e}).")
+    if options:
+        st.plotly_chart(tradeoff_chart(options, (bp, bw), (p, w)), key="tradeoff")
+        pick_col, _ = st.columns([2, 1])
+        with pick_col:
+            picked = st.selectbox("Look at an option", options, format_func=option_label,
+                                  key=f"pareto_pick-{scenario}",
+                                  help="Pick a dot to see its rotation. Letters match the chart.")
+        show_html(rotation_grid_html(pd.DataFrame(picked["plan"]).T.rename(columns=lambda i: i + 1)))
+        pick_problems = rule_problems(picked["plan"], farm, constraints)
+        if pick_problems:
+            st.caption(f":orange[This option breaks {len(pick_problems)} of your ground rules.]")
+        if picked["plan"] != my_plan:
+            st.button(f"Use option {picked['label']} as my rotation", on_click=apply_plan,
+                      args=(picked["plan"],), key="use_option",
+                      help="Copies this plan into Your rotation, so it's backtested on NASA weather.")
+        else:
+            st.caption(":blue[✓ This is your current rotation.]")
 
 anchor("details")
 with st.expander("See the numbers behind the plan"):

@@ -111,7 +111,7 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 @media (max-width: 760px) {.fs-flow {grid-template-columns: 1fr 1fr;}}
 
 /* ---------- Section panels ---------- */
-.st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario {
+.st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_trade, .st-key-card_scenario {
     position: relative;
     /* Two backgrounds: the panel fill inside, and a blue-to-ice gradient showing through
        the transparent border. That's how CSS draws a gradient border with rounded corners. */
@@ -119,10 +119,10 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
     border: 1px solid transparent; border-radius: var(--r-card);
     padding: 26px 28px 22px 28px; box-shadow: var(--shadow);}
 /* Section titles inside panels: white fading to pale NASA blue. */
-.st-key-card_mine h3, .st-key-card_plan h3, .st-key-card_test h3 {
+.st-key-card_mine h3, .st-key-card_plan h3, .st-key-card_test h3, .st-key-card_trade h3 {
     background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
 /* A thin glowing line along the top edge of each panel. */
-.st-key-card_mine::before, .st-key-card_plan::before, .st-key-card_test::before {
+.st-key-card_mine::before, .st-key-card_plan::before, .st-key-card_test::before, .st-key-card_trade::before {
     content: ""; position: absolute; top: -1px; left: 28px; right: 28px; height: 1px;
     background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .8;}
 .st-key-card_plan::before {background: linear-gradient(90deg, transparent, var(--accent), transparent);}
@@ -546,7 +546,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 /* 4. Cards slide up as they scroll into view (browsers that support scroll-driven
       animations; others just show them). */
 @supports (animation-timeline: view()) {
-    .st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario,
+    .st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_trade, .st-key-card_scenario,
     [data-testid="stMetric"], .fs-sources, [data-testid="stExpander"] {
         animation: fs-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 35%;}
 }
@@ -635,7 +635,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 
 @media (prefers-reduced-motion: reduce) {
     .fs-topbar, .fs-hero, .fs-flow, .fs-hero-title, .fs-step::before, .st-key-card_mine,
-    .st-key-card_plan, .st-key-card_test, .st-key-card_scenario, [data-testid="stMetric"], .fs-sources,
+    .st-key-card_plan, .st-key-card_test, .st-key-card_trade, .st-key-card_scenario, [data-testid="stMetric"], .fs-sources,
     [data-testid="stExpander"], .rg > .rg-cell, .fs-chip, .fs-ring,
     [data-testid="stBaseButton-primary"]::after, .fm-plot {animation: none !important;}
 }
@@ -769,3 +769,6 @@ a.fs-step:nth-of-type(4) {--sc: #E0879A;}
    (and its menu) above them. */
 .fs-hero {position: relative; z-index: 30;}
 .fs-flow {position: relative; z-index: 1;}
+
+/* 04 · Trade-offs card: a gap above it, like the other sections. */
+.st-key-card_trade {margin-top: 6px;}
