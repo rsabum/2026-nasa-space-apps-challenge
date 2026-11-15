@@ -1,0 +1,7 @@
+crop,is_cover_crop,cdl_code,nass_commodity,family,is_legume,water_use_mm_season,drought_sensitivity,season_length_days,frost_tolerance,planting_window_start,planting_window_end,cost_per_acre_usd,cost_source,erosion_protection,soil_health_points,source,notes
+corn,false,1,"CORN, GRAIN",,,,,,,,,,,,,,
+soybeans,false,5,SOYBEANS,,,,,,,,,,,,,,
+oats,false,28,OATS,,,,,,,,,,,,,,
+winter_wheat,false,24,"WHEAT, WINTER",,,,,,,,,,,,,,
+alfalfa,false,36,"HAY, ALFALFA",,,,,,,,,,,,,,
+cereal_rye,true,27,,,,,,,,,,,,,,,

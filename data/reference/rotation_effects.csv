@@ -1,0 +1,4 @@
+prev_crop,next_crop,yield_change_pct,n_credit_lb_per_acre,source,notes
+soybeans,corn,,,,corn after soybeans (rotation effect + legume N credit)
+corn,corn,,,,corn after corn (continuous-corn yield penalty)
+alfalfa,corn,,,,corn after alfalfa (legume N credit)

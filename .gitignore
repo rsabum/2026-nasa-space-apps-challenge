@@ -218,3 +218,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Field Shift data cache (never commit downloads, rasters or synthetic caches)
+data/raw/
+data/processed/
+data/mock/
+data/manifest.json
+# data/reference/*.csv are hand-filled tables and ARE committed
