@@ -188,9 +188,9 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
                                      background-clip: text; color: transparent;}
 /* A glowing crop-coloured bar along the top of each card. */
 [data-testid="stMetric"]::before {content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;}
-.st-key-m_profit [data-testid="stMetric"]::before {background: linear-gradient(90deg, #EEF4FF, transparent);}
+.st-key-m_profit [data-testid="stMetric"]::before {background: linear-gradient(90deg, #F5C94C, transparent);}   /* corn gold: the cash crop */
 .st-key-m_water  [data-testid="stMetric"]::before {background: linear-gradient(90deg, var(--blue), transparent);}
-.st-key-m_soil   [data-testid="stMetric"]::before {background: linear-gradient(90deg, var(--accent), transparent);}
+.st-key-m_soil   [data-testid="stMetric"]::before {background: linear-gradient(90deg, #6FD49B, transparent);}   /* soybean green: builds soil */
 
 /* ---------- Backtest headline: a ring gauge ---------- */
 .fs-stat {border: 1px solid var(--border); border-radius: var(--r-box); padding: 22px 16px 18px; text-align: center;
@@ -735,3 +735,31 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
     .st-key-faq [data-testid="stPopoverButton"], .st-key-faq [data-testid="stPopoverButton"]::after,
     .fs-faq-orb, .st-key-faq_log [data-testid="stChatMessage"] {animation: none !important;}
 }
+
+
+/* ---------- Crop colours, used where they mean something ----------
+   corn #F5C94C, soybeans #6FD49B, winter wheat #E9A866, sorghum #E0879A
+   (CROP_COLORS in app.py drives the tiles, field map, tags and crop-mix chart). */
+/* The four steps: one crop colour each. */
+a.fs-step span {background: var(--sc) !important; color: var(--on-crop) !important;
+                box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 55%, transparent) !important;}
+a.fs-step::after {background: linear-gradient(90deg, var(--sc), transparent) !important;}
+a.fs-step:nth-of-type(1) {--sc: #F5C94C;}
+a.fs-step:nth-of-type(2) {--sc: #6FD49B;}
+a.fs-step:nth-of-type(3) {--sc: #E9A866;}
+a.fs-step:nth-of-type(4) {--sc: #E0879A;}
+/* Crop key under the rotation title. */
+.fs-crop-key {display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px;}
+.fs-crop-key span {display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600;
+                   color: var(--c); padding: 4px 10px 4px 6px; border-radius: 999px;
+                   background: color-mix(in srgb, var(--c) 12%, transparent);
+                   border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);}
+.fs-crop-key .fs-crop-icon {width: 16px; height: 16px;}
+/* Crop names in sentences ("Why this plan"). */
+.fs-crop-word {font-weight: 650; white-space: nowrap;}
+.fs-crop-word i {display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 4px 1px 0;
+                 vertical-align: middle;}
+.fs-mix-title {margin: 18px 0 0;}
+/* Rotation tiles glow in their own crop colour on hover. */
+.rg-cell:hover {box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 12px 28px rgba(2, 5, 20, .6),
+                0 0 24px color-mix(in srgb, var(--cc, #FFFFFF) 55%, transparent);}

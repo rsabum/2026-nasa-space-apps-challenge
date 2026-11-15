@@ -28,11 +28,54 @@ NORMAL = "#2A3466"   # middle seasons
 # light enough for dark text. contract.py keeps the team's original colours (change
 # that file only with the whole team); the app shows these. Always pair with icon + label.
 CROP_COLORS = {
-    "corn": "#EEF4FF",          # ice white
-    "soybeans": "#B5D3F7",      # pale sky
-    "winter_wheat": "#93A9EE",  # periwinkle
-    "sorghum": "#6F8FD8",       # steel blue
+    "corn": "#F5C94C",          # golden yellow: ripe kernels
+    "soybeans": "#6FD49B",      # fresh green: the legume that builds soil
+    "winter_wheat": "#E9A866",  # wheat tan: mature grain
+    "sorghum": "#E0879A",       # burgundy-rose: sorghum's reddish seed heads
 }
+# (The blue-white set from earlier today, if we go back: corn #EEF4FF, soybeans #B5D3F7,
+#  winter wheat #93A9EE, sorghum #6F8FD8.)
+
+
+def crop_word(crop):
+    """A crop name in its own colour, with a small dot. For sentences on dark cards."""
+    color = CROP_COLORS.get(crop, "#E6E9F5")
+    return (f'<span class="fs-crop-word" style="color:{color}">'
+            f'<i style="background:{color}"></i>{html.escape(CROP_LABELS.get(crop, crop))}</span>')
+
+
+def crop_key_html():
+    """A small legend: each crop's colour and icon."""
+    return '<div class="fs-crop-key">' + "".join(
+        f'<span style="--c:{CROP_COLORS[c]}">{CROP_SVG[c]}{CROP_LABELS[c]}</span>' for c in CROPS) + '</div>'
+
+
+def crop_mix_chart(plans, farm):
+    """Acres of each crop, year by year, for each plan side by side: stacked bars in the
+    crop colours. Built only from the plans and field acres, so nothing is invented."""
+    acres = {f["name"]: f["acres"] for f in farm["fields"]}
+    fig = make_subplots(rows=1, cols=len(plans), shared_yaxes=True, horizontal_spacing=0.06,
+                        subplot_titles=list(plans))
+    for col, plan in enumerate(plans.values(), start=1):
+        years = [f"Year {i + 1}" for i in range(farm["years"])]
+        for crop in CROPS:
+            ys = [sum(acres.get(f, 0) for f, cs in plan.items() if cs[i] == crop)
+                  for i in range(farm["years"])]
+            fig.add_trace(go.Bar(
+                x=years, y=ys, name=CROP_LABELS[crop], legendgroup=crop, showlegend=(col == 1),
+                marker=dict(color=CROP_COLORS[crop], line=dict(color="#0A0E1F", width=1.5)),
+                hovertemplate=f"{CROP_LABELS[crop]}: %{{y:g}} ac<extra></extra>"), row=1, col=col)
+    fig.update_layout(
+        barmode="stack", height=270, margin=dict(l=0, r=0, t=28, b=0), bargap=0.32,
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, sans-serif", color=MUTED),
+        hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.28, x=0))
+    fig.update_annotations(font=dict(color=INK, size=13))
+    fig.update_xaxes(gridcolor=GRID, zeroline=False)
+    fig.update_yaxes(gridcolor=GRID, zeroline=False)
+    fig.update_yaxes(title_text="Acres", row=1, col=1)
+    return fig
 # Our own crop icons: matching line art (24x24, drawn in the text colour, with a light
 # duotone fill), so the app doesn't look like stock emoji. contract.py's CROP_ICONS
 # emoji stay untouched for the team; dropdowns show the plain label, since they can't
@@ -113,7 +156,8 @@ def rotation_grid_html(grid):
         body += f'<div class="rg-field">{html.escape(str(field))}</div>'
         for year, crop in row.items():
             label = html.escape(CROP_LABELS.get(crop, str(crop)))
-            body += (f'<div class="rg-cell" style="background:{CROP_COLORS.get(crop, "#EEEEEE")}" '
+            body += (f'<div class="rg-cell" style="background:{CROP_COLORS.get(crop, "#EEEEEE")};'
+                     f'--cc:{CROP_COLORS.get(crop, "#EEEEEE")}" '
                      f'title="{html.escape(str(field))}, year {year}: {label}">'
                      f'<span class="rg-icon">{CROP_SVG.get(crop, "")}</span>'
                      f'<span class="rg-name">{label}</span></div>')
@@ -249,8 +293,8 @@ def why_this_plan_html(suggested, mine, plan_table, base_table, farm, scenario):
     else:
         # Sentence 1: the field where the change is biggest (most years changed, then most acres).
         field = max(changed, key=lambda f: (changed[f], acres.get(f, 0)))
-        new = " → ".join(CROP_LABELS.get(c, c) for c in suggested[field])
-        old = " → ".join(CROP_LABELS.get(c, c) for c in mine[field])
+        new = " → ".join(crop_word(c) for c in suggested[field])
+        old = " → ".join(crop_word(c) for c in mine[field])
         n_total = sum(len(c) for c in suggested.values())
         body = (f"It changes {n_changed} of your {n_total} field-years. The biggest change is on "
                 f"<b>{html.escape(str(field))}</b> ({acres.get(field, 0):g} ac): {new}, "
@@ -612,6 +656,7 @@ with st.container(key="card_mine"):
                if applied else
                "It starts as a plain corn–soy rotation. Press Edit rotation and change it to what "
                "you'd actually plant; we'll test it on every season since 1981.")
+    show_html(crop_key_html())
     tiles = st.container()   # the tiles go here, once we know the rotation
     b1, b2, _ = st.columns([1, 1, 2.6])
     with b1.popover(":material/edit: Edit rotation"):
@@ -672,6 +717,9 @@ with st.container(key="card_plan"):
                    "fit together on your farm. Try loosening one in the sidebar.\n\n"
                    + bullet_list(sug_problems), icon="⚠️")
     show_html(why_this_plan_html(suggested, my_plan, plan_table, base_table, farm, scenario))
+    show_html('<div class="fs-why-title fs-mix-title">Acres by crop, year by year</div>')
+    st.plotly_chart(crop_mix_chart({"Your rotation": my_plan, "Recommended": suggested}, farm),
+                    key="crop_mix")
     if suggested != my_plan:
         st.button("Apply recommendation →", type="primary", on_click=apply_plan, args=(suggested,),
                   help="Copies this plan into Your rotation, so you can tweak it and see how it tests.")
