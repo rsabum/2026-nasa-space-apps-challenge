@@ -16,6 +16,7 @@ shape the optimizer's search, so they live on the Rotation optimizer page. The d
 """
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 import assistant
 import ui
@@ -24,6 +25,15 @@ from contract import CROPS, FARM
 st.set_page_config(page_title="Field Shift", page_icon=str(ui.ASSETS / "icon.png"), layout="wide")
 ui.load_styles()
 ui.keep_state()
+
+@st.dialog("Your rotation in 3D", width="large")
+def rotation_3d_fullscreen(farm):
+    """The 3D rotation model, big: opened by the Full screen button in the left panel."""
+    components.html(ui.farm_3d_html(farm, ui.current_plan(farm), big=True), height=640)
+    st.caption("Drag to turn, scroll to zoom, right-drag to move. Y1, Y2… show each year of your "
+               "rotation (▶ plays through it); hover a field for its whole rotation. Slide the time "
+               "of day, or let ↻ Day cycle run. Close with ✕ or Esc.")
+
 
 pages = st.navigation([
     st.Page("views/home.py", title="Home", icon=":material/home:", default=True),
@@ -60,6 +70,21 @@ with st.sidebar:
     with field_map:
         ui.show_html(ui.field_map_html(fields))
         st.caption("Each plot is sized by its acres and tinted by last season's crop.")
+
+    # ---------- Your rotation in 3D: the evaluator's rotation as stacked layers ----------
+    if not fields.empty:
+        with st.container(key="rot3d"):
+            st.header("Your rotation in 3D", anchor=False)
+            farm3d = {**FARM, "fields": fields.to_dict("records")}
+            plan3d = ui.current_plan(farm3d)
+            if plan3d:
+                components.html(ui.farm_3d_html(farm3d, plan3d), height=270)
+                if st.button(":material/open_in_full: Full screen", key="rot3d_full",
+                             use_container_width=True,
+                             help="Open the 3D model big, to spin and zoom it."):
+                    rotation_3d_fullscreen(farm3d)
+                st.caption("Your rotation from the Rotation evaluator, planted. Y1, Y2… switch "
+                           "years, ☀/☾ day or night, drag to turn, hover a field for details.")
 
 # What the pages read (through ui.farm_ready). Rebuilt on every run, so it's never stale.
 st.session_state["_farm_ctx"] = {

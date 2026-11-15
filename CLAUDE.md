@@ -130,3 +130,9 @@ Done Nov 15: the farmer enters their own rotation; Robert's real `model.py` is i
 - `ui.py` has `USE_REAL_OPTIMIZER = False` near the top. While False, the app imports `dummy_model.py` instead of `model.py`: `solve()` skips Gurobi/CBC and picks a plausible rotation per goal (fixed patterns, chosen so `rules.rule_problems` finds nothing to flag when the rules allow it), then scores it with Robert's real simulation. `evaluate`, `backtest`, `limit_ranges` and the table converters are re-exported from `model.py` unchanged. The solver name shows as "dummy (UI mode)".
 - **Set `USE_REAL_OPTIMIZER = True` before a real demo or deploy.**
 - Why: on Claude-Thomas's Apple-silicon Mac (no Rosetta), PuLP's bundled CBC binary fails with "Bad CPU type in executable", and there's no Gurobi licence there.
+
+## 3D farm (Claude-Thomas, Nov 15)
+
+- Left panel, under the field map: "Your rotation in 3D". `assets/farm3d.html` (Three.js r128 from jsdelivr, needs internet) filled in by `ui.farm_3d_html(farm, plan, big)` and shown with `st.components.v1.html`. Fields laid out like the field map; the chosen year's crop planted in rows (instanced meshes, wind sway and grow-in in the vertex shader); barn, silo, trees; day/night (sun, shadows, sunset sky, stars, moon, lit barn windows). Y1… buttons pick the year, ▶ plays through the rotation, ☀/☾ toggles. Summary chip shows acres per crop that year; hover/tap a field for its card (acres, soil, last crop, whole rotation with the current year outlined).
+- "Full screen" button opens `rotation_3d_fullscreen()` (an `st.dialog`, width large) with the big version (zoom, pan, time-of-day slider, ↻ Day cycle).
+- The plan shown is `ui.current_plan(farm)`: the Rotation evaluator's rotation.

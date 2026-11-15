@@ -9,6 +9,7 @@ app.py is the entry point: it sets up the page, draws the farm setup in the side
 and runs whichever page is open (views/home.py, views/evaluate.py, views/optimize.py).
 """
 import html
+import json
 import math
 import urllib.parse
 from pathlib import Path
@@ -276,6 +277,24 @@ def cell_css():
                       f'-webkit-mask: url("{uri}") center / contain no-repeat; '
                       f'mask: url("{uri}") center / contain no-repeat;}}')
     return f"<style>{rules}</style>"
+
+
+def farm_3d_html(farm, plan, big=False):
+    """The farmer's rotation as a realistic 3D farm (assets/farm3d.html, Three.js): fields
+    laid out like the field map, the chosen year's crop planted in rows, a barn and trees,
+    day and night. Buttons pick the year; hover a field for its whole rotation. Returns
+    the page to show with st.components.v1.html."""
+    data = {
+        "big": bool(big),
+        "years": len(next(iter(plan.values()))) if plan else 0,
+        "fields": [{"name": str(f["name"]), "acres": float(f"{float(f['acres']):g}"), "soil": str(f.get("soil", "")),
+                    "last_crop": str(f.get("last_crop", ""))} for f in farm["fields"] if str(f["name"]) in plan],
+        "plan": {str(k): list(v) for k, v in plan.items()},
+        "labels": dict(CROP_LABELS),
+        "colors": dict(CROP_COLORS),
+    }
+    page = (ASSETS / "farm3d.html").read_text()
+    return page.replace("__DATA__", json.dumps(data).replace("</", "<\\/"))
 
 
 def faq_context(farm, mine, rec):
