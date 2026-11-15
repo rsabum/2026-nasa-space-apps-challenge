@@ -18,7 +18,14 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-import model  # Robert's optimizer
+# Which model the app uses. False = dummy_model: instant placeholder plans (no Gurobi/CBC),
+# scored by Robert's real crop simulation; for app and UX work. True = Robert's optimizer.
+# Set True before a real demo or deploy.
+USE_REAL_OPTIMIZER = False
+if USE_REAL_OPTIMIZER:
+    import model  # Robert's optimizer
+else:
+    import dummy_model as model
 from contract import (CONSTRAINTS, CROP_LABELS, CROPS, DEFAULT_LIMITS, FARM, GOAL_HELP,
                       GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, WORST_SHARE, baseline_plan)
 

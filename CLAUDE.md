@@ -124,3 +124,9 @@ Done Nov 15: the farmer enters their own rotation; Robert's real `model.py` is i
 3. Show rye cover on the rotation tiles, and carry it over on "Use this rotation" (today it copies crops only).
 4. More goals if wanted (MOTAD, least nitrogen, fewest changes): one entry in model.py's goal map + contract.GOALS / DEFAULT_LIMITS / GOAL_OWN_LIMITS.
 5. Demo polish; deployment via Robert (main file `app.py`; the cloud uses CBC).
+
+## UI mode: dummy optimizer (Claude-Thomas, Nov 15)
+
+- `ui.py` has `USE_REAL_OPTIMIZER = False` near the top. While False, the app imports `dummy_model.py` instead of `model.py`: `solve()` skips Gurobi/CBC and picks a plausible rotation per goal (fixed patterns, chosen so `rules.rule_problems` finds nothing to flag when the rules allow it), then scores it with Robert's real simulation. `evaluate`, `backtest`, `limit_ranges` and the table converters are re-exported from `model.py` unchanged. The solver name shows as "dummy (UI mode)".
+- **Set `USE_REAL_OPTIMIZER = True` before a real demo or deploy.**
+- Why: on Claude-Thomas's Apple-silicon Mac (no Rosetta), PuLP's bundled CBC binary fails with "Bad CPU type in executable", and there's no Gurobi licence there.
