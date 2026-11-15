@@ -35,7 +35,7 @@
     --grad-text: linear-gradient(90deg, #FFFFFF 0%, #C9D7FF 100%);
     --grad-edge: linear-gradient(135deg, rgba(79, 139, 255, .7) 0%, rgba(38, 47, 94, .55) 35%,
                                  rgba(38, 47, 94, .55) 65%, rgba(191, 215, 255, .45) 100%);
-    --grad-panel: linear-gradient(160deg, rgba(30, 39, 86, .96) 0%, rgba(18, 24, 56, .96) 55%, rgba(13, 18, 44, .96) 100%);
+    --grad-panel: linear-gradient(160deg, rgba(30, 39, 86, .88) 0%, rgba(18, 24, 56, .88) 55%, rgba(13, 18, 44, .88) 100%);   /* a little see-through, so the rocket shows faintly behind */
     --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 16px 40px rgba(2, 5, 20, .55);
 }
 
@@ -462,4 +462,53 @@ a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
 @media (prefers-reduced-motion: reduce) {
     .st-key-card_test .scatterlayer .js-line, .st-key-card_test .scatterlayer .js-fill,
     .st-key-card_test .barlayer .point path, .rg-cell:hover .fs-crop-icon {animation: none; stroke-dasharray: none;}
+}
+
+
+/* ---------- Typical / dry year icons ---------- */
+/* On the switch buttons: drawn with CSS masks (Streamlit's buttons can't hold our SVGs),
+   so the icon takes the button's text colour. They wiggle on hover; the chosen one glows. */
+.st-key-scenario button::before {content: ""; display: inline-block; flex: none; width: 18px; height: 18px;
+    margin-right: 7px; background: currentColor; -webkit-mask: var(--wx) center / contain no-repeat;
+    mask: var(--wx) center / contain no-repeat; transition: transform .2s ease;}
+.st-key-scenario button:nth-of-type(1) {--wx: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M8 2.2v1.2M3.3 4.2l.9.8M2.7 7.5h1.2M12.7 4.2l-.9.8M5.3 9.6A3 3 0 0 1 10.6 6%22/%3E%3Cpath d=%22M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z%22/%3E%3Cpath d=%22M9.5 19.6l-.7 1.6M13 19.6l-.7 1.6M16.5 19.6l-.7 1.6%22/%3E%3C/svg%3E");}
+.st-key-scenario button:nth-of-type(2) {--wx: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%229%22 r=%223.6%22/%3E%3Cpath d=%22M12 2.3v1.4M12 14.3v1.4M5.3 9h1.4M17.3 9h1.4M7.3 4.3l1 1M15.7 12.7l1 1M16.7 4.3l-1 1M8.3 12.7l-1 1M3 19h18M8.5 19l1 2.4M14 19l-.9 1.3.9 1.3M18.6 19l.7 1.9%22/%3E%3C/svg%3E");}
+.st-key-scenario button:hover::before {animation: fs-wiggle .6s ease-in-out;}
+[data-testid="stBaseButton-segmented_controlActive"]::before {filter: drop-shadow(0 0 4px rgba(255, 255, 255, .8));}
+
+/* In the explanation box: bigger, and fully animated. */
+.fs-scenario-icon {flex: none; width: 46px; height: 46px; border-radius: 12px; display: flex;
+    align-items: center; justify-content: center; background: rgba(10, 14, 31, .45);
+    border: 1px solid var(--border-glow); color: #CFE0FF;}
+.fs-scenario-dry .fs-scenario-icon {color: var(--warm); border-color: rgba(240, 169, 114, .35);}
+.fs-scenario-icon .fs-crop-icon {width: 32px; height: 32px; overflow: visible;}
+.fs-scenario-icon .wx-cloud {fill: #121A40;}   /* hides the sun behind the cloud */
+.wx-spin {animation: fs-spin 14s linear infinite;}
+@keyframes fs-spin {to {transform: rotate(360deg);}}
+.wx-blaze {animation: fs-spin 10s linear infinite, fs-blaze 1.8s ease-in-out infinite;}
+@keyframes fs-blaze {50% {opacity: .45;}}
+.wx-drop {animation: fs-rain 1.2s ease-in infinite;}
+@keyframes fs-rain {0% {transform: translateY(-3px); opacity: 0;} 30% {opacity: 1;}
+                     100% {transform: translateY(3px); opacity: 0;}}
+.wx-heat {animation: fs-heat 2s ease-in-out infinite;}
+@keyframes fs-heat {0%, 100% {transform: translateY(0); opacity: .9;} 50% {transform: translateY(-2px); opacity: .3;}}
+
+/* ---------- Rocket: a pencil sketch flying behind everything ----------
+   Drawn on the app's own background layer (::before with z-index -1 inside an isolated
+   app), so it passes behind every card and the sidebar. One flight of ~10 s, then it
+   stays off screen until the 25 s loop starts again. */
+[data-testid="stApp"] {isolation: isolate;}
+[data-testid="stApp"]::before {content: ""; position: fixed; left: 0; top: 0; z-index: -1;
+    width: 150px; height: 256px; pointer-events: none; opacity: .4;
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 205%22 fill=%22none%22 stroke=%22%23BFD7FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cdefs%3E%3Cfilter id=%22p%22 x=%22-10%25%22 y=%22-10%25%22 width=%22120%25%22 height=%22120%25%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.9%22 numOctaves=%222%22 seed=%223%22 result=%22n%22/%3E%3CfeDisplacementMap in=%22SourceGraphic%22 in2=%22n%22 scale=%222.2%22/%3E%3C/filter%3E%3C/defs%3E%3Cg filter=%22url(%23p)%22%3E%3Cg stroke-width=%222%22%3E%3Cpath d=%22M60 12C79 32 86 62 86 100v40H34v-40c0-38 7-68 26-88z%22/%3E%3Ccircle cx=%2260%22 cy=%2272%22 r=%2212%22/%3E%3Cpath d=%22M34 108l-20 40 20-7M86 108l20 40-20-7M44 140l-4 12h40l-4-12%22/%3E%3Cpath d=%22M50 158c1 12 6 20 10 32 4-12 9-20 10-32%22/%3E%3C/g%3E%3Cg stroke-width=%221.1%22 stroke-opacity=%22.6%22%3E%3Cpath d=%22M61.5 10.5C81 31 87.5 62 87.2 101l.3 38.5M32.8 139.5l.5-39c.5-37 7.5-67 27-89%22/%3E%3Ccircle cx=%2260.8%22 cy=%2271.2%22 r=%227.5%22/%3E%3Cpath d=%22M35 122h50M35 126h50M55 160c1 8 3 13 5 19 2-6 4-11 5-19%22/%3E%3Cpath d=%22M40 50l6-6M38 60l8-8M37 70l7-7M36 80l6-6M36 90l5-5%22/%3E%3Cpath d=%22M60 196v4M52 194l-2 5M68 194l2 5%22 stroke-dasharray=%222 3%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+    animation: fs-rocket 25s linear infinite;}
+@keyframes fs-rocket {
+    0%   {transform: translate(18vw, 112vh) rotate(38deg);}
+    20%  {transform: translate(55vw, 48vh) rotate(42deg);}
+    40%  {transform: translate(105vw, -40vh) rotate(36deg);}
+    100% {transform: translate(105vw, -40vh) rotate(36deg);}
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stApp"]::before {animation: none; display: none;}
+    .wx-spin, .wx-blaze, .wx-drop, .wx-heat {animation: none;}
 }

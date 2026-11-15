@@ -64,6 +64,27 @@ CROP_SVG = {
         f'<path d="M12 17.2c3-.4 5.9-2.4 7.4-5.6-3.1.3-5.9 2.1-7.4 5.6zM12 20c-2.6-.4-5-2-6-4.6'
         f' 2.6.3 4.8 1.8 6 4.6z" {_DUO}/>'),
 }
+# Weather icons in the same line-art style, animated by style.css: for a typical year
+# rain falls from a cloud while the sun's rays turn; for a dry year the sun blazes
+# and heat shimmers over cracked ground.
+WEATHER_SVG = {
+    "average": _ICON.format(
+        '<g class="wx-spin" style="transform-origin:8px 7.5px">'
+        '<path d="M8 2.2v1.2M3.3 4.2l.9.8M2.7 7.5h1.2M12.7 4.2l-.9.8"/></g>'
+        f'<circle cx="8" cy="7.5" r="3" {_DUO}/>'
+        '<path class="wx-cloud" d="M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z"/>'
+        f'<path d="M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z" {_DUO}/>'
+        '<path class="wx-drop" d="M9.5 19.4l-.7 1.6"/>'
+        '<path class="wx-drop" style="animation-delay:-.4s" d="M13 19.4l-.7 1.6"/>'
+        '<path class="wx-drop" style="animation-delay:-.8s" d="M16.5 19.4l-.7 1.6"/>'),
+    "dry": _ICON.format(
+        '<g class="wx-spin wx-blaze" style="transform-origin:12px 9px">'
+        '<path d="M12 2.3v1.4M12 14.3v1.4M5.3 9h1.4M17.3 9h1.4M7.3 4.3l1 1M15.7 12.7l1 1'
+        'M16.7 4.3l-1 1M8.3 12.7l-1 1"/></g>'
+        f'<circle cx="12" cy="9" r="3.6" {_DUO}/>'
+        '<path class="wx-heat" stroke-width="1.1" d="M4.5 16.6c.8-.6 1.6.6 2.4 0M17 16.6c.8-.6 1.6.6 2.4 0"/>'
+        '<path d="M3 19h18M8.5 19l1 2.4M14 19l-.9 1.3.9 1.3M18.6 19l.7 1.9"/>'),
+}
 MAP_WIDTH = 266     # pixels the field map gets inside the sidebar
 
 
@@ -512,17 +533,22 @@ with st.container(key="card_scenario"):
         show_html('<div class="fs-scn-q">What if it\'s a drought year?</div>')
         picked = st.segmented_control(
             "Plan for", ["average", "dry"], default="average", key="scenario",
-            format_func={"average": "☀️ Typical year", "dry": "🌵 Dry year"}.get,
+            # Plain labels: the icons are drawn by style.css (buttons can't hold our SVGs).
+            format_func={"average": "Typical year", "dry": "Dry year"}.get,
             label_visibility="collapsed")
         scenario = picked or "average"   # clicking the active button un-selects it
     with text_col:
         if scenario == "dry":
-            show_html('<div class="fs-scenario fs-scenario-dry"><div><b>Planning for a dry year.</b> '
+            show_html('<div class="fs-scenario fs-scenario-dry">'
+                      f'<span class="fs-scenario-icon fs-wx-dry">{WEATHER_SVG["dry"]}</span>'
+                      '<div><b>Planning for a dry year.</b> '
                       'The recommendation and the four-year numbers assume growing-season rain like a '
                       'dry season from the NASA record, so they favor crops that hold up when rain runs '
                       'short. The 1981–2024 test below still runs every real year.</div></div>')
         else:
-            show_html('<div class="fs-scenario"><div><b>Planning for a typical year.</b> '
+            show_html('<div class="fs-scenario">'
+                      f'<span class="fs-scenario-icon fs-wx-avg">{WEATHER_SVG["average"]}</span>'
+                      '<div><b>Planning for a typical year.</b> '
                       'The recommendation and the four-year numbers assume average growing-season rain '
                       'from the NASA record. The 1981–2024 test below runs every real year, wet and dry.'
                       '</div></div>')
