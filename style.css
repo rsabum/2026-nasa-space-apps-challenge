@@ -513,3 +513,129 @@ a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
     [data-testid="stApp"]::before {animation: none; display: none;}
     .wx-spin, .wx-blaze, .wx-drop, .wx-heat {animation: none;}
 }
+
+
+/* =====================================================================
+   Motion pass: small, purposeful animations. All switch off under
+   prefers-reduced-motion (bottom of this block).
+   ===================================================================== */
+
+/* Registered custom properties, so the browser can animate them smoothly. */
+@property --pct   {syntax: "<number>"; inherits: false; initial-value: 0;}
+@property --angle {syntax: "<angle>";  inherits: false; initial-value: 0deg;}
+
+/* 1. Header: top bar, hero and steps fade in one after another. */
+.fs-topbar {animation: fs-in-down .6s ease-out both;}
+.fs-hero   {animation: fs-in-down .6s ease-out .1s both;}
+.fs-flow   {animation: fs-in-down .6s ease-out .2s both;}
+@keyframes fs-in-down {from {opacity: 0; transform: translateY(-10px);}}
+
+/* 2. Hero title: the gradient slowly drifts. */
+.fs-hero-title {background-size: 200% 100%; animation: fs-drift 9s ease-in-out infinite alternate;}
+@keyframes fs-drift {to {background-position: 100% 0;}}
+
+/* 3. Steps: a light runs along the bottom edges, 1 -> 2 -> 3 -> 4, on a loop. */
+.fs-step::before {content: ""; position: absolute; bottom: 0; left: 0; width: 45%; height: 2px; z-index: 1;
+                  background: linear-gradient(90deg, transparent, #FFFFFF, transparent);
+                  transform: translateX(-110%); animation: fs-sweep 4s ease-in-out infinite;}
+a.fs-step:nth-of-type(2)::before {animation-delay: .45s;}
+a.fs-step:nth-of-type(3)::before {animation-delay: .9s;}
+a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
+@keyframes fs-sweep {0% {transform: translateX(-110%);} 30%, 100% {transform: translateX(240%);}}
+
+/* 4. Cards slide up as they scroll into view (browsers that support scroll-driven
+      animations; others just show them). */
+@supports (animation-timeline: view()) {
+    .st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario,
+    [data-testid="stMetric"], .fs-sources, [data-testid="stExpander"] {
+        animation: fs-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 35%;}
+}
+@keyframes fs-reveal {from {opacity: 0; transform: translateY(36px) scale(.985);}}
+
+/* 5. Rotation tiles pop in one by one, like seeds coming up. They replay whenever
+      the rotation changes, so you can see it update. */
+.rg > .rg-cell {animation: fs-sprout .45s cubic-bezier(.3, 1.5, .5, 1) both;}
+@keyframes fs-sprout {from {opacity: 0; transform: translateY(10px) scale(.85);}}
+.rg > .rg-cell:nth-child(6) {animation-delay: 0.03s;}
+.rg > .rg-cell:nth-child(7) {animation-delay: 0.06s;}
+.rg > .rg-cell:nth-child(8) {animation-delay: 0.09s;}
+.rg > .rg-cell:nth-child(9) {animation-delay: 0.12s;}
+.rg > .rg-cell:nth-child(10) {animation-delay: 0.15s;}
+.rg > .rg-cell:nth-child(11) {animation-delay: 0.18s;}
+.rg > .rg-cell:nth-child(12) {animation-delay: 0.21s;}
+.rg > .rg-cell:nth-child(13) {animation-delay: 0.24s;}
+.rg > .rg-cell:nth-child(14) {animation-delay: 0.27s;}
+.rg > .rg-cell:nth-child(15) {animation-delay: 0.30s;}
+.rg > .rg-cell:nth-child(16) {animation-delay: 0.33s;}
+.rg > .rg-cell:nth-child(17) {animation-delay: 0.36s;}
+.rg > .rg-cell:nth-child(18) {animation-delay: 0.39s;}
+.rg > .rg-cell:nth-child(19) {animation-delay: 0.42s;}
+.rg > .rg-cell:nth-child(20) {animation-delay: 0.45s;}
+.rg > .rg-cell:nth-child(21) {animation-delay: 0.48s;}
+.rg > .rg-cell:nth-child(22) {animation-delay: 0.51s;}
+.rg > .rg-cell:nth-child(23) {animation-delay: 0.54s;}
+.rg > .rg-cell:nth-child(24) {animation-delay: 0.57s;}
+.rg > .rg-cell:nth-child(25) {animation-delay: 0.60s;}
+.rg > .rg-cell:nth-child(26) {animation-delay: 0.63s;}
+.rg > .rg-cell:nth-child(27) {animation-delay: 0.66s;}
+.rg > .rg-cell:nth-child(28) {animation-delay: 0.69s;}
+.rg > .rg-cell:nth-child(29) {animation-delay: 0.72s;}
+.rg > .rg-cell:nth-child(30) {animation-delay: 0.75s;}
+.rg > .rg-cell:nth-child(31) {animation-delay: 0.78s;}
+.rg > .rg-cell:nth-child(32) {animation-delay: 0.81s;}
+.rg > .rg-cell:nth-child(33) {animation-delay: 0.84s;}
+.rg > .rg-cell:nth-child(34) {animation-delay: 0.87s;}
+.rg > .rg-cell:nth-child(35) {animation-delay: 0.90s;}
+.rg > .rg-cell:nth-child(36) {animation-delay: 0.93s;}
+.rg > .rg-cell:nth-child(37) {animation-delay: 0.96s;}
+.rg > .rg-cell:nth-child(38) {animation-delay: 0.99s;}
+.rg > .rg-cell:nth-child(39) {animation-delay: 1.02s;}
+.rg > .rg-cell:nth-child(40) {animation-delay: 1.05s;}
+.rg > .rg-cell:nth-child(41) {animation-delay: 1.08s;}
+.rg > .rg-cell:nth-child(42) {animation-delay: 1.11s;}
+.rg > .rg-cell:nth-child(43) {animation-delay: 1.14s;}
+.rg > .rg-cell:nth-child(44) {animation-delay: 1.17s;}
+.rg > .rg-cell:nth-child(45) {animation-delay: 1.20s;}
+
+/* 6. Recommended plan: a glowing border slowly circles the card. */
+.st-key-card_plan {background: var(--grad-panel) padding-box,
+    conic-gradient(from var(--angle), #4F8BFF, rgba(191, 215, 255, .25) 25%, #BFD7FF 50%,
+                   rgba(79, 139, 255, .25) 75%, #4F8BFF) border-box;
+    animation: fs-orbit 8s linear infinite;}
+@supports (animation-timeline: view()) {
+    .st-key-card_plan {animation: fs-orbit 8s linear infinite, fs-reveal linear both;
+                       animation-timeline: auto, view(); animation-range: normal, entry 0% entry 35%;}
+}
+@keyframes fs-orbit {to {--angle: 360deg;}}
+
+/* 7. Result chips slide in one after another. */
+.fs-chip {animation: fs-chip-in .4s ease-out both;}
+@keyframes fs-chip-in {from {opacity: 0; transform: translateX(-8px);}}
+.fs-chip:nth-child(1) {animation-delay: 0.37s;}
+.fs-chip:nth-child(2) {animation-delay: 0.49s;}
+.fs-chip:nth-child(3) {animation-delay: 0.61s;}
+.fs-chip:nth-child(4) {animation-delay: 0.73s;}
+.fs-chip:nth-child(5) {animation-delay: 0.85s;}
+.fs-chip:nth-child(6) {animation-delay: 0.97s;}
+
+/* 8. Ring gauge fills from 0 up to the real win rate. */
+.fs-ring {animation: fs-fill 1.8s cubic-bezier(.3, .8, .3, 1) .3s both;}
+@keyframes fs-fill {from {--pct: 0;}}
+
+/* 9. "Apply recommendation": a shimmer passes over it every few seconds. */
+[data-testid="stBaseButton-primary"] {position: relative; overflow: hidden;}
+[data-testid="stBaseButton-primary"]::after {content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent);
+    transform: translateX(-120%); animation: fs-shine 4.5s ease-in-out 1s infinite; pointer-events: none;}
+@keyframes fs-shine {0% {transform: translateX(-120%);} 25%, 100% {transform: translateX(300%);}}
+
+/* 10. Field map: the furrows drift slowly, like a pass of the planter. */
+.fm-plot {animation: fs-furrow 14s linear infinite;}
+@keyframes fs-furrow {to {background-position: 66px 0;}}
+
+@media (prefers-reduced-motion: reduce) {
+    .fs-topbar, .fs-hero, .fs-flow, .fs-hero-title, .fs-step::before, .st-key-card_mine,
+    .st-key-card_plan, .st-key-card_test, .st-key-card_scenario, [data-testid="stMetric"], .fs-sources,
+    [data-testid="stExpander"], .rg > .rg-cell, .fs-chip, .fs-ring,
+    [data-testid="stBaseButton-primary"]::after, .fm-plot {animation: none !important;}
+}
