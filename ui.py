@@ -257,7 +257,7 @@ def cell_css():
         uri = icon_uri(crop)
         for kind in ("cell", "pick"):
             sel = f'[class*="st-key-{kind}-{crop}-"] button'
-            rules += (f'{sel} {{background: {CROP_COLORS[crop]} !important; '
+            rules += (f'{sel} {{--cc: {CROP_COLORS[crop]}; background: {CROP_COLORS[crop]} !important; '
                       f'border-color: {CROP_COLORS[crop]} !important; color: var(--on-crop) !important;}}'
                       f'{sel}::before {{content: ""; flex: none; width: 1.15em; height: 1.15em; '
                       f'margin-right: .45em; background: currentColor; '
@@ -480,7 +480,7 @@ def rotation_picker(farm, plan):
                                 help=f"{name}, year {t + 1}: click to change the crop"):
                     st.markdown(f"**{html.escape(name)} · Year {t + 1}**")
                     for c in CROPS:
-                        with st.container(key=f"pick-{c}-{fi}-{t}"):
+                        with st.container(key=f"pick-{c}-{fi}-{t}" + ("-sel" if c == crop else "")):
                             st.button(crop_name(c) + ("  ✓" if c == crop else ""),
                                       key=f"pickbtn_{fi}_{t}_{c}", use_container_width=True,
                                       on_click=set_cell, args=(name, t, c))

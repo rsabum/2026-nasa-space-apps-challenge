@@ -808,3 +808,51 @@ div.fs-step {cursor: default;}
 @media (prefers-reduced-motion: reduce) {
     .st-key-fs_topnav, .block-container {animation: none !important;}
 }
+
+/* ---------- Crop picker animations (Rotation evaluator tiles) ----------
+   Tiles are popovers keyed "cell-<crop>-<field>-<year>"; their menus hold one button per
+   crop keyed "pick-<crop>-…" ("-sel" on the current crop). --cc is the crop's colour. */
+
+/* 1. Opening the menu: it grows out of the tile, then the choices slide in one by one. */
+[data-testid="stPopoverBody"]:has([class*="st-key-pick-"]) {
+    transform-origin: top center; animation: fs-menu-open .22s cubic-bezier(.2, .9, .3, 1.2) both;}
+@keyframes fs-menu-open {from {opacity: 0; transform: translateY(-6px) scale(.92);}}
+[class*="st-key-pick-"] {animation: fs-choice-in .32s ease-out both;}
+/* Crops always appear in this order, so time each by name: a reliable stagger. */
+[class*="st-key-pick-soybeans-"] {animation-delay: .05s;}
+[class*="st-key-pick-winter_wheat-"] {animation-delay: .10s;}
+[class*="st-key-pick-sorghum-"] {animation-delay: .15s;}
+@keyframes fs-choice-in {from {opacity: 0; transform: translateX(-10px);}}
+
+/* 2. In the menu: hover lifts the crop with a glow in its own colour and wiggles its icon;
+      a click presses it in; the current crop has a soft pulsing ring. */
+[class*="st-key-pick-"] button {transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;}
+[class*="st-key-pick-"] button:hover {transform: translateX(4px) scale(1.02); filter: brightness(1.05);
+    box-shadow: 0 6px 16px rgba(2, 5, 20, .45), 0 0 18px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+[class*="st-key-pick-"] button:hover::before {animation: fs-wiggle .6s ease-in-out;}
+[class*="st-key-pick-"] button:active {transform: scale(.95);}
+[class*="st-key-pick-"][class*="-sel"] button {animation: fs-sel-ring 2.2s ease-in-out infinite;}
+@keyframes fs-sel-ring {
+    0%, 100% {box-shadow: 0 0 0 0 color-mix(in srgb, var(--cc, #BFD7FF) 0%, transparent);}
+    50%      {box-shadow: 0 0 0 4px color-mix(in srgb, var(--cc, #BFD7FF) 45%, transparent);}
+}
+
+/* 3. The tiles: a changed tile flips in with its new crop (its key includes the crop, so
+      only the tile you changed is new and animates). Hover lifts with a matching glow. */
+[class*="st-key-cell-"] button {transition: transform .18s ease, box-shadow .18s ease;
+    animation: fs-tile-flip .5s cubic-bezier(.3, 1.4, .5, 1) both;}
+@keyframes fs-tile-flip {
+    0%   {opacity: 0; transform: perspective(500px) rotateX(-75deg) scale(.9);}
+    60%  {opacity: 1;}
+    100% {transform: perspective(500px) rotateX(0) scale(1);}
+}
+[class*="st-key-cell-"] button:hover {transform: translateY(-3px);
+    box-shadow: 0 10px 22px rgba(2, 5, 20, .5), 0 0 20px color-mix(in srgb, var(--cc, #BFD7FF) 55%, transparent);}
+[class*="st-key-cell-"] button:hover::before {animation: fs-wiggle .6s ease-in-out;}
+[class*="st-key-cell-"] button[aria-expanded="true"] {transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 0 0 2px var(--cc, #BFD7FF), 0 0 22px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stPopoverBody"]:has([class*="st-key-pick-"]), [class*="st-key-pick-"],
+    [class*="st-key-pick-"] button, [class*="st-key-cell-"] button {animation: none !important;}
+}
