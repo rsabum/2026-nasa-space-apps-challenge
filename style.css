@@ -1,131 +1,262 @@
-/* Field Shift: dark, rounded, modern.
+/* Field Shift: "mission control" theme. Deep-space navy, glassy indigo panels,
+   NASA blue + NASA red accents, ice blue-white for the recommendation.
    Colours for Streamlit's own widgets live in .streamlit/config.toml,
-   which also names Inter as the font. The font file itself loads here. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+   which also names Inter as the font. The font files load here. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
 
 /* ---------- Palette: change colours here, once ---------- */
 :root {
-    --bg: #0F1115;          /* page */
-    --card: #171A21;        /* cards */
-    --raised: #1E222B;      /* boxes inside cards */
-    --border: #2A2F3A;
-    --text: #E8EAED;
-    --text-2: #A0A7B4;      /* secondary text */
-    --text-3: #8A92A1;      /* labels, captions */
-    --accent: #5DD6B0;      /* mint: the suggested plan, highlights */
-    --accent-soft: rgba(93, 214, 176, .12);
-    --warm: #F0A972;        /* dry-year banner */
-    --warm-soft: rgba(240, 169, 114, .12);
-    --on-crop: #15181D;     /* text on the pastel crop colours */
-    --r-card: 28px;         /* "bubble" corners */
-    --r-box: 20px;
-    --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 12px 32px rgba(0, 0, 0, .35);
+    --bg: #0A0E1F;           /* page: deep-space navy */
+    --bg-2: #0E1430;         /* sidebar */
+    --card: #121838;         /* panels */
+    --raised: #1A2148;       /* boxes inside panels */
+    --border: #262F5E;
+    --border-glow: rgba(79, 139, 255, .28);
+    --text: #E6E9F5;         /* soft off-white: easier on the eyes than pure white */
+    --text-2: #A9B0CF;       /* secondary text */
+    --text-3: #7D86AD;       /* labels, captions */
+    --nasa-blue: #0B3D91;    /* the real NASA blue, for deep fills */
+    --blue: #4F8BFF;         /* NASA blue, brightened so it reads on dark */
+    --blue-soft: rgba(79, 139, 255, .14);
+    --red: #FC3D21;          /* NASA red: "hot" highlights, the driest season */
+    --red-soft: rgba(252, 61, 33, .14);
+    --accent: #BFD7FF;       /* ice blue-white: the recommendation */
+    --accent-soft: rgba(191, 215, 255, .13);
+    --warm: #F0A972;         /* dry-year banner */
+    --warm-soft: rgba(240, 169, 114, .13);
+    --on-crop: #141830;      /* text on the pastel crop colours */
+    --mono: 'JetBrains Mono', ui-monospace, monospace;   /* numbers and labels: the "instrument" look */
+    --r-card: 18px;          /* sharper than before: crisp, modern */
+    --r-box: 12px;
+    --r-tag: 6px;            /* small squared-off labels */
+    /* Gradients: reused everywhere so the page reads as one system. */
+    --grad-brand: linear-gradient(135deg, #4F8BFF 0%, #BFD7FF 100%);
+    --grad-hot: linear-gradient(135deg, #FF8A4C 0%, #FC3D21 100%);
+    --grad-text: linear-gradient(90deg, #FFFFFF 0%, #C9D7FF 100%);
+    --grad-edge: linear-gradient(135deg, rgba(79, 139, 255, .7) 0%, rgba(38, 47, 94, .55) 35%,
+                                 rgba(38, 47, 94, .55) 65%, rgba(191, 215, 255, .45) 100%);
+    --grad-panel: linear-gradient(160deg, rgba(30, 39, 86, .96) 0%, rgba(18, 24, 56, .96) 55%, rgba(13, 18, 44, .96) 100%);
+    --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 16px 40px rgba(2, 5, 20, .55);
 }
 
-/* ---------- Page ---------- */
-.block-container {padding-top: 2rem; padding-bottom: 3rem; max-width: 1180px;}
-h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em;}
+/* ---------- Page backdrop: a faint star field and a blueprint grid ---------- */
+[data-testid="stApp"] {
+    background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(11, 61, 145, .45), transparent 60%),
+        radial-gradient(900px 500px at -10% 30%, rgba(252, 61, 33, .07), transparent 60%),
+        radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, .5), transparent 50%),
+        radial-gradient(1px 1px at 38% 8%, rgba(255, 255, 255, .35), transparent 50%),
+        radial-gradient(1px 1px at 66% 22%, rgba(255, 255, 255, .4), transparent 50%),
+        radial-gradient(1px 1px at 88% 44%, rgba(255, 255, 255, .3), transparent 50%),
+        radial-gradient(1px 1px at 22% 62%, rgba(255, 255, 255, .25), transparent 50%),
+        linear-gradient(rgba(79, 139, 255, .035) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(90deg, rgba(79, 139, 255, .035) 1px, transparent 1px) 0 0 / 48px 48px,
+        var(--bg);
+    background-attachment: fixed;
+}
+[data-testid="stHeader"] {background: transparent;}
+
+.block-container {padding-top: 2.6rem; padding-bottom: 3rem; max-width: 1220px;}
+h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--text);}
 [data-testid="stCaptionContainer"] {color: var(--text-3);}
 
+/* ---------- Top bar (breadcrumb + live-data status) ---------- */
+.fs-topbar {display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            background: rgba(18, 24, 56, .7); border: 1px solid var(--border); border-radius: 999px;
+            padding: 8px 10px 8px 20px; margin-bottom: 26px; backdrop-filter: blur(8px);}
+.fs-crumb {font-size: .82rem; color: var(--text-3); font-weight: 500;}
+.fs-crumb b {color: var(--text); font-weight: 600;}
+.fs-crumb span {margin: 0 8px; opacity: .6;}
+.fs-status {display: flex; gap: 8px; align-items: center; flex-wrap: wrap;}
+.fs-live {display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .72rem;
+          letter-spacing: .06em; text-transform: uppercase; color: var(--text-2);
+          background: var(--raised); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px;}
+.fs-live i {width: 7px; height: 7px; border-radius: 999px; background: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft), 0 0 10px var(--accent); animation: fs-pulse 2.4s ease-in-out infinite;}
+@keyframes fs-pulse {50% {opacity: .45;}}
+
 /* ---------- Hero ---------- */
-.fs-hero {display: flex; align-items: center; gap: 18px; padding: 4px 0 22px 0;}
-.fs-hero svg {width: 64px; height: 64px; flex: none; border-radius: 20px;
-              box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 30px rgba(93, 214, 176, .18);}
-.fs-hero-title {font-weight: 800; font-size: 2.6rem; line-height: 1.15; letter-spacing: -0.04em;
-                background: linear-gradient(90deg, #FFFFFF 0%, #BDEFDF 100%);
+.fs-hero {display: flex; align-items: center; gap: 20px; padding: 0 0 22px 0;}
+.fs-hero svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .35);}
+.fs-hero-title {font-weight: 800; font-size: 2.7rem; line-height: 1.12; letter-spacing: -0.04em;
+                background: linear-gradient(90deg, #FFFFFF 0%, #B9CCFF 55%, #E4EEFF 100%);
                 -webkit-background-clip: text; background-clip: text; color: transparent;}
 .fs-hero-tag {color: var(--text-2); margin-top: 8px; font-size: 1rem;}
-.fs-hero-team {margin-left: auto; align-self: center; white-space: nowrap; font-size: .78rem;
-               font-weight: 600; color: var(--accent); background: var(--accent-soft);
-               border: 1px solid rgba(93, 214, 176, .3); border-radius: 999px; padding: 8px 16px;}
-.fs-pills {display: flex; gap: 6px; margin: 0 0 22px 0;}
-.fs-pills span {height: 6px; flex: 1; max-width: 64px; border-radius: 999px; display: block;}
+.fs-hero-sub {font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+              font-weight: 700; color: var(--blue); margin-bottom: 6px;}
+.fs-hero-sub em {font-style: normal; color: var(--red);}
+.fs-hero-badges {margin-left: auto; align-self: center; display: flex; gap: 8px; flex-wrap: wrap;
+                 justify-content: flex-end;}
+.fs-badge {white-space: nowrap; font-size: .78rem; font-weight: 600; color: var(--text-2);
+           background: var(--raised); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;}
+.fs-badge-data {color: #CFE0FF; background: linear-gradient(90deg, rgba(11, 61, 145, .7), rgba(79, 139, 255, .25));
+                border-color: var(--border-glow);}
 
-/* ---------- Section cards ---------- */
-.st-key-card_mine, .st-key-card_plan, .st-key-card_test {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card);
+/* The four-step story strip, drawn as a connected "mission timeline". */
+.fs-flow {display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 24px 0; position: relative;}
+.fs-step {position: relative; display: flex; align-items: center; gap: 10px; font-size: .86rem; font-weight: 600;
+          color: var(--text); border: 1px solid transparent; border-radius: var(--r-box);
+          background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+          padding: 12px 14px; overflow: hidden;}
+.fs-step::after {content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+                 background: linear-gradient(90deg, var(--blue), transparent);}
+a.fs-step:nth-of-type(4)::after {background: linear-gradient(90deg, var(--accent), transparent);}
+.fs-step span {display: inline-flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px;
+               border-radius: var(--r-tag); background: linear-gradient(135deg, #1A55C4, #0B3D91); color: #FFFFFF;
+               box-shadow: 0 0 12px rgba(79, 139, 255, .45);
+               font-family: var(--mono); font-size: .74rem; font-weight: 700;}
+a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); box-shadow: 0 0 12px rgba(191, 215, 255, .5);}
+.fs-arrow {display: none;}
+@media (max-width: 760px) {.fs-flow {grid-template-columns: 1fr 1fr;}}
+
+/* ---------- Section panels ---------- */
+.st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario {
+    position: relative;
+    /* Two backgrounds: the panel fill inside, and a blue-to-ice gradient showing through
+       the transparent border. That's how CSS draws a gradient border with rounded corners. */
+    background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+    border: 1px solid transparent; border-radius: var(--r-card);
     padding: 26px 28px 22px 28px; box-shadow: var(--shadow);}
-.fs-eyebrow {display: inline-block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
-             font-weight: 700; color: var(--accent); background: var(--accent-soft);
-             border-radius: 999px; padding: 5px 12px; margin-bottom: 2px;}
+/* Section titles inside panels: white fading to pale NASA blue. */
+.st-key-card_mine h3, .st-key-card_plan h3, .st-key-card_test h3 {
+    background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
+/* A thin glowing line along the top edge of each panel. */
+.st-key-card_mine::before, .st-key-card_plan::before, .st-key-card_test::before {
+    content: ""; position: absolute; top: -1px; left: 28px; right: 28px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .8;}
+.st-key-card_plan::before {background: linear-gradient(90deg, transparent, var(--accent), transparent);}
+
+.fs-eyebrow {display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .7rem;
+             letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--blue);
+             background: var(--blue-soft); border: 1px solid var(--border-glow);
+             border-radius: var(--r-tag); padding: 5px 12px 5px 10px; margin-bottom: 2px;}
+.fs-eyebrow::before {content: ""; width: 3px; height: 12px; border-radius: 2px; background: var(--grad-brand);}
+.st-key-card_plan .fs-eyebrow {color: var(--accent); background: var(--accent-soft); border-color: rgba(191, 215, 255, .35);}
 
 /* ---------- Weather banner ("Plan for" switch) ---------- */
 .fs-scenario {display: flex; gap: 14px; align-items: flex-start; margin: 0 0 20px 0;
-              padding: 16px 20px; border-radius: var(--r-box); font-size: .95rem; line-height: 1.5;
-              color: var(--text-2); background: var(--accent-soft); border: 1px solid rgba(93, 214, 176, .25);}
-.fs-scenario b {color: var(--accent);}
+              padding: 16px 20px; border-radius: var(--r-box); font-size: .95rem; line-height: 1.55;
+              color: var(--text-2); background: var(--blue-soft); border: 1px solid var(--border-glow);}
+.fs-scenario b {color: #B9CCFF;}
 .fs-scenario-icon {font-size: 1.5rem; line-height: 1.1;}
-.fs-scenario-dry {background: var(--warm-soft); border-color: rgba(240, 169, 114, .3);}
+.fs-scenario-dry {background: var(--warm-soft); border-color: rgba(240, 169, 114, .32);}
 .fs-scenario-dry b {color: var(--warm);}
 
+/* The typical/dry switch: a glowing pill. */
+[data-testid="stButtonGroup"] button {border-radius: 999px !important; font-weight: 600;}
+[data-testid="stBaseButton-segmented_controlActive"] {
+    background: linear-gradient(90deg, var(--nasa-blue), var(--blue)) !important; color: #FFFFFF !important;
+    border-color: transparent !important; box-shadow: 0 0 18px rgba(79, 139, 255, .45);}
+
 /* ---------- "Why this plan" box ---------- */
-.fs-why {margin: 6px 0 6px 0; padding: 16px 20px; border-radius: var(--r-box); background: var(--raised);
-         border: 1px solid var(--border); font-size: .95rem; line-height: 1.6; color: var(--text-2);}
+.fs-why {margin: 6px 0 6px 0; padding: 16px 20px; border-radius: var(--r-box); background: rgba(10, 14, 31, .55);
+         border: 1px solid var(--border); border-left: 3px solid var(--accent);
+         font-size: .95rem; line-height: 1.65; color: var(--text-2);}
 .fs-why b {color: var(--text);}
-.fs-why-title {font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+.fs-why-title {font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
                color: var(--accent); font-weight: 700; margin-bottom: 6px;}
 
 /* ---------- Rotation grid ---------- */
-.rg {display: grid; gap: 10px; margin: 8px 0 16px 0;}
-.rg-year {text-align: center; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
-          font-weight: 600; color: var(--text-3); padding-bottom: 2px;}
+.rg {display: grid; gap: 10px; margin: 10px 0 16px 0;}
+.rg-year {text-align: center; font-family: var(--mono); font-size: .7rem; letter-spacing: .1em;
+          text-transform: uppercase; font-weight: 500; color: var(--text-3); padding-bottom: 2px;}
 .rg-field {align-self: center; font-weight: 700; font-size: 1.02rem; color: var(--text);}
-.rg-cell {border-radius: var(--r-box); padding: 14px 8px 12px 8px; color: var(--on-crop);
+.rg-cell {position: relative; overflow: hidden;
+          border-radius: var(--r-box); padding: 14px 8px 12px 8px; color: var(--on-crop);
           display: flex; flex-direction: column; align-items: center; gap: 2px;
-          box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset;
-          transition: transform .15s ease, box-shadow .15s ease;}
-.rg-cell:hover {transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, .45);}
+          box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 6px 16px rgba(2, 5, 20, .35);
+          transition: transform .18s ease, box-shadow .18s ease;}
+.rg-cell:hover {transform: translateY(-3px);
+                box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 12px 28px rgba(2, 5, 20, .6);}
+/* A glassy sheen across each crop tile (light top-left, slight shade bottom-right). */
+.rg-cell::before {content: ""; position: absolute; inset: 0; pointer-events: none;
+                  background: linear-gradient(150deg, rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 45%,
+                                              rgba(10, 14, 31, 0) 60%, rgba(10, 14, 31, .16) 100%);}
+.rg-icon, .rg-name {position: relative;}
 .rg-icon {font-size: 1.45rem; line-height: 1.2;}
 .rg-name {font-weight: 650; font-size: .92rem;}
 
 /* ---------- Metric cards ---------- */
-[data-testid="stMetric"] {background: var(--card); border: 1px solid var(--border); border-radius: var(--r-box);
+[data-testid="stMetric"] {background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+                          border: 1px solid transparent; border-radius: var(--r-box);
                           padding: 18px 22px 16px 22px; box-shadow: var(--shadow); position: relative; overflow: hidden;}
-[data-testid="stMetricValue"] {font-weight: 750; letter-spacing: -0.03em;}
-/* A short crop-coloured bar at the top of each card. */
-[data-testid="stMetric"]::before {content: ""; position: absolute; top: 0; left: 22px; width: 44px; height: 4px;
-                                  border-radius: 0 0 999px 999px;}
-.st-key-m_profit [data-testid="stMetric"]::before {background: #F8E68E;}
-.st-key-m_water  [data-testid="stMetric"]::before {background: #72BFB0;}
-.st-key-m_soil   [data-testid="stMetric"]::before {background: #F0A972;}
+[data-testid="stMetricLabel"] p {font-family: var(--mono); font-size: .72rem !important; letter-spacing: .06em;
+                                 text-transform: uppercase; color: var(--text-3);}
+[data-testid="stMetricValue"] {font-weight: 800; letter-spacing: -0.03em;}
+[data-testid="stMetricValue"] > div {background: var(--grad-text); -webkit-background-clip: text;
+                                     background-clip: text; color: transparent;}
+/* A glowing crop-coloured bar along the top of each card. */
+[data-testid="stMetric"]::before {content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;}
+.st-key-m_profit [data-testid="stMetric"]::before {background: linear-gradient(90deg, #EEF4FF, transparent);}
+.st-key-m_water  [data-testid="stMetric"]::before {background: linear-gradient(90deg, var(--blue), transparent);}
+.st-key-m_soil   [data-testid="stMetric"]::before {background: linear-gradient(90deg, var(--accent), transparent);}
 
-/* ---------- Backtest headline ---------- */
-.fs-stat {border: 1px solid var(--border); border-radius: var(--r-box); padding: 24px 18px; text-align: center;
-          background: var(--raised); margin-top: 8px;}
-.fs-stat-num {font-weight: 800; font-size: 3.4rem; line-height: 1; letter-spacing: -0.04em; color: var(--accent);}
-.fs-stat-num small {font-size: 1.4rem; color: var(--text-3); font-weight: 600;}
-.fs-stat-label {margin-top: 10px; font-size: .9rem; color: var(--text-2); line-height: 1.4;}
+/* ---------- Backtest headline: a ring gauge ---------- */
+.fs-stat {border: 1px solid var(--border); border-radius: var(--r-box); padding: 22px 16px 18px; text-align: center;
+          background: rgba(10, 14, 31, .55); margin-top: 8px;}
+.fs-ring {--pct: 50; position: relative; width: 168px; height: 168px; margin: 0 auto; border-radius: 50%;
+          /* The filled arc runs NASA blue -> ice white; the rest of the track stays faint. */
+          background:
+              conic-gradient(transparent calc(var(--pct) * 1%), rgba(79, 139, 255, .16) 0),
+              conic-gradient(#4F8BFF 0%, #BFD7FF calc(var(--pct) * 1%), transparent 0);
+          box-shadow: 0 0 34px rgba(191, 215, 255, .22);}
+/* Inner disc (makes it a ring) plus a thin second orbit, like the reference's double ring. */
+.fs-ring::before {content: ""; position: absolute; inset: 12px; border-radius: 50%; background: #0D1230;
+                  box-shadow: 0 0 0 1px var(--border) inset;}
+.fs-ring::after {content: ""; position: absolute; inset: 22px; border-radius: 50%;
+                 border: 1px dashed rgba(79, 139, 255, .35);}
+.fs-ring-inner {position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; z-index: 1;}
+.fs-stat-num {font-weight: 800; font-size: 2.9rem; line-height: 1; letter-spacing: -0.04em;
+              background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
+.fs-stat-num small {font-size: 1.1rem; color: var(--text-3); font-weight: 600;}
+.fs-stat-pct {font-family: var(--mono); font-size: .74rem; color: var(--accent); margin-top: 6px; letter-spacing: .06em;}
+.fs-stat-label {margin-top: 14px; font-size: .88rem; color: var(--text-2); line-height: 1.45;}
 
 /* ---------- Built-in widgets: rounder, softer ---------- */
 [data-testid="stAlertContainer"], [data-testid="stAlert"] {border-radius: var(--r-box);}
 [data-baseweb="tag"] {border-radius: 999px !important;}
-[data-baseweb="select"] > div {border-radius: 18px;}
-[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
+[data-baseweb="select"] > div {border-radius: 14px;}
+[data-testid="stDataFrame"] {border-radius: 14px; overflow: hidden;}
 [data-testid="stExpander"] details {border: 1px solid var(--border); border-radius: var(--r-box); background: var(--card);}
-[data-testid="stPopoverBody"] {border-radius: var(--r-box) !important; border: 1px solid var(--border);}
+[data-testid="stPopoverBody"] {border-radius: var(--r-box) !important; border: 1px solid var(--border);
+                               background: var(--card) !important;}
 [data-testid="stPopoverButton"] {border-color: var(--border); background: var(--raised);}
+[data-testid="stPopoverButton"]:hover {border-color: var(--blue); color: var(--text);}
+/* Primary button: ice blue with a soft glow. */
+[data-testid="stBaseButton-primary"] {color: var(--bg) !important; font-weight: 700; padding: 0 22px;
+                                      background: var(--grad-brand) !important; border: none !important;
+                                      box-shadow: 0 0 22px rgba(191, 215, 255, .35);}
+[data-testid="stBaseButton-primary"]:hover {box-shadow: 0 0 30px rgba(191, 215, 255, .55);}
 
-/* ---------- Sidebar ---------- */
-[data-testid="stSidebar"] {border-right: 1px solid var(--border);}
+/* ---------- Sidebar: a control panel ---------- */
+[data-testid="stSidebar"] {border-right: 1px solid var(--border);
+                           background: linear-gradient(180deg, #10163A 0%, var(--bg-2) 100%);}
 [data-testid="stSidebar"][aria-expanded="true"] {min-width: 330px; max-width: 330px;}
-[data-testid="stSidebar"] h2 {font-size: 1.05rem !important; font-weight: 700 !important; padding-top: .8rem;
-                              border-top: 1px solid var(--border); margin-top: .4rem;}
-[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child h2 {border-top: none;}
+[data-testid="stSidebar"] h2 {font-family: var(--mono); font-size: .74rem !important; font-weight: 700 !important;
+                              letter-spacing: .12em; text-transform: uppercase; color: var(--text-3);
+                              padding-top: 1rem; margin-top: .5rem; border-top: none;
+                              /* A gradient divider line above each sidebar section. */
+                              background: linear-gradient(90deg, var(--blue), rgba(191, 215, 255, .4), transparent)
+                                          top / 100% 1px no-repeat;}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child h2 {background: none;}
+[data-testid="stSidebar"] [data-testid="stSlider"] [role="slider"] {box-shadow: 0 0 12px rgba(191, 215, 255, .6);}
 
 /* ---------- Field map (sidebar) ---------- */
 .fm-sum {font-size: .78rem; color: var(--text-2); margin: -4px 0 10px 0;}
 .fm-sum b {color: var(--text);}
-.fm {display: flex; flex-direction: column; gap: 6px; background: var(--raised); border: 1px solid var(--border);
-     border-radius: 24px; padding: 6px;}
+.fm {display: flex; flex-direction: column; gap: 6px; background: rgba(10, 14, 31, .6); border: 1px solid var(--border);
+     border-radius: 20px; padding: 6px; box-shadow: 0 0 0 1px rgba(79, 139, 255, .06) inset;}
 .fm-row {display: flex; gap: 6px; flex-basis: 0; min-height: 60px;}
 /* One plot. The faint diagonal lines are the furrows; --furrow sets their direction. */
-.fm-plot {flex-basis: 0; min-width: 72px; border-radius: 18px; color: var(--on-crop);
+.fm-plot {flex-basis: 0; min-width: 72px; border-radius: 14px; color: var(--on-crop);
           padding: 9px 10px 8px 11px; display: flex; flex-direction: column; justify-content: space-between;
           overflow: hidden;
           background-image: repeating-linear-gradient(var(--furrow, 115deg),
               rgba(255, 255, 255, .22) 0 2px, transparent 2px 11px);
           transition: transform .15s ease, box-shadow .15s ease;}
-.fm-plot:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .45);}
+.fm-plot:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(2, 5, 20, .6);}
 .fm-name {font-weight: 700; font-size: 1rem; line-height: 1.15;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 .fm-line {display: flex; justify-content: space-between; align-items: flex-end; gap: 4px;}
@@ -142,6 +273,193 @@ h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em;}
 .fm-empty {border-style: dashed; text-align: center; color: var(--text-3); font-size: .9rem; padding: 28px 12px;}
 .fm-edit-title {font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 2px;}
 
+/* The recommendation is the star: ice-blue border and a soft glow. */
+.st-key-card_plan {background: var(--grad-panel) padding-box,
+                               linear-gradient(135deg, #BFD7FF 0%, rgba(191, 215, 255, .25) 45%, #4F8BFF 100%) border-box;
+                   box-shadow: 0 0 0 1px rgba(191, 215, 255, .12), 0 20px 56px rgba(191, 215, 255, .12), var(--shadow);}
+.st-key-card_scenario {padding: 18px 22px; margin-bottom: 4px;}
+.st-key-card_scenario .fs-scenario {margin: 0;}
+.fs-scn-q {font-weight: 750; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 8px;}
+
+/* ---------- Result chips under the recommendation ---------- */
+.fs-chips {display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px 0;}
+.fs-chip {font-size: .84rem; font-weight: 600; border-radius: 999px; padding: 6px 12px;
+          border: 1px solid var(--border); background: var(--raised); color: var(--text-2);}
+.fs-chip-good {color: #CFE0FF; background: rgba(207, 224, 255, .10); border-color: rgba(207, 224, 255, .3);}
+.fs-chip-bad {color: #FF8A78; background: var(--red-soft); border-color: rgba(252, 61, 33, .35);}
+.fs-stress-low {color: #CFE0FF;}
+.fs-stress-moderate {color: #F3D36B; background: rgba(243, 211, 107, .10); border-color: rgba(243, 211, 107, .3);}
+.fs-stress-high {color: #FF8A78; background: var(--red-soft); border-color: rgba(252, 61, 33, .35);}
+
+/* ---------- Data sources ---------- */
+.fs-sources {margin-top: 28px; background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+             border: 1px solid transparent; border-radius: var(--r-card); padding: 22px 26px;}
+.fs-sources-title {font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+                   font-weight: 700; color: var(--blue); margin-bottom: 12px;}
+.fs-src {display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border);}
+.fs-src:first-of-type {border-top: none;}
+.fs-src-icon {font-size: 1.2rem; line-height: 1.3;}
+.fs-src a {color: var(--text) !important; font-weight: 700; text-decoration: none;}
+.fs-src a:hover {color: var(--blue) !important;}
+.fs-src-nasa a {color: #B9CCFF !important;}
+.fs-src-note {color: var(--text-2); font-size: .88rem; line-height: 1.45; margin-top: 2px;}
+.fs-src-sample {margin-top: 10px; font-size: .8rem; color: var(--text-3);}
+
 /* ---------- Footer ---------- */
-.fs-footer {text-align: center; color: var(--text-3); font-size: .8rem; margin-top: 30px;
-            padding-top: 18px; border-top: 1px solid var(--border);}
+.fs-footer {text-align: center; color: var(--text-3); font-size: .8rem; margin-top: 18px; font-family: var(--mono);
+            letter-spacing: .04em;}
+
+/* ---------- Logo: idle float ----------
+   The whole logo drifts up and down slowly while its glow breathes,
+   and the two sprout leaves sway a little, out of step with each other. */
+.fs-hero svg {animation: fs-float 6s ease-in-out infinite;}
+@keyframes fs-float {
+    0%, 100% {transform: translateY(0) rotate(0deg);
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 26px rgba(79, 139, 255, .30), 0 14px 22px rgba(2, 5, 20, .45);}
+    50%      {transform: translateY(-7px) rotate(-1.5deg);
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 40px rgba(79, 139, 255, .50), 0 24px 30px rgba(2, 5, 20, .30);}
+}
+.fs-hero svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
+.fs-hero svg path:first-of-type {transform-origin: right bottom;}
+.fs-hero svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
+@keyframes fs-sway {50% {transform: rotate(-6deg);}}
+/* Respect people who turn animations off in their system settings. */
+@media (prefers-reduced-motion: reduce) {
+    .fs-hero svg, .fs-hero svg path, .fs-live i {animation: none;}
+}
+
+/* ---------- Logo directory (click the logo) ---------- */
+/* Jumps glide instead of snapping, and land with room for the label above each title. */
+html, [data-testid="stMain"], [data-testid="stAppViewContainer"], [data-testid="stSidebarContent"] {scroll-behavior: smooth;}
+.fs-anchor, #sources, h2[id], h3[id] {scroll-margin-top: 96px;}
+.fs-anchor {height: 0; margin: 0;}
+
+.fs-dir {position: relative; flex: none;}
+/* Lift the whole header above the cards below while the panel is open. */
+[data-testid="stElementContainer"]:has(.fs-dir[open]) {position: relative; z-index: 1000;}
+.fs-dir summary {list-style: none; cursor: pointer; position: relative; display: block; border-radius: 13px;
+                 outline: none;}
+.fs-dir summary::-webkit-details-marker {display: none;}
+.fs-dir summary:focus-visible svg {box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(79, 139, 255, .5);}
+.fs-dir summary:hover svg {filter: brightness(1.15);}
+/* The small menu badge on the logo's corner, so people know it can be clicked. */
+.fs-dir-hint {position: absolute; right: -6px; bottom: -6px; width: 24px; height: 24px; border-radius: 7px;
+              display: flex; align-items: center; justify-content: center; font-size: .78rem; color: var(--bg);
+              background: var(--grad-brand); box-shadow: 0 0 0 2px var(--bg), 0 0 14px rgba(191, 215, 255, .55);
+              transition: transform .2s ease;}
+.fs-dir[open] .fs-dir-hint {transform: rotate(90deg);}
+
+.fs-dir-panel {position: absolute; top: calc(100% + 16px); left: 0; z-index: 1000;
+               width: min(760px, calc(100vw - 48px)); padding: 16px;
+               display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+               border: 1px solid transparent; border-radius: var(--r-card);
+               background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) padding-box,
+                           var(--grad-edge) border-box;
+               box-shadow: 0 30px 70px rgba(2, 5, 20, .75), 0 0 40px rgba(79, 139, 255, .18);
+               backdrop-filter: blur(14px); animation: fs-drop .22s ease-out;}
+@keyframes fs-drop {from {opacity: 0; transform: translateY(-8px);}}
+.fs-dir-top {grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline;
+             font-weight: 750; font-size: 1.05rem; color: var(--text); padding: 2px 6px 6px;}
+.fs-dir-top span {font-family: var(--mono); font-size: .66rem; font-weight: 500; letter-spacing: .06em;
+                  text-transform: uppercase; color: var(--text-3);}
+.fs-dir-group {background: rgba(10, 14, 31, .5); border: 1px solid var(--border); border-radius: var(--r-box);
+               padding: 10px 8px 8px;}
+.fs-dir-head {font-family: var(--mono); font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+              text-transform: uppercase; color: var(--blue); padding: 0 8px 8px; display: flex;
+              flex-direction: column; gap: 2px;}
+.fs-dir-head span {color: var(--text-3); font-weight: 500; letter-spacing: .04em; text-transform: none;
+                   font-family: Inter, sans-serif; font-size: .74rem;}
+a.fs-dir-link {display: flex; gap: 10px; align-items: flex-start; padding: 9px 8px; border-radius: 10px;
+               text-decoration: none !important; color: var(--text) !important;
+               border: 1px solid transparent; transition: background .15s ease, border-color .15s ease, transform .15s ease;}
+a.fs-dir-link:hover {background: var(--blue-soft); border-color: var(--border-glow); transform: translateX(3px);}
+.fs-dir-icon {flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center;
+              justify-content: center; font-size: 1rem; background: var(--raised); border: 1px solid var(--border);}
+a.fs-dir-link b {display: block; font-size: .88rem; font-weight: 650; line-height: 1.25;}
+a.fs-dir-link small {display: block; font-size: .74rem; color: var(--text-3); line-height: 1.35; margin-top: 1px;}
+@media (max-width: 760px) {.fs-dir-panel {grid-template-columns: 1fr;}}
+
+/* ---------- Clickable 1-4 steps ---------- */
+a.fs-step {text-decoration: none !important; color: var(--text) !important; cursor: pointer;
+           transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;}
+a.fs-step:hover {transform: translateY(-3px); filter: brightness(1.12);
+                 box-shadow: 0 12px 26px rgba(2, 5, 20, .55), 0 0 18px rgba(79, 139, 255, .25);}
+a.fs-step i {margin-left: auto; font-style: normal; color: var(--text-3); transition: transform .18s ease, color .18s ease;}
+a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
+
+/* ---------- Custom crop icons ---------- */
+.fs-crop-icon {display: block;}
+.rg-icon .fs-crop-icon {width: 30px; height: 30px; margin: 0 auto 2px;}
+.fm-icon .fs-crop-icon {width: 20px; height: 20px;}
+.fm-small .fm-icon .fs-crop-icon {width: 16px; height: 16px;}
+.rg-cell:hover .fs-crop-icon {animation: fs-wiggle .6s ease-in-out;}
+@keyframes fs-wiggle {30% {transform: rotate(-8deg);} 65% {transform: rotate(6deg);}}
+
+/* ---------- Backtest chart: draws itself in ----------
+   The profit lines trace left to right, the fill fades in, and the rain bars grow
+   up in a wave that follows the lines. */
+.st-key-card_test .scatterlayer .js-line {stroke-dasharray: 5000; stroke-dashoffset: 5000;
+                                          animation: fs-draw 2.4s cubic-bezier(.4, 0, .2, 1) forwards;}
+@keyframes fs-draw {to {stroke-dashoffset: 0;}}
+.st-key-card_test .scatterlayer .js-fill {animation: fs-fade 1.2s ease-out 1.2s both;}
+@keyframes fs-fade {from {opacity: 0;}}
+.st-key-card_test .barlayer .point path {transform-box: fill-box; transform-origin: 50% 100%;
+                                         animation: fs-grow .55s cubic-bezier(.3, 1.4, .5, 1) both;}
+@keyframes fs-grow {from {transform: scaleY(0);}}
+.st-key-card_test .barlayer .point:nth-child(1) path {animation-delay: 0.04s;}
+.st-key-card_test .barlayer .point:nth-child(2) path {animation-delay: 0.09s;}
+.st-key-card_test .barlayer .point:nth-child(3) path {animation-delay: 0.14s;}
+.st-key-card_test .barlayer .point:nth-child(4) path {animation-delay: 0.18s;}
+.st-key-card_test .barlayer .point:nth-child(5) path {animation-delay: 0.23s;}
+.st-key-card_test .barlayer .point:nth-child(6) path {animation-delay: 0.27s;}
+.st-key-card_test .barlayer .point:nth-child(7) path {animation-delay: 0.32s;}
+.st-key-card_test .barlayer .point:nth-child(8) path {animation-delay: 0.36s;}
+.st-key-card_test .barlayer .point:nth-child(9) path {animation-delay: 0.41s;}
+.st-key-card_test .barlayer .point:nth-child(10) path {animation-delay: 0.45s;}
+.st-key-card_test .barlayer .point:nth-child(11) path {animation-delay: 0.49s;}
+.st-key-card_test .barlayer .point:nth-child(12) path {animation-delay: 0.54s;}
+.st-key-card_test .barlayer .point:nth-child(13) path {animation-delay: 0.58s;}
+.st-key-card_test .barlayer .point:nth-child(14) path {animation-delay: 0.63s;}
+.st-key-card_test .barlayer .point:nth-child(15) path {animation-delay: 0.68s;}
+.st-key-card_test .barlayer .point:nth-child(16) path {animation-delay: 0.72s;}
+.st-key-card_test .barlayer .point:nth-child(17) path {animation-delay: 0.77s;}
+.st-key-card_test .barlayer .point:nth-child(18) path {animation-delay: 0.81s;}
+.st-key-card_test .barlayer .point:nth-child(19) path {animation-delay: 0.85s;}
+.st-key-card_test .barlayer .point:nth-child(20) path {animation-delay: 0.90s;}
+.st-key-card_test .barlayer .point:nth-child(21) path {animation-delay: 0.94s;}
+.st-key-card_test .barlayer .point:nth-child(22) path {animation-delay: 0.99s;}
+.st-key-card_test .barlayer .point:nth-child(23) path {animation-delay: 1.03s;}
+.st-key-card_test .barlayer .point:nth-child(24) path {animation-delay: 1.08s;}
+.st-key-card_test .barlayer .point:nth-child(25) path {animation-delay: 1.12s;}
+.st-key-card_test .barlayer .point:nth-child(26) path {animation-delay: 1.17s;}
+.st-key-card_test .barlayer .point:nth-child(27) path {animation-delay: 1.22s;}
+.st-key-card_test .barlayer .point:nth-child(28) path {animation-delay: 1.26s;}
+.st-key-card_test .barlayer .point:nth-child(29) path {animation-delay: 1.30s;}
+.st-key-card_test .barlayer .point:nth-child(30) path {animation-delay: 1.35s;}
+.st-key-card_test .barlayer .point:nth-child(31) path {animation-delay: 1.40s;}
+.st-key-card_test .barlayer .point:nth-child(32) path {animation-delay: 1.44s;}
+.st-key-card_test .barlayer .point:nth-child(33) path {animation-delay: 1.49s;}
+.st-key-card_test .barlayer .point:nth-child(34) path {animation-delay: 1.53s;}
+.st-key-card_test .barlayer .point:nth-child(35) path {animation-delay: 1.57s;}
+.st-key-card_test .barlayer .point:nth-child(36) path {animation-delay: 1.62s;}
+.st-key-card_test .barlayer .point:nth-child(37) path {animation-delay: 1.67s;}
+.st-key-card_test .barlayer .point:nth-child(38) path {animation-delay: 1.71s;}
+.st-key-card_test .barlayer .point:nth-child(39) path {animation-delay: 1.75s;}
+.st-key-card_test .barlayer .point:nth-child(40) path {animation-delay: 1.80s;}
+.st-key-card_test .barlayer .point:nth-child(41) path {animation-delay: 1.84s;}
+.st-key-card_test .barlayer .point:nth-child(42) path {animation-delay: 1.89s;}
+.st-key-card_test .barlayer .point:nth-child(43) path {animation-delay: 1.94s;}
+.st-key-card_test .barlayer .point:nth-child(44) path {animation-delay: 1.98s;}
+.st-key-card_test .barlayer .point:nth-child(45) path {animation-delay: 2.02s;}
+.st-key-card_test .barlayer .point:nth-child(46) path {animation-delay: 2.07s;}
+.st-key-card_test .barlayer .point:nth-child(47) path {animation-delay: 2.12s;}
+.st-key-card_test .barlayer .point:nth-child(48) path {animation-delay: 2.16s;}
+.st-key-card_test .barlayer .point:nth-child(49) path {animation-delay: 2.21s;}
+.st-key-card_test .barlayer .point:nth-child(50) path {animation-delay: 2.25s;}
+/* Replay controls (drawn by Plotly as SVG). */
+.st-key-card_test .updatemenu-button {cursor: pointer;}
+.st-key-card_test .updatemenu-button:hover rect {fill: #26306A !important;}
+@media (prefers-reduced-motion: reduce) {
+    .st-key-card_test .scatterlayer .js-line, .st-key-card_test .scatterlayer .js-fill,
+    .st-key-card_test .barlayer .point path, .rg-cell:hover .fs-crop-icon {animation: none; stroke-dasharray: none;}
+}
