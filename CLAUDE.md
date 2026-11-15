@@ -49,8 +49,10 @@ Planning docs (claude.ai, shared with the team):
 | `assets/logo.svg`, `assets/icon.png` | Our original logo (classical column with three flutes and a sprout). Nov 15: recoloured to the theme: NASA-blue gradient tile, mint / blue / NASA-red gradient flutes, mint-to-blue sprout, sharper corners. icon.png is rendered from the SVG (`qlmanage -t -s 256`, corners masked with Pillow). |
 | `.streamlit/config.toml` | Dark theme colours, font name, corner radius (restart Streamlit after editing) |
 | `assistant.py` | The "Ask Field Shift" chat bubble (bottom right). Claude mode (Opus 5.5, streamed, low effort, server-side refusal fallback) when `ANTHROPIC_API_KEY` is in `.streamlit/secrets.toml` (git-ignored) or the environment; otherwise keyword-matched quick answers. Both use only the live numbers app.py passes in (`faq_context`). |
+| `test_app.py` | Check-up script: `python test_app.py` (or `python test_app.py model`). Part 1 checks the model against the contract (columns, years, rules, speed); Part 2 loads the page in both weather modes and checks every section, applying a plan, a one-crop rule and the assistant. Exit code 1 on any failure. Run it the moment Robert's `model.py` lands. |
+| `DEPLOY.md` | Step-by-step Streamlit Community Cloud instructions for Robert (branch `claude`, `app.py`, Python 3.11, optional `ANTHROPIC_API_KEY` secret). |
 | `rules.py` | Plain-English check of a rotation against the ground rules (used by app.py and fake_model.py) |
-| `requirements.txt` | streamlit, pandas, plotly, pulp, requests, anthropic (0.125 is the newest that runs on Python 3.9) |
+| `requirements.txt` | streamlit==1.50.0 and plotly==7.1.0 (pinned: style.css targets Streamlit internals), pandas, pulp, requests, anthropic (0.125 is the newest that runs on Python 3.9) |
 
 Swapping in the real model is one line in app.py: `import fake_model as model` becomes `import model`.
 
@@ -83,6 +85,8 @@ Swapping in the real model is one line in app.py: `import fake_model as model` b
 
 ## Gotchas
 
+- Headless Chrome screenshots (`--headless=new --screenshot`) stopped working on this Mac mid-session on Nov 15 (every page, even a trivial one, captured as the loading skeleton; `CVDisplayLink` errors in Chrome's log). The app itself was fine. If it happens again, trust `test_app.py` and check visually in the real browser.
+
 - To turn on AI answers: create `.streamlit/secrets.toml` with `ANTHROPIC_API_KEY = "..."` (never commit it). On Streamlit Cloud, paste the same line into the app's Secrets settings.
 - AppTest can't rerun after clicking the assistant's buttons either (same segmented-control limitation); test it by setting `faq_history` + `faq_pending` before a fresh run.
 
@@ -99,4 +103,5 @@ Swapping in the real model is one line in app.py: `import fake_model as model` b
 1. **Part 3: let the farmer enter their own rotation.** A grid (fields × years) where they pick a crop per cell, then the app backtests *their* rotation alongside the suggestion. This is the core of the team objective.
 2. Make the "typical year / dry year" switch visibly change things; add a short "why this plan" sentence.
 3. Swap in Robert's `model.py` and Tebit's CSVs when ready.
-4. Sunday: ~~trade-off chart from `solve_pareto`~~ (done), demo polish, deployment via Robert.
+4. Sunday: ~~trade-off chart~~ (done), demo polish, deployment via Robert (send him DEPLOY.md).
+5. When `model.py` arrives: `import model` in app.py, then `python test_app.py` and fix whatever it flags.

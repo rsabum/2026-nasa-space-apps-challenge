@@ -1,6 +1,8 @@
-streamlit>=1.39
+# Pinned to the versions the app was built and tested with (style.css targets Streamlit
+# internals and the charts use Plotly 7 features), so a cloud deploy looks the same.
+streamlit==1.50.0
+plotly==7.1.0
 pandas>=2.2
-plotly>=5.24
 pulp>=2.9
 requests>=2.32
 anthropic>=0.125  # Claude, for the in-app assistant (optional: works without a key)
