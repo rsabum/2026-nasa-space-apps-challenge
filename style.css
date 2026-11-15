@@ -867,3 +867,26 @@ div.fs-step {cursor: default;}
 @media (prefers-reduced-motion: reduce) {
     .st-key-card_mine, .st-key-card_plan, [class*="st-key-cell-"] button, .rg > .rg-cell {animation: none !important;}
 }
+
+/* ---------- Clean entrances: fade only, no movement ----------
+   Everything that used to slide, grow, bounce or draw in now just fades in where it
+   belongs. These redefine the earlier keyframes of the same name (the later one wins). */
+@keyframes fs-drop       {from {opacity: 0;}}
+@keyframes fs-in-down    {from {opacity: 0;}}
+@keyframes fs-reveal     {from {opacity: 0;}}
+@keyframes fs-sprout     {from {opacity: 0;}}
+@keyframes fs-chip-in    {from {opacity: 0;}}
+@keyframes fs-tag-in     {from {opacity: 0;}}
+@keyframes fs-msg-in     {from {opacity: 0;}}
+@keyframes fs-page-in    {from {opacity: 0;}}
+@keyframes fs-menu-open  {from {opacity: 0;}}
+@keyframes fs-choice-in  {from {opacity: 0;}}
+@keyframes fs-tile-fade  {from {opacity: 0;}}
+@keyframes fs-grow       {from {opacity: 0;}}
+
+/* Charts: the lines no longer draw themselves left to right, and the rain bars no longer
+   grow in a wave; the whole chart fades in once, cleanly. */
+.st-key-card_test .scatterlayer .js-line {stroke-dasharray: none !important; stroke-dashoffset: 0 !important;
+    animation: none !important;}
+.st-key-card_test .scatterlayer .js-fill, .st-key-card_test .barlayer .point path {animation: none !important;}
+[data-testid="stPlotlyChart"] {animation: fs-soft-in .6s ease-out both;}
