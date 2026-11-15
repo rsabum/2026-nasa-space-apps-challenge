@@ -602,12 +602,11 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 }
 
 
-/* ---------- Faint trace through the grid ----------
-   Two lines follow the background grid like a data trace, each with a brighter pulse
-   travelling along it (the animation lives inside the SVG). Sits with the satellite,
-   behind everything; the grid is 48px and starts at the window's corner, so they line up. */
+/* ---------- Trace through the grid ----------
+   Faint routes along the 48px background grid, drawn once as a still image. The
+   moving comets on them are small elements (.fs-comets, near the end of this file). */
 [data-testid="stApp"]::after {content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 3072%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%223212%22 to=%220%22 dur=%2216s%22 begin=%220s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 2448%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%222588%22 to=%220%22 dur=%2221s%22 begin=%22-7s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .28;}
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-opacity=%22.12%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22/%3E%3Cpath d=%22M1920.5 1056.5 L1680.5 1056.5 L1680.5 912.5 L1440.5 912.5 L1440.5 1152.5 L1056.5 1152.5 L1056.5 1008.5 L768.5 1008.5 L768.5 624.5 L480.5 624.5 L480.5 384.5 L0.5 384.5%22/%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .55;}
 
 /* ---------- Sliders: smoother feel ---------- */
 [data-testid="stSlider"] [role="slider"] {transition: transform .15s ease, box-shadow .15s ease;}
@@ -890,3 +889,65 @@ div.fs-step {cursor: default;}
     animation: none !important;}
 .st-key-card_test .scatterlayer .js-fill, .st-key-card_test .barlayer .point path {animation: none !important;}
 [data-testid="stPlotlyChart"] {animation: fs-soft-in .6s ease-out both;}
+
+
+/* =====================================================================
+   Smoothness pass: keep the look, stop the browser repainting big areas every frame.
+   Only transform and opacity animate continuously (the GPU moves those for free).
+   ===================================================================== */
+
+/* Background: no fixed attachment (the app's scrolling happens inside it anyway). */
+[data-testid="stApp"] {background-attachment: scroll !important;}
+
+/* Comets: three small glowing streaks gliding along the background routes (CSS motion
+   path), instead of re-drawing a full-screen animated image every frame. The head leads,
+   the gradient tail trails behind, and offset-rotate turns them at each corner. */
+.fs-comets {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+.fs-comets i {position: absolute; left: 0; top: 0; width: 150px; height: 2px; border-radius: 2px;
+    background: linear-gradient(90deg, rgba(111, 160, 255, 0) 0%, rgba(111, 160, 255, .35) 55%,
+                                rgba(191, 215, 255, .9) 92%, #FFFFFF 100%);
+    offset-rotate: auto; offset-anchor: 100% 50%; will-change: offset-distance;
+    animation-name: fs-comet; animation-timing-function: linear; animation-iteration-count: infinite;
+    opacity: .75;}
+.fs-comets i::after {content: ""; position: absolute; right: -3px; top: -2px; width: 6px; height: 6px;
+    border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9);}
+@keyframes fs-comet {from {offset-distance: 0%;} to {offset-distance: 100%;}}
+.fs-comets i:nth-child(1) {offset-path: path('M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5'); animation-duration: 6.0s; animation-delay: 0s;}
+.fs-comets i:nth-child(2) {offset-path: path('M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5'); animation-duration: 7.5s; animation-delay: -3s;}
+.fs-comets i:nth-child(3) {offset-path: path('M1920.5 1056.5 L1680.5 1056.5 L1680.5 912.5 L1440.5 912.5 L1440.5 1152.5 L1056.5 1152.5 L1056.5 1008.5 L768.5 1008.5 L768.5 624.5 L480.5 624.5 L480.5 384.5 L0.5 384.5'); animation-duration: 8.5s; animation-delay: -5.5s;}
+
+/* Satellite: drawn once into its own layer, then only moved. */
+[data-testid="stApp"]::before {will-change: transform;}
+
+/* Top bars: no live blur behind them (it was recomputed every frame as things moved behind). */
+.fs-topbar, .st-key-fs_topnav {backdrop-filter: none !important; background: rgba(18, 24, 56, .92) !important;}
+.fs-dir-panel {backdrop-filter: none !important;}
+
+/* Recommended plan: a still gradient border instead of one that orbits (it repainted the
+   whole card every frame). Same colours. */
+.st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    background: var(--grad-panel) padding-box,
+                linear-gradient(135deg, #4F8BFF, rgba(191, 215, 255, .35) 45%, #BFD7FF) border-box !important;}
+
+/* Logo: float by moving only (its glow stays put); no more animated shadows. */
+@keyframes fs-float {0%, 100% {transform: translateY(0) rotate(0deg);} 50% {transform: translateY(-7px) rotate(-1.5deg);}}
+.fs-hero svg {will-change: transform;
+    box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .38), 0 18px 26px rgba(2, 5, 20, .4);}
+
+/* Title and field map: still (their gradients were repainted continuously). */
+.fs-hero-title, .fm-plot {animation: none !important;}
+
+/* Assistant button: the pulse ring grows and fades (transform + opacity), not a shadow. */
+.st-key-faq [data-testid="stPopoverButton"] {will-change: transform;}
+.st-key-faq [data-testid="stPopoverButton"]::after {box-shadow: none !important;
+    border: 2px solid rgba(191, 215, 255, .55); animation: fs-ping-ring 3.2s ease-out infinite !important;}
+@keyframes fs-ping-ring {0% {transform: scale(1); opacity: .8;} 70%, 100% {transform: scale(1.25); opacity: 0;}}
+
+/* Current crop in the picker: a steady ring (no pulsing shadow). */
+[class*="st-key-pick-"][class*="-sel"] button {animation: none !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc, #BFD7FF) 45%, transparent) !important;}
+
+/* Moving pseudo-elements get their own layer. */
+.fs-step::before, [data-testid="stBaseButton-primary"]::after {will-change: transform;}
+
+@media (prefers-reduced-motion: reduce) {.fs-comets {display: none;}}

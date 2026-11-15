@@ -789,6 +789,7 @@ def page_header(crumb, title, tag, groups, compact=False):
     pages the top bar starts with a "Home" button: a real Streamlit page link, so going
     back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
+    show_html('<div class="fs-comets" aria-hidden="true"><i></i><i></i><i></i></div>')   # background comets (style.css)
     if crumb == "Home":
         show_html('<div class="fs-topbar">'
                   f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
