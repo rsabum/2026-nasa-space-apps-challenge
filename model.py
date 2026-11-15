@@ -1,15 +1,17 @@
 """Field Shift optimizer: Enumerate, Simulate, Assign (owner: Robert).
 
-    1. Enumerate  every 4-year rotation per field: a crop each year and a yes/no rye cover
-                  after it (4^4 x 2^4 = 4,096), keeping those that pass the ground rules.
+    1. Enumerate  every rotation of the chosen length (2-5 years) per field: a crop each year
+                  and a yes/no rye cover after it (4^4 x 2^4 = 4,096 for 4 years), keeping
+                  those that pass the ground rules. A rotation repeats: year 1 follows the last.
     2. Simulate   each rotation in every weather year, by table lookups into the
                   precomputed crop model (crop_sim.py).
     3. Assign     one rotation per field with a small integer program (PuLP), solved by
                   Gurobi when it is licensed on this machine, otherwise by the free CBC.
 
-The farmer picks ONE goal (contract.GOALS); the other measures become limits relative to
-their own rotation (contract.DEFAULT_LIMITS). This is the epsilon-constraint method
-(Haimes, Lasdon & Wismer 1971). Impossible limits never crash: the plan comes back with
+The farmer picks ONE goal (contract.GOALS); the other measures become absolute limits
+("profit at least $40,000 a year"). This is the epsilon-constraint method (Haimes,
+Lasdon & Wismer 1971). limit_ranges() says what the farm can reach on each measure, for
+the app's sliders. Impossible limits never crash: the plan comes back with
 table.attrs["unmet"] explaining what couldn't be met.
 
 Same functions as fake_model.py, so app.py only changes `import fake_model as model`.
@@ -24,14 +26,15 @@ import pandas as pd
 import pulp
 
 import synthetic_data
-from contract import (BACKTEST_COLUMNS, DEFAULT_LIMITS, GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS,
-                      PLAN_COLUMNS, WORST_SHARE, baseline_plan)
+from contract import (BACKTEST_COLUMNS, GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, PLAN_COLUMNS,
+                      WORST_SHARE, baseline_plan)
 from crop_sim import CropSim
 from rules import rule_problems
 
 MM_PER_IN = 25.4
 DRY_SHARE = 0.25        # the "dry" scenario = the driest quarter of seasons by May-Sep rain
 GAP = 1e-6              # solver optimality gap: effectively exact
+TIME_LIMIT = 30         # seconds per solve; the best plan found so far is used if it's hit
 
 
 # ---------------------------------------------------------------- data and crop model
@@ -108,13 +111,13 @@ class Prepared:
     def metrics(self, field, C, G):
         """Per-acre results of rotations on one field.
         C, G: int arrays (rotations, years) of crop index and rye-after flag.
-        Returns arrays (rotations, years, weather years), plus soil (rotations, years)."""
+        Returns arrays (rotations, years, weather years), plus soil (rotations, years).
+        A rotation is a repeating cycle: year 1 follows the last year, so year 1's previous
+        crop (and rye before it) is the last year's. Last season's actual crop only matters
+        for the switch-over rule check, not the steady-state numbers."""
         tab = self.field_tables(field)
-        prev = np.empty_like(C)
-        prev[:, 0] = self.idx.get(field.get("last_crop"), len(self.crops))
-        prev[:, 1:] = C[:, :-1]
-        rye_before = np.zeros_like(G)
-        rye_before[:, 1:] = G[:, :-1]      # assume no rye last winter, before year 1
+        prev = np.roll(C, 1, axis=1)
+        rye_before = np.roll(G, 1, axis=1)
         ratio = tab["ratio"][C, rye_before]
         irr = tab["irrigation"][C, rye_before]
         yld = (self.base_yield[C] * self.rho[prev, C])[..., None] * ratio
@@ -150,14 +153,15 @@ def pick_solver(name=None):
     The environment variable FIELD_SHIFT_SOLVER=gurobi|cbc forces one."""
     name = (name or os.environ.get("FIELD_SHIFT_SOLVER", "auto")).lower()
     if name in ("auto", "gurobi") and _gurobi_env() is not None:
-        return "gurobi", pulp.GUROBI(msg=False, gapRel=GAP, env=_gurobi_env())
-    return "cbc", pulp.PULP_CBC_CMD(msg=False, gapRel=GAP)
+        return "gurobi", pulp.GUROBI(msg=False, gapRel=GAP, timeLimit=TIME_LIMIT, env=_gurobi_env())
+    return "cbc", pulp.PULP_CBC_CMD(msg=False, gapRel=GAP, timeLimit=TIME_LIMIT)
 
 
 # ---------------------------------------------------------------- stage 1: candidate rotations
 
 class Candidates:
-    """Every rotation kept for one field, with its per-acre measures."""
+    """Every rotation kept for one field, with its per-acre measures (per season)."""
+    CHUNK = 64      # crop sequences per batch
 
     def __init__(self, prep, field, farm, constraints, prune=True):
         n, T = len(prep.crops), farm["years"]
@@ -170,25 +174,37 @@ class Candidates:
         self.rules_met = fewest == 0
 
         wheat = prep.idx.get("winter_wheat")
-        C, G = [], []
-        for s in seqs:
-            for g in itertools.product((0, 1), repeat=T):
-                # Rye can't go in right before winter wheat: their fall planting windows clash.
-                if any(g[t] and s[t + 1] == wheat for t in range(T - 1)):
-                    continue
-                C.append(s)
-                G.append(g)
-        C, G = np.array(C), np.array(G)
-        m = prep.metrics(field, C, G)
-        keep = self._undominated(C, m) if prune else np.ones(len(C), bool)
-        self.C, self.G = C[keep], G[keep]
-        self.n_before_pruning = len(C)
-        self.profit_y = m["profit"].sum(1)[keep]           # (R, Y): 4-year $/acre in each weather year
-        self.short_y = m["shortfall"].sum(1)[keep]         # (R, Y): mm
-        self.irr_y = m["irrigation"].sum(1)[keep]          # (R, Y): mm
-        self.soil = m["soil"].sum(1)[keep]                 # (R,): points per acre over 4 years
-        self.prod_y = np.stack([(m["yield"] * (C == c)[..., None]).sum(1)[keep]
-                                for c in range(n)], 1)     # (R, crops, Y): bu/acre
+        patterns = list(itertools.product((0, 1), repeat=T))
+        parts = {k: [] for k in ("C", "G", "profit_y", "short_y", "irr_y", "soil", "prod_y")}
+        self.n_before_pruning = 0
+        # Built a few crop sequences at a time, so a 5-year search (up to 32,768 rotations
+        # per field) never holds all its daily-weather arrays at once. Pruning compares rye
+        # patterns within one crop sequence, so doing it chunk by chunk is still exact.
+        for start in range(0, len(seqs), self.CHUNK):
+            C, G = [], []
+            for s in seqs[start:start + self.CHUNK]:
+                for g in patterns:
+                    # Rye can't go in right before winter wheat: their fall planting windows
+                    # clash. The cycle wraps, so rye after the last year meets year 1.
+                    if any(g[t] and s[(t + 1) % T] == wheat for t in range(T)):
+                        continue
+                    C.append(s)
+                    G.append(g)
+            C, G = np.array(C), np.array(G)
+            m = prep.metrics(field, C, G)
+            keep = self._undominated(C, m) if prune else np.ones(len(C), bool)
+            self.n_before_pruning += len(C)
+            # Averages per season over the cycle, so rotations of different lengths compare.
+            parts["C"].append(C[keep])
+            parts["G"].append(G[keep])
+            parts["profit_y"].append(m["profit"].mean(1)[keep])        # (R, Y): $/acre per season
+            parts["short_y"].append(m["shortfall"].mean(1)[keep])      # (R, Y): mm per season
+            parts["irr_y"].append(m["irrigation"].mean(1)[keep])       # (R, Y): mm per season
+            parts["soil"].append(m["soil"].mean(1)[keep])              # (R,): points per acre per season
+            parts["prod_y"].append(np.stack([(m["yield"] * (C == c)[..., None]).mean(1)[keep]
+                                             for c in range(n)], 1))   # (R, crops, Y): bu/acre per season
+        for k, v in parts.items():
+            setattr(self, k, np.concatenate(v))
 
     @staticmethod
     def _undominated(C, m):
@@ -219,7 +235,10 @@ def _candidates_cached(prep_id, field_json, farm_json, rules_json):
 
 
 def _candidates(prep, farm, constraints):
-    rules = {k: constraints.get(k) for k in ("allowed_crops", "no_repeat", "min_legume_years")}
+    # Missing ground rules mean "no rule": any crop, repeats allowed, no soybean minimum.
+    rules = {"allowed_crops": constraints.get("allowed_crops") or None,
+             "no_repeat": bool(constraints.get("no_repeat")),
+             "min_legume_years": int(constraints.get("min_legume_years") or 0)}
     farm_json = _dumps(farm)
     return [_candidates_cached(_prep_key(prep), _dumps(f), farm_json, _dumps(rules))
             for f in farm["fields"]]
@@ -255,50 +274,76 @@ def _summary(prep, farm, plan, covers, scenario, worst_share):
         G = np.array([[int(_flag(x)) for x in (covers or {}).get(f["name"], [0] * len(crops))]])
         m = prep.metrics(f, C, G)
         a = float(f["acres"])
-        s["profit_y"] = s["profit_y"] + a * m["profit"][0].sum(0)
-        s["short_y"] = s["short_y"] + a * m["shortfall"][0].sum(0) / MM_PER_IN
-        s["irr_y"] = s["irr_y"] + a * m["irrigation"][0].sum(0) / MM_PER_IN
-        s["soil"] += a * m["soil"][0].sum() / total_acres
+        T = len(crops)
+        s["profit_y"] = s["profit_y"] + a * m["profit"][0].mean(0)
+        s["short_y"] = s["short_y"] + a * m["shortfall"][0].mean(0) / MM_PER_IN
+        s["irr_y"] = s["irr_y"] + a * m["irrigation"][0].mean(0) / MM_PER_IN
+        s["soil"] += a * m["soil"][0].mean() / total_acres
         for t, ci in enumerate(C[0]):
-            s["prod_y"][ci] += a * m["yield"][0, t]
+            s["prod_y"][ci] += a * m["yield"][0, t] / T
+    # Everything per season (per year of the repeating cycle), so lengths compare.
     return {
-        "profit": s["profit_y"][pool].mean(),            # $ over 4 seasons, scenario average
-        "profit_y": s["profit_y"],                       # $ over 4 seasons, if every season were year y
+        "profit": s["profit_y"][pool].mean(),            # $ per season, scenario average
+        "profit_y": s["profit_y"],                       # $ per season, if every season were year y
         "worst_profit": _cvar(s["profit_y"], worst_share),
-        "shortfall": s["short_y"][pool].mean(),          # acre-inches over 4 seasons
+        "shortfall": s["short_y"][pool].mean(),          # acre-inches per season
         "irrigation": s["irr_y"][pool].mean(),
-        "irrigation_y": s["irr_y"][pool],                # acre-inches, each scenario year
+        "irrigation_y": s["irr_y"][pool],                # acre-inches per season, each scenario year
         "water": s["short_y"][pool].mean() + s["irr_y"][pool].mean(),
-        "soil": s["soil"],                               # points per acre over 4 seasons
-        "production": {c: s["prod_y"][i][pool].mean() for i, c in enumerate(prep.crops)},  # bu
+        "soil": s["soil"],                               # points per acre per season
+        "production": {c: s["prod_y"][i][pool].mean() for i, c in enumerate(prep.crops)},  # bu per season
     }
 
 
-def _at_least(ref, frac):
-    """'At least frac of yours', sensible for negative values too (no more than (1-frac) worse)."""
-    return ref - (1 - frac) * abs(ref)
-
-
-def _bounds(limits, ref):
-    """Relative limits -> absolute bounds the MILP can use."""
+def _bounds(limits, prep, scenario):
+    """Absolute limits -> the bounds the MILP rows use. Values are farm totals per season
+    (per year of the cycle); None or missing means the limit is off."""
     b = {}
-    for key, frac in limits.items():
-        if frac is None:
+    for key, value in (limits or {}).items():
+        if value is None:
             continue
-        frac = float(frac)
-        if key == "profit_min":
-            b[key] = _at_least(ref["profit"], frac)
-        elif key == "worst_profit_min":
-            b[key] = _at_least(ref["worst_profit"], frac)
-        elif key == "soil_min":
-            b[key] = _at_least(ref["soil"], frac)
-        elif key == "shortfall_max":
-            b[key] = frac * ref["shortfall"]
-        elif key == "irrigation_max":
-            b[key] = frac * np.asarray(ref["irrigation_y"])
+        if key == "irrigation_max":      # applies in every season of the scenario
+            b[key] = np.full(int(prep.pool(scenario).sum()), float(value))
         elif key == "production_min":
-            b[key] = {c: frac * v for c, v in ref["production"].items() if v > 0}
+            b[key] = {c: float(v) for c, v in dict(value).items() if v and c in prep.idx}
+        else:
+            b[key] = float(value)
     return b
+
+
+def limit_ranges(farm, data=None, scenario="average", constraints=None):
+    """What this farm can reach on each limit's measure, per season: {name: (low, high)}, and
+    for production_min {crop: (low, high)}. For slider ranges. Each end adds up, field by
+    field, acres x the lowest / highest value among that field's candidate rotations (the
+    ground rules and farm["years"] apply). It's an outer envelope: it ignores the acre cap,
+    and bad-year profit adds per-field values. No solve needed; the candidates are cached."""
+    prep = _prep(data)
+    constraints = dict(constraints or {})
+    pool = prep.pool(scenario)
+    worst = float(constraints.get("worst_share") or WORST_SHARE)
+    total = sum(float(f["acres"]) for f in farm["fields"])
+    lo, hi = {}, {}
+
+    def add(key, a, values):
+        lo[key] = lo.get(key, 0.0) + a * float(np.min(values))
+        hi[key] = hi.get(key, 0.0) + a * float(np.max(values))
+
+    prod = {}
+    for f, c in zip(farm["fields"], _candidates(prep, farm, constraints)):
+        a = float(f["acres"])
+        add("profit_min", a, c.profit_y[:, pool].mean(1))
+        add("worst_profit_min", a, [_cvar(row, worst) for row in c.profit_y])
+        add("shortfall_max", a, c.short_y[:, pool].mean(1) / MM_PER_IN)
+        add("irrigation_max", a, c.irr_y[:, pool].max(1) / MM_PER_IN)
+        add("soil_min", a / total, c.soil)
+        for ci, crop in enumerate(prep.crops):
+            p_lo, p_hi = prod.get(crop, (0.0, 0.0))
+            col = c.prod_y[:, ci][:, pool].mean(1)
+            prod[crop] = (p_lo + a * float(col.min()), p_hi + a * float(col.max()))
+    out = {k: (lo[k], hi[k]) for k in lo}
+    allowed = constraints.get("allowed_crops") or prep.crops
+    out["production_min"] = {crop: r for crop, r in prod.items() if crop in allowed and r[1] > 0}
+    return out
 
 
 # ---------------------------------------------------------------- stage 2: the MILP
@@ -390,10 +435,14 @@ def _optimize(prep, farm, cands, goal, scenario, bounds, cap_share, worst_share,
                 m.addConstraint(violation <= violation_cap)
         return m, y, violation, goal_expr, tiebreak
 
+    timed_out = []
+
     def run(m):
         # A fresh solver object every time: PuLP's GUROBI object keeps reporting "Infeasible"
         # for every later model once one model was infeasible (seen with PuLP 3.3.2).
         m.solve(pick_solver(solver_name)[1])
+        if m.status == 1 and m.sol_status == pulp.LpSolutionIntegerFeasible:
+            timed_out.append(True)     # stopped at TIME_LIMIT with a good, maybe not best, plan
         return pulp.LpStatus[m.status]
 
     m, y, _, goal_expr, tiebreak = build("hard")
@@ -416,6 +465,8 @@ def _optimize(prep, farm, cands, goal, scenario, bounds, cap_share, worst_share,
             m.setObjective(goal_expr)
             run(m)
     choice = [int(np.argmax([v.value() or 0 for v in yz])) for yz in y]
+    if timed_out and status == "Optimal":
+        status = "Time limit"
     return choice, status
 
 
@@ -447,9 +498,12 @@ def _check_plan(prep, farm, plan):
     names = [f["name"] for f in farm["fields"]]
     if list(plan) != names and set(plan) != set(names):
         raise ValueError(f"plan fields {list(plan)} don't match the farm's fields {names}")
+    lengths = {len(crops) for crops in plan.values()}
+    if len(lengths) > 1:
+        raise ValueError(f"every field needs the same rotation length; got {sorted(lengths)}")
     for field, crops in plan.items():
-        if len(crops) != farm["years"]:
-            raise ValueError(f"{field} has {len(crops)} years; the plan needs {farm['years']}")
+        if len(crops) < 1:
+            raise ValueError(f"{field} has an empty rotation")
         unknown = [c for c in crops if c not in prep.idx]
         if unknown:
             raise ValueError(f"{field}: unknown crop(s) {unknown}; known: {prep.crops}")
@@ -470,12 +524,16 @@ def solve(farm, data=None, goal="max_profit", scenario="average", constraints=No
     """The best plan for ONE goal (a key of contract.GOALS) under the ground rules and limits.
 
     constraints: the ground rules (contract.CONSTRAINTS keys) plus optional
-        limits          {limit name: fraction of the reference plan, or None}; default
-                        contract.DEFAULT_LIMITS[goal]
-        reference_plan  the farmer's rotation the limits are relative to (default: corn-soy)
-        worst_share     share of seasons counted as "bad years" (default contract.WORST_SHARE)
+        limits       absolute values, farm totals per season (None/missing = off):
+                       profit_min $/yr, worst_profit_min $/yr (average of the worst seasons),
+                       shortfall_max acre-in/yr, irrigation_max acre-in in every season,
+                       soil_min points per acre per year, production_min {crop: bu/yr}.
+                     No limits by default; limit_ranges() gives sensible ranges.
+        worst_share  share of seasons counted as "bad years" (default contract.WORST_SHARE)
     Returns evaluate()'s table for the chosen plan and rye covers, with table.attrs:
-        goal, solver, status ("Optimal" or "Relaxed"), unmet (list of plain sentences).
+        goal, solver, status ("Optimal", "Relaxed", or "Time limit"), unmet (plain sentences).
+    The rotation length searched is farm["years"] (2-5). Rotations repeat (year 1 follows
+    the last year) and every measure is per season.
     """
     if isinstance(goal, dict):
         raise TypeError(f"solve() takes a goal name now, not weights: one of {list(GOALS)}")
@@ -485,22 +543,16 @@ def solve(farm, data=None, goal="max_profit", scenario="average", constraints=No
     prep = _prep(data)
     solver_name, _ = pick_solver()
 
-    reference = constraints.get("reference_plan")
-    try:
-        _check_plan(prep, farm, reference or {})
-    except (ValueError, TypeError):
-        reference = baseline_plan(farm)
-    limits = constraints.get("limits")
-    limits = dict(DEFAULT_LIMITS[goal] if limits is None else limits)
+    limits = {k: v for k, v in (constraints.get("limits") or {}).items() if v is not None}
     for key in GOAL_OWN_LIMITS[goal]:
         limits.pop(key, None)
     worst_share = float(constraints.get("worst_share") or WORST_SHARE)
     cap_share = float(constraints.get("max_crop_share", 1) or 1)
 
-    key = _dumps([_prep_key(prep), farm, goal, scenario, constraints, limits, reference, solver_name])
+    rules = {k: v for k, v in constraints.items() if k not in ("limits", "reference_plan")}
+    key = _dumps([_prep_key(prep), farm, goal, scenario, rules, limits, solver_name])
     if key not in _SOLVE_CACHE:
-        ref = _summary(prep, farm, reference, None, scenario, worst_share)
-        bounds = _bounds(limits, ref)
+        bounds = _bounds(limits, prep, scenario)
         cands = _candidates(prep, farm, constraints)
         choice, status = _optimize(prep, farm, cands, goal, scenario, bounds, cap_share,
                                    worst_share, solver_name)
@@ -511,7 +563,7 @@ def solve(farm, data=None, goal="max_profit", scenario="average", constraints=No
         got = _summary(prep, farm, plan, covers, scenario, worst_share)
         table = _scenario_rows(prep, farm, plan, covers, scenario)
         table.attrs.update(goal=goal, solver=solver_name, status=status,
-                           unmet=_unmet(limits, bounds, ref, got))
+                           unmet=_unmet(bounds, got))
         if len(_SOLVE_CACHE) > 64:
             _SOLVE_CACHE.clear()
         _SOLVE_CACHE[key] = table
@@ -520,40 +572,34 @@ def solve(farm, data=None, goal="max_profit", scenario="average", constraints=No
     return table
 
 
-def _unmet(limits, bounds, ref, got):
-    """Plain sentences for limits the chosen plan does not meet."""
+def _unmet(bounds, got):
+    """Plain sentences for limits the chosen plan does not meet (all per year)."""
     def money(v):
-        return f"${v:,.0f}"
-
-    def acre_in(v):
-        return f"{v:,.0f} acre-in"
+        return f"{'−' if v < 0 else ''}${abs(v):,.0f}"
 
     out = []
     for key, b in bounds.items():
-        label, pct = LIMIT_LABELS[key], f"{float(limits[key]):.0%} of yours"
+        label = LIMIT_LABELS[key]
         tol = 1e-6 * (abs(np.max(b)) + 1) if not isinstance(b, dict) else 0
         if key == "profit_min" and got["profit"] < b - tol:
-            out.append(f"{label} {pct}: the best plan found earns {money(got['profit'])} "
-                       f"against your {money(ref['profit'])}.")
+            out.append(f"{label} {money(b)} a year: the best plan found earns {money(got['profit'])}.")
         elif key == "worst_profit_min" and got["worst_profit"] < b - tol:
-            out.append(f"{label} {pct}: the best plan found makes {money(got['worst_profit'])} in "
-                       f"bad years against your {money(ref['worst_profit'])}.")
+            out.append(f"{label} {money(b)} a year: the best plan found makes "
+                       f"{money(got['worst_profit'])} in bad years.")
         elif key == "shortfall_max" and got["shortfall"] > b + tol:
-            out.append(f"{label} {pct}: the best plan found runs {acre_in(got['shortfall'])} "
-                       f"short against your {acre_in(ref['shortfall'])}.")
+            out.append(f"{label} {b:,.0f} acre-in a year: the best plan found runs "
+                       f"{got['shortfall']:,.0f} acre-in short.")
         elif key == "irrigation_max" and np.any(got["irrigation_y"] > b + tol):
             n = int(np.sum(got["irrigation_y"] > b + tol))
-            out.append(f"{label} {pct}: the best plan found pumps more than your rotation "
+            out.append(f"{label} {float(np.max(b)):,.0f} acre-in: the best plan found pumps more "
                        f"in {n} season{'s' if n > 1 else ''}.")
         elif key == "soil_min" and got["soil"] < b - tol:
-            out.append(f"{label} {pct}: the best plan found scores {got['soil']:+.1f} "
-                       f"against your {ref['soil']:+.1f}.")
+            out.append(f"{label} {b:+.2f} a year: the best plan found scores {got['soil']:+.2f}.")
         elif key == "production_min":
             for crop, bc in b.items():
                 if got["production"][crop] < bc - 1e-6 * (bc + 1):
-                    out.append(f"{label} {pct}: {crop.replace('_', ' ')} harvest "
-                               f"{got['production'][crop]:,.0f} bu against your "
-                               f"{ref['production'][crop]:,.0f} bu.")
+                    out.append(f"{label} {bc:,.0f} bu of {crop.replace('_', ' ')} a year: the "
+                               f"best plan found harvests {got['production'][crop]:,.0f} bu.")
     return out
 
 
@@ -598,11 +644,11 @@ def solve_pareto(farm, data=None, scenario="average", constraints=None, n=9):
 
 def backtest(plan, farm, data=None, covers=None):
     """The plan against every historical year: one row per weather year, as if every season
-    of the rotation had that year's weather (values per season, averaged over the 4 years)."""
+    of the rotation had that year's weather (values per season, averaged over the cycle)."""
     prep = _prep(data)
     _check_plan(prep, farm, plan)
     total_acres = sum(float(f["acres"]) for f in farm["fields"])
-    T = farm["years"]
+    T = len(next(iter(plan.values())))
     profit = short = irr = soil = 0.0
     for f in farm["fields"]:
         crops = plan[f["name"]]
@@ -637,4 +683,4 @@ def table_to_covers(table):
 
 
 __all__ = ["evaluate", "solve", "solve_pareto", "backtest", "table_to_plan", "table_to_covers",
-           "baseline_plan", "pick_solver"]
+           "baseline_plan", "pick_solver", "limit_ranges"]

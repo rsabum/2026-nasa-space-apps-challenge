@@ -22,7 +22,7 @@ def _years(numbers):
 def rule_problems(plan, farm, constraints):
     """Return one sentence per broken rule. An empty list means every rule is met.
 
-    plan        {field name: [crop for year 1, year 2, ...]}
+    plan        {field name: [crop for year 1, year 2, ...]}, a repeating cycle
     farm        the farm dict (fields with name, acres, last_crop)
     constraints the ground rules, same keys as contract.CONSTRAINTS
     """
@@ -45,7 +45,8 @@ def rule_problems(plan, farm, constraints):
                 problems.append(f"{field} grows {_label(crop)} in {_years(when)}, "
                                 "which isn't on your crop list.")
 
-        # 2. No crop two years running (last season counts against year 1).
+        # 2. No crop two years running. Last season counts against year 1 (the switch-over),
+        #    and the rotation repeats, so the last year also counts against year 1.
         if constraints.get("no_repeat"):
             prev = fields.get(field, {}).get("last_crop")
             for i, crop in enumerate(crops):
@@ -53,6 +54,9 @@ def rule_problems(plan, farm, constraints):
                     when = "last season and year 1" if i == 0 else _years([i, i + 1])
                     problems.append(f"{field} has {_label(crop)} two years running ({when}).")
                 prev = crop
+            if len(crops) > 1 and crops[-1] == crops[0]:
+                problems.append(f"{field} has {_label(crops[0])} two years running when the "
+                                f"rotation repeats (year {len(crops)} → year 1).")
 
         # 3. At least N soybean years per field.
         have = crops.count("soybeans")

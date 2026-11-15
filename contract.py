@@ -21,6 +21,11 @@ FARM = {
 
 CROPS = ["corn", "soybeans", "winter_wheat", "sorghum"]
 
+# A rotation is a repeating cycle of 2-5 years: {field: [crop for year 1, ..., year L]},
+# and year 1 follows year L. farm["years"] is the length to plan or search (FARM's 4 is
+# only the default). model.py reports every measure per season (per year of the cycle).
+ROTATION_LENGTHS = [2, 3, 4, 5]
+
 # One fixed color per crop, used in every chart. Soft tones, checked so that
 # all four stay distinguishable for colour-blind readers.
 CROP_COLORS = {
@@ -57,7 +62,7 @@ GOALS = {
     "max_soil": "Healthiest soil",
 }
 GOAL_HELP = {
-    "max_profit": "Highest average net profit over the weather years you plan for.",
+    "max_profit": "Highest average net profit a year over 1981–2024 weather.",
     "min_water": "Least water the crops need beyond rain: shortfall on rain-fed fields "
                  "plus irrigation on irrigated ones.",
     "max_worst_profit": "Best average profit across your worst seasons (the worst 10% of "
@@ -65,21 +70,26 @@ GOAL_HELP = {
     "max_soil": "Most soil-health points: legumes, small grains, residue and rye cover.",
 }
 
-# Limits are relative to the farmer's own rotation: 0.95 means "at least 95% of yours"
-# for an "_min" limit and "at most 95% of yours" for a "_max" limit. None or missing = off.
+# Limits are ABSOLUTE farm totals per year (per season of the repeating rotation), never
+# relative to the farmer's rotation: profit_min / worst_profit_min in $/yr, shortfall_max in
+# acre-in/yr, irrigation_max in acre-in in every season, soil_min in points per acre per year,
+# production_min as {crop: bu/yr}. None or missing = off. model.limit_ranges() gives what a
+# farm can reach on each, which the app uses as slider ranges.
 LIMIT_LABELS = {
     "profit_min": "Profit at least",
     "worst_profit_min": "Bad-year profit at least",
     "shortfall_max": "Water shortfall at most",
-    "irrigation_max": "Irrigation at most, every year",
+    "irrigation_max": "Irrigation at most, every season",
     "soil_min": "Soil health at least",
-    "production_min": "Harvest of each crop you grow at least",
+    "production_min": "Harvest at least",
 }
+# The limits each goal switches on to start with, and where each starts along its slider:
+# 0 = the least the farm can reach on that measure, 1 = the most (from model.limit_ranges).
 DEFAULT_LIMITS = {
-    "max_profit": {"shortfall_max": 1.0, "irrigation_max": 1.0},
-    "min_water": {"profit_min": 0.95},
-    "max_worst_profit": {"profit_min": 0.95},
-    "max_soil": {"profit_min": 0.95, "shortfall_max": 1.0},
+    "max_profit": {"shortfall_max": 0.5},
+    "min_water": {"profit_min": 0.75},
+    "max_worst_profit": {"profit_min": 0.75},
+    "max_soil": {"profit_min": 0.75, "shortfall_max": 0.5},
 }
 # Each goal's own measure: a limit on it would fight the goal, so it is not offered.
 GOAL_OWN_LIMITS = {

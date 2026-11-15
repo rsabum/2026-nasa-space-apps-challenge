@@ -2,36 +2,38 @@
 
 Run with:  streamlit run app.py
 
-Three pages, picked from the menu at the top of the left panel:
-    pages/home.py       Home: what Field Shift does, your farm at a glance
-    pages/evaluate.py   Rotation evaluator: enter your rotation, test it on 1981-2024
-    pages/optimize.py   Rotation optimizer: pick a goal and limits, get a better rotation
+Three pages, picked from the menu at the top of the left panel. They live in views/, NOT
+pages/: Streamlit treats a folder named pages/ as its older automatic page list and runs
+those files without this entry point (no farm setup, no shared state).
+    views/home.py       Home: what Field Shift does, your farm at a glance
+    views/evaluate.py   Rotation evaluator: enter your rotation, test it on 1981-2024
+    views/optimize.py   Rotation optimizer: pick a goal and limits, get a better rotation
 
 This file runs first on every click, whichever page is open. It sets up the page, keeps
-the shared choices alive (ui.keep_state), draws the farm setup in the left panel (your
-fields and ground rules, the same on every page), runs the open page, and adds the
-chat assistant. The drawing code all three pages share lives in ui.py.
+the shared choices alive (ui.keep_state), draws your fields in the left panel (the same
+on every page), runs the open page, and adds the chat assistant. The ground rules only
+shape the optimizer's search, so they live on the Rotation optimizer page. The drawing code all three pages share lives in ui.py.
 """
 import pandas as pd
 import streamlit as st
 
 import assistant
 import ui
-from contract import CONSTRAINTS, CROPS, FARM
+from contract import CROPS, FARM
 
 st.set_page_config(page_title="Field Shift", page_icon=str(ui.ASSETS / "icon.png"), layout="wide")
 ui.load_styles()
 ui.keep_state()
 
 pages = st.navigation([
-    st.Page("pages/home.py", title="Home", icon=":material/home:", default=True),
-    st.Page("pages/evaluate.py", title="Rotation evaluator", icon=":material/fact_check:",
+    st.Page("views/home.py", title="Home", icon=":material/home:", default=True),
+    st.Page("views/evaluate.py", title="Rotation evaluator", icon=":material/fact_check:",
             url_path="evaluate"),
-    st.Page("pages/optimize.py", title="Rotation optimizer", icon=":material/auto_awesome:",
+    st.Page("views/optimize.py", title="Rotation optimizer", icon=":material/auto_awesome:",
             url_path="optimize"),
 ])
 
-# ---------- Left panel: the farm setup, shared by every page ----------
+# ---------- Left panel: your fields, shared by every page ----------
 with st.sidebar:
     ui.anchor("fields")   # sidebar headings get no id from Streamlit, so add our own
     st.header("Your fields", anchor=False)
@@ -59,30 +61,9 @@ with st.sidebar:
         ui.show_html(ui.field_map_html(fields))
         st.caption("Each plot is sized by its acres and tinted by last season's crop.")
 
-    ui.anchor("rules")
-    st.header("Ground rules", anchor=False)
-    allowed = st.multiselect("Crops you'd grow", CROPS, CONSTRAINTS["allowed_crops"], key="allowed_crops",
-                             format_func=ui.crop_name)
-    no_repeat = st.checkbox(
-        "No back-to-back crops", CONSTRAINTS["no_repeat"],
-        help="Planting the same crop two years running builds pest and disease "
-             "pressure and wears the soil down. Last season's crop counts too.")
-    min_soy = st.checkbox(
-        "At least one soybean year per field", CONSTRAINTS["min_legume_years"] >= 1,
-        help="Soybeans are a legume: they fix nitrogen in the soil, so the crop "
-             "after them needs less fertilizer.")
-    max_share = st.slider(
-        "Most acres in one crop", 30, 100, int(CONSTRAINTS["max_crop_share"] * 100), step=1,
-        format="%d%%",
-        help="The largest share of your land any one crop can take in a single year, "
-             "so one bad price or one bad season can't hit every acre. "
-             "Set it at or above your biggest field's share, or no plan can meet it.")
-
 # What the pages read (through ui.farm_ready). Rebuilt on every run, so it's never stale.
 st.session_state["_farm_ctx"] = {
     "farm": {**FARM, "fields": fields.to_dict("records")},
-    "constraints": {**CONSTRAINTS, "allowed_crops": allowed, "no_repeat": no_repeat,
-                    "min_legume_years": 1 if min_soy else 0, "max_crop_share": max_share / 100},
     "any_irrigated": bool(fields["irrigated"].any()),
 }
 
@@ -92,14 +73,14 @@ ui.footer()
 
 # ---------- The assistant: floating chat bubble, bottom right, on every page ----------
 ctx = st.session_state["_farm_ctx"]
-if ctx["farm"]["fields"] and ctx["constraints"]["allowed_crops"]:
+if ctx["farm"]["fields"]:
     try:
-        a = ui.analysis(ctx)
+        mine = ui.evaluation(ctx)
     except Exception:   # the page has already shown the error; skip the assistant
-        a = None
-    if a:
-        assistant.render(
-            ui.faq_context(a["farm"], a["scenario"], a["goal"], a["limits"], a["plan_table"],
-                           a["base_table"], a["wins"], len(a["bt_plan"]), a["driest"],
-                           a["my_problems"], a["suggested"], a["my_plan"]),
-            avatar=str(ui.ASSETS / "icon.png"))
+        mine = None
+    try:
+        rec = ui.optimization(ctx) if ui.read_rules()["allowed_crops"] else None
+    except Exception:
+        rec = None
+    if mine:
+        assistant.render(ui.faq_context(mine["farm"], mine, rec), avatar=str(ui.ASSETS / "icon.png"))

@@ -1,13 +1,15 @@
 """Shared building blocks for the Field Shift pages (owner: Claude-Thomas).
 
 Everything the three pages draw lives here, so they look the same and nothing is copied:
-crop colours and icons, the rotation tiles, the field map, charts, chips, the "why this
-plan" box, page headers, and the shared state (your rotation, the weather switch, your goal).
+crop colours and icons, the rotation tiles, the field map, charts, chips, the "about this
+plan" box, page headers, the shared state (your rotation, the optimizer's objective and
+constraints), and the two independent calculations: evaluation() and optimization().
 
 app.py is the entry point: it sets up the page, draws the farm setup in the sidebar,
-and runs whichever page is open (pages/home.py, pages/evaluate.py, pages/optimize.py).
+and runs whichever page is open (views/home.py, views/evaluate.py, views/optimize.py).
 """
 import html
+import math
 import urllib.parse
 from pathlib import Path
 
@@ -19,7 +21,6 @@ import streamlit as st
 import model  # Robert's optimizer. fake_model.py is the old stand-in: `import fake_model as model`
 from contract import (CONSTRAINTS, CROP_LABELS, CROPS, DEFAULT_LIMITS, FARM, GOAL_HELP,
                       GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, WORST_SHARE, baseline_plan)
-from rules import rule_problems
 
 HERE = Path(__file__).parent
 ASSETS = HERE / "assets"
@@ -64,10 +65,11 @@ def crop_mix_chart(plans, farm):
     fig = make_subplots(rows=1, cols=len(plans), shared_yaxes=True, horizontal_spacing=0.06,
                         subplot_titles=list(plans))
     for col, plan in enumerate(plans.values(), start=1):
-        years = [f"Year {i + 1}" for i in range(farm["years"])]
+        n_years = len(next(iter(plan.values())))     # each plan's own rotation length
+        years = [f"Year {i + 1}" for i in range(n_years)]
         for crop in CROPS:
             ys = [sum(acres.get(f, 0) for f, cs in plan.items() if cs[i] == crop)
-                  for i in range(farm["years"])]
+                  for i in range(n_years)]
             fig.add_trace(go.Bar(
                 x=years, y=ys, name=CROP_LABELS[crop], legendgroup=crop, showlegend=(col == 1),
                 marker=dict(color=CROP_COLORS[crop], line=dict(color="#0A0E1F", width=1.5)),
@@ -115,27 +117,6 @@ CROP_SVG = {
         '<circle cx="14.2" cy="9.6" r="1.1"/></g><path d="M12 11.8V22"/>'
         f'<path d="M12 17.2c3-.4 5.9-2.4 7.4-5.6-3.1.3-5.9 2.1-7.4 5.6zM12 20c-2.6-.4-5-2-6-4.6'
         f' 2.6.3 4.8 1.8 6 4.6z" {_DUO}/>'),
-}
-# Weather icons in the same line-art style, animated by style.css: for a typical year
-# rain falls from a cloud while the sun's rays turn; for a dry year the sun blazes
-# and heat shimmers over cracked ground.
-WEATHER_SVG = {
-    "average": _ICON.format(
-        '<g class="wx-spin" style="transform-origin:8px 7.5px">'
-        '<path d="M8 2.2v1.2M3.3 4.2l.9.8M2.7 7.5h1.2M12.7 4.2l-.9.8"/></g>'
-        f'<circle cx="8" cy="7.5" r="3" {_DUO}/>'
-        '<path class="wx-cloud" d="M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z"/>'
-        f'<path d="M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z" {_DUO}/>'
-        '<path class="wx-drop" d="M9.5 19.4l-.7 1.6"/>'
-        '<path class="wx-drop" style="animation-delay:-.4s" d="M13 19.4l-.7 1.6"/>'
-        '<path class="wx-drop" style="animation-delay:-.8s" d="M16.5 19.4l-.7 1.6"/>'),
-    "dry": _ICON.format(
-        '<g class="wx-spin wx-blaze" style="transform-origin:12px 9px">'
-        '<path d="M12 2.3v1.4M12 14.3v1.4M5.3 9h1.4M17.3 9h1.4M7.3 4.3l1 1M15.7 12.7l1 1'
-        'M16.7 4.3l-1 1M8.3 12.7l-1 1"/></g>'
-        f'<circle cx="12" cy="9" r="3.6" {_DUO}/>'
-        '<path class="wx-heat" stroke-width="1.1" d="M4.5 16.6c.8-.6 1.6.6 2.4 0M17 16.6c.8-.6 1.6.6 2.4 0"/>'
-        '<path d="M3 19h18M8.5 19l1 2.4M14 19l-.9 1.3.9 1.3M18.6 19l.7 1.9"/>'),
 }
 MAP_WIDTH = 266     # pixels the field map gets inside the sidebar
 
@@ -187,35 +168,16 @@ def water_stress(table):
     return level, inches
 
 
-def result_chips_html(plan_table, base_table, n_broken):
-    """The row of chips under the recommendation: each one says how it compares with
-    the farmer's rotation, green when better and red when worse."""
-    p, w, s = totals(plan_table)
-    bp, bw, bs = totals(base_table)
-
-    def chip(text, good):
-        kind = "good" if good else "bad"
-        return f'<span class="fs-chip fs-chip-{kind}">{text}</span>'
-
-    def compare(diff, amount, name, higher_is_better=True, tiny=0.05):
-        """'↑ $2,628 profit' in green or red, or '= Same profit' in grey when there's no difference."""
-        if abs(diff) < tiny:
-            return f'<span class="fs-chip">= Same {name}</span>'
-        good = diff > 0 if higher_is_better else diff < 0
-        return chip(f"{'↑' if diff > 0 else '↓'} {amount} {name}", good)
-
-    chips = [
-        compare(p - bp, f"${abs(p - bp):,.0f}", "profit", tiny=0.5),
-        compare(w - bw, f"{abs(w - bw):,.0f} acre-in", "water shortfall", higher_is_better=False, tiny=0.5),
-        compare(s - bs, f"{abs(s - bs):.1f}", "soil health"),
-        chip("✓ Meets your ground rules", True) if n_broken == 0
-        else chip(f"⚠ Breaks {n_broken} rule{'s' if n_broken > 1 else ''}", False),
-    ]
-    level, inches = water_stress(plan_table)
-    chips.append(f'<span class="fs-chip fs-stress-{level.lower()}" title="Shortfall per acre per '
-                 f'season. Under 1 in: Low, 1–3 in: Moderate, over 3 in: High.">💧 Water stress: '
-                 f'<b>{level}</b> · {inches:.1f} in/acre</span>')
-    return f'<div class="fs-chips">{"".join(chips)}</div>'
+def plan_chips_html(table, n_broken):
+    """The chips under the recommended plan: does it meet the ground rules, and how water-
+    stressed is it. Stand-alone: the optimizer never compares with the farmer's rotation."""
+    rules = ('<span class="fs-chip fs-chip-good">✓ Meets your ground rules</span>' if n_broken == 0 else
+             f'<span class="fs-chip fs-chip-bad">⚠ Breaks {n_broken} rule{"s" if n_broken > 1 else ""}</span>')
+    level, inches = water_stress(table)
+    stress = (f'<span class="fs-chip fs-stress-{level.lower()}" title="Shortfall per acre per '
+              f'season. Under 1 in: Low, 1–3 in: Moderate, over 3 in: High.">💧 Water stress: '
+              f'<b>{level}</b> · {inches:.1f} in/acre</span>')
+    return f'<div class="fs-chips">{rules}{stress}</div>'
 
 
 def bullet_list(items, limit=5):
@@ -227,108 +189,116 @@ def bullet_list(items, limit=5):
 
 
 def totals(t):
-    """The three headline numbers for a plan table: profit ($), water shortfall
-    (acre-inches, area-weighted) and soil health (points per acre over the four years,
-    area-weighted, so a big field counts more; the optimizer measures it the same way)."""
+    """The three headline numbers for a plan table, PER YEAR (averaged over the rotation's
+    cycle, so a 2-year and a 5-year rotation compare fairly): profit ($/yr), water
+    shortfall (acre-inches/yr) and soil health (points per acre per year, area-weighted, so
+    a big field counts more). The optimizer measures them the same way."""
     acres = t.groupby("field")["acres"].first().sum()
-    return (t["profit_usd"].sum(),
-            (t["water_shortfall_mm"] * t["acres"]).sum() / 25.4,
-            (t["soil_score_change"] * t["acres"]).sum() / acres)
+    years = t["year"].nunique()
+    return (t["profit_usd"].sum() / years,
+            (t["water_shortfall_mm"] * t["acres"]).sum() / 25.4 / years,
+            (t["soil_score_change"] * t["acres"]).sum() / acres / years)
 
 
-def why_this_plan_html(suggested, mine, plan_table, base_table, farm, scenario):
-    """Up to three sentences on how the suggestion differs from the farmer's rotation
-    and what that buys. Built only from model output, so it never claims more than
-    the numbers show."""
+def about_plan_html(plan, table, farm):
+    """A few plain sentences about the recommended plan, built only from model output:
+    the biggest field's cycle, what it earns and costs in water and soil per year, rye, and
+    how much water its crops need. Stand-alone: no comparison with the farmer's rotation."""
     acres = {f["name"]: f["acres"] for f in farm["fields"]}
-    changed = {f: sum(a != b for a, b in zip(crops, mine.get(f, []))) for f, crops in suggested.items()}
-    n_changed = sum(changed.values())
-    if n_changed == 0:
-        body = ("Your rotation already matches the recommendation: nothing better turned up "
-                "for your goal, limits and ground rules. ")
-    else:
-        # Sentence 1: the field where the change is biggest (most years changed, then most acres).
-        field = max(changed, key=lambda f: (changed[f], acres.get(f, 0)))
-        new = " → ".join(crop_word(c) for c in suggested[field])
-        old = " → ".join(crop_word(c) for c in mine[field])
-        n_total = sum(len(c) for c in suggested.values())
-        body = (f"It changes {n_changed} of your {n_total} field-years. The biggest change is on "
-                f"<b>{html.escape(str(field))}</b> ({acres.get(field, 0):g} ac): {new}, "
-                f"instead of your {old}. ")
-
-        # Sentence 2: what the change buys, honest in both directions.
-        p, w, s = totals(plan_table)
-        bp, bw, bs = totals(base_table)
-        profit = f"earns ${p - bp:,.0f} more" if p >= bp else f"earns ${bp - p:,.0f} less"
-        water = (f"{bw - w:,.0f} acre-in less water shortfall" if w <= bw
-                 else f"{w - bw:,.0f} acre-in more water shortfall")
-        soil = ("better soil health" if s > bs else "lower soil health" if s < bs
-                else "the same soil health")
-        body += f"Over four years it {profit}, with {water} and {soil} ({s - bs:+.1f}). "
-
-    # Rye cover isn't drawn on the tiles yet, so say it in words.
-    if "cover" in plan_table and plan_table["cover"].any():
-        n_rye = int(plan_table["cover"].sum())
-        body += (f"It also sows a cereal-rye cover after {n_rye} field-year{'s' if n_rye > 1 else ''} "
+    years = len(next(iter(plan.values())))
+    field = max(plan, key=lambda f: acres.get(f, 0))
+    cycle = " → ".join(crop_word(c) for c in plan[field])
+    p, w, s = totals(table)
+    body = (f"A {years}-year rotation that repeats. On your biggest field, "
+            f"<b>{html.escape(str(field))}</b> ({acres.get(field, 0):g} ac): {cycle}. "
+            f"Per year it earns <b>${p:,.0f}</b>, with {w:,.0f} acre-in of water shortfall and "
+            f"soil health {s:+.2f}. ")
+    if "cover" in table and table["cover"].any():
+        n_rye = int(table["cover"].sum())
+        body += (f"It sows a cereal-rye cover after {n_rye} field-year{'s' if n_rye > 1 else ''} "
                  "(see the table at the bottom) to build soil. ")
+    need = (table["water_need_mm"] * table["acres"]).sum() / table["acres"].sum()
+    body += f"Its crops need {need:.0f} mm of water a season on average."
+    return f'<div class="fs-why"><div class="fs-why-title">About this plan</div>{body}</div>'
 
-    # Sentence 3: average water need of the crops, weighted by acres.
-    def need(t):
-        return (t["water_need_mm"] * t["acres"]).sum() / t["acres"].sum()
-    sn, bn = need(plan_table), need(base_table)
-    if abs(sn - bn) >= 5:
-        lead = "Because you're planning for a dry year, water need matters: its" if scenario == "dry" else "Its"
-        body += (f"{lead} crops need {sn:.0f} mm of water a season on average, "
-                 f"against {bn:.0f} mm for your rotation.")
-    return f'<div class="fs-why"><div class="fs-why-title">Why this plan</div>{body}</div>'
+
+def icon_uri(crop):
+    """The crop's line icon as a data URI, for CSS masks (buttons and tags can't hold SVG)."""
+    icon = CROP_SVG[crop].replace('<svg class="fs-crop-icon"', '<svg xmlns="http://www.w3.org/2000/svg"')
+    return "data:image/svg+xml," + urllib.parse.quote(icon, safe=" =:/,.-()")
 
 
 def crop_tag_css():
     """Give each tag in "Crops you'd grow" its crop's colour and icon. Streamlit marks each
-    tag with the crop's label (title="Corn"), which is what the selectors match on."""
+    tag with the crop's label (title="Corn"), which is what the selectors match on. Tags are
+    [data-baseweb="tag"] on older Streamlit and [data-tag] on newer; both are matched."""
     rules = ""
-    for crop, svg in CROP_SVG.items():
-        icon = svg.replace('<svg class="fs-crop-icon"', '<svg xmlns="http://www.w3.org/2000/svg"')
-        uri = "data:image/svg+xml," + urllib.parse.quote(icon, safe=" =:/,.-()")
-        tag = f'.st-key-allowed_crops [data-baseweb="tag"]:has(span[title="{CROP_LABELS[crop]}"])'
+    for crop in CROP_SVG:
+        uri = icon_uri(crop)
+        tag = (f'.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag])'
+               f':has(span[title="{CROP_LABELS[crop]}"])')
         rules += (f'{tag} {{background: {CROP_COLORS[crop]} !important;}}'
                   f'{tag}::before {{-webkit-mask-image: url("{uri}"); mask-image: url("{uri}");}}')
     return f"<style>{rules}</style>"
 
 
-def faq_context(farm, scenario, goal, limits, plan_table, base_table, wins, n_seasons, driest_year,
-                my_problems, suggested, my_plan):
-    """What the farmer is looking at, for the assistant. Only numbers the app shows."""
-    p, w, s = totals(plan_table)
-    bp, bw, bs = totals(base_table)
-    changed = sum(a != b for f, crops in suggested.items() for a, b in zip(crops, my_plan.get(f, [])))
-    return {
+def cell_css():
+    """Colour the rotation picker: each cell tile (key "cell-<crop>-…") and each crop choice
+    in its menu (key "pick-<crop>-…") gets its crop's colour and line icon."""
+    rules = ""
+    for crop in CROP_SVG:
+        uri = icon_uri(crop)
+        for kind in ("cell", "pick"):
+            sel = f'[class*="st-key-{kind}-{crop}-"] button'
+            rules += (f'{sel} {{background: {CROP_COLORS[crop]} !important; '
+                      f'border-color: {CROP_COLORS[crop]} !important; color: var(--on-crop) !important;}}'
+                      f'{sel}::before {{content: ""; flex: none; width: 1.15em; height: 1.15em; '
+                      f'margin-right: .45em; background: currentColor; '
+                      f'-webkit-mask: url("{uri}") center / contain no-repeat; '
+                      f'mask: url("{uri}") center / contain no-repeat;}}')
+    return f"<style>{rules}</style>"
+
+
+def faq_context(farm, mine, rec):
+    """What the farmer is looking at, for the assistant: the evaluator's rotation and the
+    optimizer's plan, each on its own (the two tools are independent). Only numbers the app
+    shows. `mine` = evaluation(), `rec` = optimization() (or None)."""
+    def rotation_text(plan):
+        return "; ".join(f"{f}: " + " → ".join(CROP_LABELS[c] for c in cs) for f, cs in plan.items())
+
+    bt = mine["bt"]
+    p, w, s = totals(mine["table"])
+    worst = bt.loc[bt["total_profit_usd"].idxmin()]
+    ctx = {
         "farm_location": f"lat {farm['lat']}, lon {farm['lon']}" if "lat" in farm else "central Illinois",
         "fields": ", ".join(f"{f['name']} ({f['acres']:g} ac, {f['soil']})" for f in farm["fields"]),
         "total_acres": f"{sum(f['acres'] for f in farm['fields']):g}",
-        "planning_for": "dry" if scenario == "dry" else "typical",
-        "goal": f"{GOALS[goal]}: {GOAL_HELP[goal]}",
-        "limits": ("; ".join(f"{LIMIT_LABELS[k]} {v:.0%} of your rotation" for k, v in limits.items())
-                   or "none"),
-        "limits_not_met": "; ".join(plan_table.attrs.get("unmet", [])) or "none",
-        "your_rotation": "; ".join(f"{f}: " + " → ".join(CROP_LABELS[c] for c in cs) for f, cs in my_plan.items()),
-        "recommended_rotation": "; ".join(f"{f}: " + " → ".join(CROP_LABELS[c] for c in cs) for f, cs in suggested.items()),
-        "recommendation_vs_yours": ("the same as your rotation" if changed == 0
-                                    else f"different from your rotation in {changed} field-years"),
-        "your_rotation_rules": ("follows all your ground rules" if not my_problems
-                                else f"breaks {len(my_problems)} ground rule(s): " + "; ".join(my_problems[:3])),
-        "net_profit_4_years_recommendation": f"${p:,.0f}",
-        "profit_change_vs_yours": f"{p - bp:+,.0f} dollars",
-        "water_shortfall_4_years_recommendation": f"{w:,.0f} acre-inches",
-        "water_shortfall_change_vs_yours": f"{w - bw:+,.0f} acre-inches (lower is better)",
-        "soil_health_recommendation": f"{s:+.1f}",
-        "soil_health_change_vs_yours": f"{s - bs:+.1f}",
-        "seasons_tested": n_seasons,
-        "seasons_recommendation_won": f"{wins} of {n_seasons}",
-        "driest_season": driest_year,
+        "weather": "every number averages all 44 growing seasons, 1981-2024, wet and dry",
+        "your_rotation": f"{len(next(iter(mine['plan'].values())))} years, repeating: " + rotation_text(mine["plan"]),
+        "your_profit_per_year": money(p),
+        "your_water_shortfall_per_year": f"{w:,.0f} acre-inches",
+        "your_soil_health_per_year": f"{s:+.2f}",
+        "seasons_tested": len(bt),
+        "your_profitable_seasons": f"{int((bt['total_profit_usd'] > 0).sum())} of {len(bt)}",
+        "your_toughest_season": f"{int(worst['year'])} ({money(worst['total_profit_usd'])})",
+        "driest_season": mine["driest"],
         "data_status": ("the optimizer is real, but it runs on synthetic sample weather and crop "
                         "data until the NASA POWER data is connected"),
     }
+    if rec:
+        rp, rw, rs = totals(rec["table"])
+        rbt = rec["bt"]
+        ctx.update({
+            "optimizer_objective": f"{GOALS[rec['goal']]}: {GOAL_HELP[rec['goal']]}",
+            "optimizer_limits": "; ".join(limit_text(k, v) for k, v in rec["limits"].items()) or "none",
+            "optimizer_limits_not_met": "; ".join(rec["table"].attrs.get("unmet", [])) or "none",
+            "recommended_rotation": f"{rec['years']} years, repeating: " + rotation_text(rec["plan"]),
+            "recommended_profit_per_year": money(rp),
+            "recommended_water_shortfall_per_year": f"{rw:,.0f} acre-inches",
+            "recommended_soil_health_per_year": f"{rs:+.2f}",
+            "recommended_profitable_seasons": f"{int((rbt['total_profit_usd'] > 0).sum())} of {len(rbt)}",
+        })
+    return ctx
 
 
 def field_map_html(fields):
@@ -374,11 +344,11 @@ def field_map_html(fields):
 # key with a leading "_" ("goal" -> "_goal"), which Streamlit never wipes:
 #   remember(key, default)  before drawing the widget: give it back its saved value
 #   on_change=save, args=(key,)  when the farmer changes it: save the new value
-# Everything else reads the "_" copy. Your rotation is stored under "my_plan".
+# Everything else reads the "_" copy. Your rotation is stored under "my_plan", and its
+# length under "_rot_len" (the optimizer's search length under "_opt_len").
 def keep_state():
     """Called by app.py at the top of every run: defaults for the saved values."""
     ss = st.session_state
-    ss.setdefault("_scenario", "average")
     ss.setdefault("_goal", "max_profit")
     ss.setdefault("_worst_share_sel", WORST_SHARE)
 
@@ -400,187 +370,349 @@ def saved(key, default=None):
     return st.session_state.get("_" + key, default)
 
 
+def rotation_length():
+    """The farmer's rotation length (years in the repeating cycle), as set in the evaluator."""
+    return int(saved("rot_len", 2))
+
+
+def search_length():
+    """The rotation length the optimizer searches (its own choice, 4 years to start)."""
+    return int(saved("opt_len") or 4)
+
+
+def save_search_length():
+    """Optimizer length switch callback (ignores un-selecting the active option)."""
+    if st.session_state.get("opt_len") is not None:
+        save("opt_len")
+
+
+def with_years(farm, years):
+    return {**farm, "years": int(years)}
+
+
+def resize_plan(plan, years):
+    """Each field's rotation cut to `years`, or lengthened by alternating corn and soybeans
+    after its last crop (the farmer then clicks the new cells to change them)."""
+    out = {}
+    for field, crops in plan.items():
+        crops = list(crops)[:years]
+        while len(crops) < years:
+            crops.append("soybeans" if crops and crops[-1] == "corn" else "corn")
+        out[field] = crops
+    return out
+
+
 def fit_plan(plan, farm):
-    """`plan` trimmed to the current fields: fields it doesn't cover (new, renamed, or a
-    crop no longer known) get the plain corn-soy rotation."""
+    """`plan` fitted to the current fields and farm["years"]: fields it doesn't cover (new,
+    renamed, or an unknown crop) get the plain corn-soy rotation; others are resized."""
     base = baseline_plan(farm)
     out = {}
     for f in farm["fields"]:
         crops = (plan or {}).get(f["name"])
-        ok = crops is not None and len(crops) == farm["years"] and all(c in CROPS for c in crops)
-        out[f["name"]] = list(crops) if ok else base[f["name"]]
+        ok = crops is not None and len(crops) > 0 and all(c in CROPS for c in crops)
+        out[f["name"]] = resize_plan({0: crops}, farm["years"])[0] if ok else base[f["name"]]
     return out
 
 
 def current_plan(farm):
-    """The farmer's rotation: what they entered in the evaluator, else corn-soy."""
-    return fit_plan(st.session_state.get("my_plan"), farm)
+    """The farmer's rotation at their chosen length: what they set in the evaluator, else
+    corn-soy. `farm` is the shared farm; its years are replaced by the farmer's length."""
+    return fit_plan(st.session_state.get("my_plan"), with_years(farm, rotation_length()))
 
 
-def _restart_editor():
-    st.session_state["editor_version"] = st.session_state.get("editor_version", 0) + 1
+def set_length():
+    """Rotation-length switch callback: save it and resize the rotation to match."""
+    if st.session_state.get("rot_len") is None:        # clicking the active option un-selects it:
+        return                                         # keep the old length (restored next run)
+    save("rot_len")
+    if "my_plan" in st.session_state:
+        st.session_state["my_plan"] = resize_plan(st.session_state["my_plan"], rotation_length())
+
+
+def set_cell(field, t, crop):
+    """Cell-menu callback: plant `crop` on `field` in year t+1 of the rotation."""
+    farm = st.session_state["_farm_ctx"]["farm"]
+    plan = current_plan(farm)
+    plan[field][t] = crop
+    st.session_state["my_plan"] = plan
+    st.session_state["applied"] = False
 
 
 def apply_plan(plan):
-    """Button callback: make the recommendation the farmer's rotation."""
+    """"Use this rotation": make the recommendation the farmer's rotation (and its length).
+    The optimizer page then switches to the evaluator. The only link between the two tools."""
     st.session_state["my_plan"] = plan
-    st.session_state["rotation_base"] = plan
+    st.session_state["_rot_len"] = len(next(iter(plan.values())))
     st.session_state["applied"] = True
-    _restart_editor()
 
 
 def reset_plan():
-    """Button callback: go back to the plain corn-soy rotation."""
-    for k in ("my_plan", "rotation_base"):
-        st.session_state.pop(k, None)
+    """Button callback: go back to the plain corn-soy rotation, at the current length."""
+    st.session_state.pop("my_plan", None)
     st.session_state["applied"] = False
-    _restart_editor()
 
 
-def rotation_editor_frame(start):
-    """Table for the rotation editor: one row per field, one column per year."""
-    rows = []
-    for name, crops in start.items():
-        row = {"Field": name}
-        for i, crop in enumerate(crops):
-            row[year_label(i)] = crop
-        rows.append(row)
-    return pd.DataFrame(rows)
-
-
-def editor_to_plan(table, farm, start):
-    """Turn the edited table back into a plan {field: [crop per year]}.
-    Any cell the farmer cleared falls back to the starting crop, and we report how many."""
-    plan, blanks = {}, 0
-    for row in table.to_dict("records"):
-        crops = []
-        for i in range(farm["years"]):
-            crop = row.get(year_label(i))
-            if crop not in CROPS:
-                crop = start[row["Field"]][i]
-                blanks += 1
-            crops.append(crop)
-        plan[row["Field"]] = crops
-    return plan, blanks
+def rotation_picker(farm, plan):
+    """The rotation as a grid of crop tiles: one row per field, one column per year of the
+    cycle. Click a tile to open a small menu of crops; pick one to plant it there.
+    Tiles and choices are coloured by cell_css() through their container keys."""
+    years = len(next(iter(plan.values())))
+    widths = [1.1] + [1] * years
+    head = st.columns(widths)
+    head[0].markdown('<div class="rp-head">Field</div>', unsafe_allow_html=True)
+    for t in range(years):
+        head[t + 1].markdown(f'<div class="rp-head">Year {t + 1}</div>', unsafe_allow_html=True)
+    for fi, f in enumerate(farm["fields"]):
+        name = str(f["name"])
+        row = st.columns(widths, vertical_alignment="center")
+        row[0].markdown(f'<div class="rp-field"><b>{html.escape(name)}</b>'
+                        f'<small>{f["acres"]:g} ac</small></div>', unsafe_allow_html=True)
+        for t, crop in enumerate(plan[name]):
+            with row[t + 1].container(key=f"cell-{crop}-{fi}-{t}"):
+                with st.popover(crop_name(crop), use_container_width=True,
+                                help=f"{name}, year {t + 1}: click to change the crop"):
+                    st.markdown(f"**{html.escape(name)} · Year {t + 1}**")
+                    for c in CROPS:
+                        with st.container(key=f"pick-{c}-{fi}-{t}"):
+                            st.button(crop_name(c) + ("  ✓" if c == crop else ""),
+                                      key=f"pickbtn_{fi}_{t}_{c}", use_container_width=True,
+                                      on_click=set_cell, args=(name, t, c))
+    show_html(f'<div class="rp-cycle">↻ The rotation repeats: after year {years} comes year 1 again.</div>')
 
 
 def farm_ready():
-    """The farm and ground rules from the sidebar, or None (with a message) if there's
-    nothing to plan yet."""
+    """The farm from the left panel, or None (with a message) if there are no fields yet."""
     ctx = st.session_state.get("_farm_ctx")
     if ctx is None or not ctx["farm"]["fields"]:
         st.info("Add at least one field under **Your fields** in the left panel to get started.")
         return None
-    if not ctx["constraints"]["allowed_crops"]:
-        st.info("Pick at least one crop under **Ground rules** in the left panel to get started.")
-        return None
     return ctx
 
 
-# ================================================================ goal and limits
-LIMIT_HELP = {
-    "profit_min": "Average 4-year profit can't fall below this share of your rotation's.",
-    "worst_profit_min": "Profit in your worst 10% of seasons can't fall below this share of yours.",
-    "shortfall_max": "Water the crops lack (need minus rain and soil water) can't exceed this "
-                     "share of your rotation's. Lower is safer in a drought.",
-    "irrigation_max": "In every season, the plan can't pump more than this share of what your "
-                      "rotation pumps. Only for irrigated fields.",
-    "soil_min": "Soil-health points can't fall below this share of your rotation's.",
-    "production_min": "For every crop in your rotation, the plan must still harvest at least "
-                      "this share of the bushels you'd grow (feed or contracts).",
+# ================================================================ ground rules (optimizer only)
+# The farmer's own rotation is what they plan to plant, so it isn't checked against rules;
+# the rules only limit which rotations the optimizer may suggest. Saved like the goal.
+RULE_HELP = {
+    "allowed_crops": "The optimizer only suggests crops on this list.",
+    "no_repeat": "Planting the same crop two years running builds pest and disease pressure "
+                 "and wears the soil down. Counts last season → year 1 and, since the rotation "
+                 "repeats, the last year → year 1.",
+    "min_soy": "Soybeans are a legume: they fix nitrogen in the soil, so the crop after them "
+               "needs less fertilizer.",
+    "max_share": "The largest share of your land any one crop can take in a single year, so one "
+                 "bad price or one bad season can't hit every acre. Set it at or above your "
+                 "biggest field's share, or no plan can meet it.",
 }
 
 
-def _offered_limits(goal, any_irrigated):
+def read_rules():
+    """The ground rules as last set on the optimizer page (or the team defaults)."""
+    return {**CONSTRAINTS,
+            "allowed_crops": list(saved("allowed_crops", list(CONSTRAINTS["allowed_crops"]))),
+            "no_repeat": bool(saved("no_repeat", CONSTRAINTS["no_repeat"])),
+            "min_legume_years": 1 if saved("min_soy", CONSTRAINTS["min_legume_years"] >= 1) else 0,
+            "max_crop_share": saved("max_share", int(CONSTRAINTS["max_crop_share"] * 100)) / 100}
+
+
+def rules_controls():
+    """The ground-rule widgets (inside the optimizer's Constraints card; values saved with
+    remember/save). Stacked, because they already sit in a column."""
+    remember("allowed_crops", list(CONSTRAINTS["allowed_crops"]))
+    st.multiselect("Crops you'd grow", CROPS, key="allowed_crops", format_func=crop_name,
+                   on_change=save, args=("allowed_crops",), help=RULE_HELP["allowed_crops"])
+    remember("max_share", int(CONSTRAINTS["max_crop_share"] * 100))
+    st.slider("Most acres in one crop", 30, 100, step=1, format="%d%%", key="max_share",
+              on_change=save, args=("max_share",), help=RULE_HELP["max_share"])
+    remember("no_repeat", CONSTRAINTS["no_repeat"])
+    st.checkbox("No back-to-back crops", key="no_repeat", on_change=save, args=("no_repeat",),
+                help=RULE_HELP["no_repeat"])
+    remember("min_soy", CONSTRAINTS["min_legume_years"] >= 1)
+    st.checkbox("At least one soybean year per field", key="min_soy", on_change=save,
+                args=("min_soy",), help=RULE_HELP["min_soy"])
+
+
+# ================================================================ objective and limits
+LIMIT_HELP = {
+    "profit_min": "The plan must earn at least this much a year, on average over 1981–2024.",
+    "worst_profit_min": "Average profit across your worst seasons (the worst 10% of 1981–2024 "
+                        "by default) can't fall below this.",
+    "shortfall_max": "Water the crops lack (need minus rain and soil water), farm total per year. "
+                     "Lower is safer in a drought.",
+    "irrigation_max": "No season may pump more than this across your irrigated fields.",
+    "soil_min": "Soil-health points per acre per year: residue, legumes, small grains, rye.",
+    "production_min": "Bushels a year the plan must still harvest of each crop you pick here "
+                      "(for feed or contracts).",
+}
+# Slider step and display format per limit (values are farm totals per year).
+LIMIT_SPEC = {
+    "profit_min": (100, "$%d a year"),
+    "worst_profit_min": (100, "$%d a year"),
+    "shortfall_max": (1, "%d acre-in a year"),
+    "irrigation_max": (1, "%d acre-in"),
+    "soil_min": (0.01, "%.2f a year"),
+    "production_min": (100, "%d bu a year"),
+}
+
+
+def read_objective():
+    """The goal and bad-years share, as last set on the optimizer page (or defaults)."""
+    goal = saved("goal") if saved("goal") in GOALS else "max_profit"
+    worst = saved("worst_share_sel", WORST_SHARE) if goal == "max_worst_profit" else WORST_SHARE
+    return goal, worst
+
+
+def objective_controls():
+    """Card 01 on the optimizer: the goal picker (and, for the bad-year goal, which seasons
+    count as bad). Values are saved with remember/save so they survive page changes."""
+    remember("goal", "max_profit")
+    st.selectbox("Your objective", list(GOALS), format_func=GOALS.get, key="goal",
+                 on_change=save, args=("goal",),
+                 help="The optimizer pursues one objective. Everything else is a constraint below.")
+    goal = st.session_state["goal"]
+    st.caption(GOAL_HELP[goal])
+    if goal == "max_worst_profit":
+        remember("worst_share_sel", WORST_SHARE)
+        st.select_slider(
+            "Bad years to protect", options=[1 / 44, 0.10, 0.25], key="worst_share_sel",
+            on_change=save, args=("worst_share_sel",),
+            format_func=lambda v: "Worst single season" if v < 0.05 else f"Worst {v:.0%} of seasons",
+            help="Which seasons count as bad years: the plan's average profit across them is "
+                 "what this objective makes as high as possible.")
+
+
+def reachable(ctx):
+    """What the farm can reach on each limit's measure (slider ranges), for the optimizer's
+    rotation length and ground rules. Empty when the model doesn't offer it (fake_model)."""
+    if not hasattr(model, "limit_ranges"):
+        return {}
+    _, worst = read_objective()
+    return model.limit_ranges(with_years(ctx["farm"], search_length()), None, "average",
+                              {**read_rules(), "worst_share": worst})
+
+
+def _offered_limits(goal, ranges, any_irrigated):
     """Limits that make sense for this goal (never the goal's own measure)."""
     return [k for k in LIMIT_LABELS
-            if k not in GOAL_OWN_LIMITS[goal] and not (k == "irrigation_max" and not any_irrigated)]
+            if k not in GOAL_OWN_LIMITS[goal] and k in ranges
+            and not (k == "irrigation_max" and not any_irrigated)
+            and not (k == "production_min" and not ranges.get(k))]
 
 
-def _limit_start(goal, key):
-    default = DEFAULT_LIMITS[goal].get(key)
-    return int(round(100 * (default if default is not None else (1.0 if key.endswith("_max") else 0.95))))
+def _slider_range(lo, hi, key):
+    """Slider ends snapped inward to the limit's step, so both ends are reachable (never
+    empty: a range narrower than one step gets one step)."""
+    step = LIMIT_SPEC[key][0]
+    lo, hi = math.ceil(lo / step - 1e-9) * step, math.floor(hi / step + 1e-9) * step
+    if hi <= lo:
+        hi = lo + step
+    if step >= 1:
+        return int(lo), int(hi), int(step)
+    return round(lo, 2), round(hi, 2), step
 
 
-def read_goal(any_irrigated):
-    """The goal, limits and bad-year share as last set on the optimizer page (or defaults)."""
-    goal = saved("goal") if saved("goal") in GOALS else "max_profit"
+def _start(goal, key, lo, hi, step):
+    """Where a limit's slider starts: DEFAULT_LIMITS gives a position along the range;
+    limits a goal doesn't switch on start at their loosest end."""
+    pos = DEFAULT_LIMITS[goal].get(key, 1.0 if key.endswith("_max") else 0.0)
+    v = round((lo + pos * (hi - lo)) / step) * step
+    return int(v) if isinstance(step, int) else round(v, 2)
+
+
+def _limit_slots(goal, ranges, any_irrigated):
+    """(limit key, crop or None, saved-value key, lo, hi, step) for every slider."""
+    for key in _offered_limits(goal, ranges, any_irrigated):
+        if key == "production_min":
+            for crop, (lo, hi) in ranges[key].items():
+                yield (key, crop, f"cap_{goal}_{key}_{crop}") + _slider_range(lo, hi, key)
+        else:
+            yield (key, None, f"cap_{goal}_{key}") + _slider_range(*ranges[key], key)
+
+
+def _clamp(v, lo, hi):
+    return min(max(v, lo), hi)
+
+
+def read_limits(goal, ranges, any_irrigated):
+    """The absolute limits as last set on the optimizer page (defaults per DEFAULT_LIMITS),
+    each kept inside what the farm can currently reach."""
     limits = {}
-    for key in _offered_limits(goal, any_irrigated):
-        if saved(f"lim_on_{goal}_{key}", key in DEFAULT_LIMITS[goal]):
-            limits[key] = saved(f"lim_{goal}_{key}", _limit_start(goal, key)) / 100
-    worst = saved("worst_share_sel", WORST_SHARE) if goal == "max_worst_profit" else WORST_SHARE
-    return goal, limits, worst
+    for key, crop, vkey, lo, hi, step in _limit_slots(goal, ranges, any_irrigated):
+        if not saved(f"cap_on_{goal}_{key}", key in DEFAULT_LIMITS[goal]):
+            continue
+        v = _clamp(saved(vkey, _start(goal, key, lo, hi, step)), lo, hi)
+        if crop is None:
+            limits[key] = v
+        else:
+            limits.setdefault(key, {})[crop] = v
+    return limits
 
 
-def goal_controls(any_irrigated):
-    """The optimizer's goal picker and limit sliders. Each widget gets its saved value
-    back before it's drawn and saves changes (remember/save), so the choices survive
-    page changes; read_goal() reads the saved values."""
+def limit_controls(goal, ranges, any_irrigated):
+    """The limit checkboxes and sliders (inside card 02). Each slider spans what the farm can
+    reach; its saved value is kept inside that range as fields, rules or length change."""
     ss = st.session_state
-    left, right = st.columns([1, 1.25], gap="large")
-    with left:
-        remember("goal", "max_profit")
-        st.selectbox("Your goal", list(GOALS), format_func=GOALS.get, key="goal",
-                     on_change=save, args=("goal",),
-                     help="The optimizer pursues one goal. Everything else is a limit.")
-        goal = ss["goal"]
-        st.caption(GOAL_HELP[goal])
-        if goal == "max_worst_profit":
-            remember("worst_share_sel", WORST_SHARE)
-            st.select_slider(
-                "Bad years to protect", options=[1 / 44, 0.10, 0.25], key="worst_share_sel",
-                on_change=save, args=("worst_share_sel",),
-                format_func=lambda v: "Worst single season" if v < 0.05 else f"Worst {v:.0%} of seasons",
-                help="Which seasons count as bad years: the plan's average profit across them "
-                     "is what this goal makes as high as possible.")
-    with right:
-        st.markdown("**Limits** · compared with your rotation")
-        for key in _offered_limits(goal, any_irrigated):
-            on_key, pct_key = f"lim_on_{goal}_{key}", f"lim_{goal}_{key}"
+    shown = set()
+    for key, crop, vkey, lo, hi, step in _limit_slots(goal, ranges, any_irrigated):
+        on_key = f"cap_on_{goal}_{key}"
+        if key not in shown:
+            shown.add(key)
             remember(on_key, key in DEFAULT_LIMITS[goal])
             st.checkbox(LIMIT_LABELS[key], key=on_key, help=LIMIT_HELP[key],
                         on_change=save, args=(on_key,))
-            if ss[on_key]:
-                remember(pct_key, _limit_start(goal, key))
-                st.slider(LIMIT_LABELS[key], 50, 150 if key.endswith("_max") else 120, step=1,
-                          format="%d%% of yours", key=pct_key, label_visibility="collapsed",
-                          on_change=save, args=(pct_key,))
+        if not ss[on_key]:
+            continue
+        remember(vkey, _start(goal, key, lo, hi, step))
+        ss[vkey] = _clamp(ss[vkey], lo, hi)
+        label = crop_name(crop) if crop else LIMIT_LABELS[key]
+        st.slider(label, lo, hi, step=step, format=LIMIT_SPEC[key][1], key=vkey,
+                  label_visibility="visible" if crop else "collapsed",
+                  on_change=save, args=(vkey,))
 
 
-# ================================================================ the shared calculation
-def analysis(ctx):
-    """Your rotation and the optimizer's recommendation, scored and backtested, for the
-    current settings. Both tool pages and the assistant use this; the model caches its
-    solves, so calling it more than once in a run is cheap."""
-    farm = ctx["farm"]
-    scenario = saved("scenario") or "average"
-    goal, limits, worst = read_goal(ctx["any_irrigated"])
-    constraints = {**ctx["constraints"], "worst_share": worst}
-    my_plan = current_plan(farm)
-    plan_table = model.solve(farm, None, goal, scenario,
-                             {**constraints, "limits": limits, "reference_plan": my_plan})
-    base_table = model.evaluate(my_plan, farm, None, scenario)
-    suggested = model.table_to_plan(plan_table)
-    covers = model.table_to_covers(plan_table) if hasattr(model, "table_to_covers") else None
-    bt_plan = model.backtest(suggested, farm, covers=covers) if covers else model.backtest(suggested, farm)
-    bt_base = model.backtest(my_plan, farm)
-    rain = bt_base.set_index("year")["growing_season_rain_mm"]
-    return {
-        "farm": farm, "constraints": constraints, "scenario": scenario,
-        "season": "dry" if scenario == "dry" else "typical",
-        "goal": goal, "limits": limits, "my_plan": my_plan,
-        "my_problems": rule_problems(my_plan, farm, constraints),
-        "plan_table": plan_table, "base_table": base_table, "suggested": suggested,
-        "bt_plan": bt_plan, "bt_base": bt_base,
-        "wins": int((bt_plan["total_profit_usd"] > bt_base["total_profit_usd"]).sum()),
-        "driest": int(rain.idxmin()),
-    }
+def limit_text(key, value):
+    """'Profit at least $45,000 a year' for the assistant and messages."""
+    if key == "production_min":
+        return "; ".join(f"{LIMIT_LABELS[key]} {v:,.0f} bu of {crop_name(c)} a year" for c, v in value.items())
+    if key in ("profit_min", "worst_profit_min"):
+        return f"{LIMIT_LABELS[key]} {money(value)} a year"
+    if key == "soil_min":
+        return f"{LIMIT_LABELS[key]} {value:+.2f} a year"
+    return f"{LIMIT_LABELS[key]} {value:,.0f} acre-in" + (" a year" if key == "shortfall_max" else "")
 
 
-def analysis_or_stop(ctx):
+# ================================================================ the two calculations
+# The evaluator and the optimizer are independent: neither reads the other's results.
+# The one link is the optimizer's "Use this rotation" button (apply_plan + switch page).
+def evaluation(ctx):
+    """The farmer's rotation (evaluator): scored and backtested on 1981-2024 weather."""
+    farm = with_years(ctx["farm"], rotation_length())
+    plan = current_plan(farm)
+    bt = model.backtest(plan, farm)
+    return {"farm": farm, "plan": plan, "table": model.evaluate(plan, farm, None, "average"),
+            "bt": bt, "driest": int(bt.loc[bt["growing_season_rain_mm"].idxmin(), "year"])}
+
+
+def optimization(ctx):
+    """The optimizer's recommendation for its objective and constraints, scored and
+    backtested the same way. Nothing here depends on the farmer's own rotation."""
+    farm = with_years(ctx["farm"], search_length())
+    goal, worst = read_objective()
+    ranges = reachable(ctx)
+    limits = read_limits(goal, ranges, ctx["any_irrigated"])
+    constraints = {**read_rules(), "worst_share": worst}
+    table = model.solve(farm, None, goal, "average", {**constraints, "limits": limits})
+    plan = model.table_to_plan(table)
+    covers = model.table_to_covers(table) if hasattr(model, "table_to_covers") else None
+    bt = model.backtest(plan, farm, covers=covers) if covers else model.backtest(plan, farm)
+    return {"farm": farm, "goal": goal, "limits": limits, "ranges": ranges,
+            "constraints": constraints, "years": search_length(), "table": table, "plan": plan,
+            "bt": bt, "driest": int(bt.loc[bt["growing_season_rain_mm"].idxmin(), "year"])}
+
+
+def or_stop(calc, ctx):
+    """Run evaluation/optimization, or show a friendly error and stop the page."""
     try:
-        return analysis(ctx)
+        return calc(ctx)
     except Exception as e:  # never show a traceback to a judge
         st.error(f"The model could not run: {e}")
         st.stop()
@@ -591,6 +723,7 @@ def load_styles():
     """All the styling lives in style.css; colours for Streamlit's widgets in config.toml."""
     show_html(f"<style>{(HERE / 'style.css').read_text()}</style>")
     show_html(crop_tag_css())
+    show_html(cell_css())
 
 
 def anchor(name):
@@ -603,7 +736,6 @@ def anchor(name):
 # lose your inputs; the page menu in the left panel switches pages safely).
 SETUP_GROUP = ("Set up", "In the left panel (open it with » if hidden)", [
     ("fields", "🗺️", "Your fields", "Acres, soil, irrigation, last crop"),
-    ("rules", "📏", "Ground rules", "Crops you'd grow, rotation limits"),
 ])
 
 
@@ -641,68 +773,28 @@ def page_header(crumb, title, tag, groups, compact=False):
         '<span class="fs-badge">Team Athens</span></div></div>')
 
 
-def scenario_card(what):
-    """The drought switch. `what` names what it changes on this page. Its value is saved
-    (remember/save), so the choice carries between pages."""
-    anchor("weather")
-    with st.container(key="card_scenario"):
-        q_col, text_col = st.columns([1, 2.3], vertical_alignment="center")
-        with q_col:
-            show_html('<div class="fs-scn-q">What if it\'s a drought year?</div>')
-            remember("scenario", "average")
-            picked = st.segmented_control(
-                "Plan for", ["average", "dry"], key="scenario", on_change=save, args=("scenario",),
-                # Plain labels: the icons are drawn by style.css (buttons can't hold our SVGs).
-                format_func={"average": "Typical year", "dry": "Dry year"}.get,
-                label_visibility="collapsed")
-        scenario = picked or "average"   # clicking the active button un-selects it
-        with text_col:
-            if scenario == "dry":
-                show_html('<div class="fs-scenario fs-scenario-dry">'
-                          f'<span class="fs-scenario-icon fs-wx-dry">{WEATHER_SVG["dry"]}</span>'
-                          f'<div><b>Planning for a dry year.</b> {what} assume growing-season rain '
-                          'like the driest quarter of seasons in the NASA record. The 1981–2024 '
-                          'test below still runs every real year.</div></div>')
-            else:
-                show_html('<div class="fs-scenario">'
-                          f'<span class="fs-scenario-icon fs-wx-avg">{WEATHER_SVG["average"]}</span>'
-                          f'<div><b>Planning for a typical year.</b> {what} assume average '
-                          'growing-season rain from the NASA record. The 1981–2024 test below runs '
-                          'every real year, wet and dry.</div></div>')
-    return scenario
-
-
 def money(v):
     """$12,345 or −$8,208 (minus sign before the dollar sign)."""
     return f"{'−' if v < 0 else ''}${abs(v):,.0f}"
 
 
-def vs(diff, text, tiny=0.5):
-    """The comparison under a metric, or nothing when the two rotations are the same."""
-    return None if abs(diff) < tiny else f"{text} vs your rotation"
-
-
-def metric_row(table, season, base=None):
-    """Profit, water shortfall and soil health for a plan; compared with `base` if given."""
+def metric_row(table):
+    """Profit, water shortfall and soil health per year for one plan."""
     p, w, s = totals(table)
     anchor("numbers")
     c1, c2, c3 = st.columns(3)
-    if base is not None:
-        bp, bw, bs = totals(base)
-        d_p, d_w, d_s = vs(p - bp, f"{p - bp:+,.0f}"), vs(w - bw, f"{w - bw:+,.0f}"), vs(s - bs, f"{s - bs:+.1f}", tiny=0.05)
-    else:
-        d_p = d_w = d_s = None
     with c1.container(key="m_profit"):
-        st.metric(f"Net profit, 4 {season} years", f"${p:,.0f}", d_p,
-                  help="Revenue minus seed, fertilizer, rye and pumping costs, across all fields.")
+        st.metric("Net profit per year", f"${p:,.0f}",
+                  help="Revenue minus seed, fertilizer, rye and pumping costs, across all fields: "
+                       "the average over the rotation's years and over 1981–2024 weather.")
     with c2.container(key="m_water"):
-        st.metric(f"Water shortfall, 4 {season} years", f"{w:,.0f} acre-in", d_w, delta_color="inverse",
+        st.metric("Water shortfall per year", f"{w:,.0f} acre-in",
                   help="How far rain and stored soil water fell short of what the crops needed. "
                        "One acre-inch is an inch of water over one acre. Lower is better.")
     with c3.container(key="m_soil"):
-        st.metric(f"Soil health, 4 {season} years", f"{s:+.1f}", d_s,
-                  help="Soil-health points per acre over the four years: residue, nitrogen from "
-                       "legumes, small grains and rye cover. Higher is better.")
+        st.metric("Soil health per year", f"{s:+.2f}",
+                  help="Soil-health points per acre per year: residue, nitrogen from legumes, "
+                       "small grains and rye cover. Higher is better.")
 
 
 def ring_html(n, total, label):
@@ -714,16 +806,16 @@ def ring_html(n, total, label):
             f'<div class="fs-stat-label">{label}</div></div>')
 
 
-def backtest_chart(mine, rec=None):
+def backtest_chart(mine, rec=None, name="Your rotation"):
     """Profit per season (top panel) over NASA growing-season rain (bottom), 1981-2024,
     with a replay: ▶ plays the seasons one at a time and a slider jumps to any year.
-    `mine` is the farmer's backtest; `rec` (optional) the recommendation's. With one line,
-    the farmer's rotation gets the starring style; with two, the recommendation does."""
+    `mine` is one rotation's backtest, labelled `name`. (`rec` draws a second line for a
+    head-to-head; the pages don't use it, since the two tools are independent.)"""
     years = list(mine["year"])
     rain = list(mine["growing_season_rain_mm"])
     mm = mine["growing_season_rain_mm"]
     driest = int(mine.loc[mm.idxmin(), "year"])
-    lines = ([("Your rotation", list(mine["total_profit_usd"]), ACCENT, 3, True)] if rec is None else
+    lines = ([(name, list(mine["total_profit_usd"]), ACCENT, 3, True)] if rec is None else
              [("Your rotation", list(mine["total_profit_usd"]), MINE, 2, False),
               ("Recommendation", list(rec["total_profit_usd"]), ACCENT, 3, True)])
     floor = min(min(y) for _, y, *_ in lines)
@@ -838,7 +930,7 @@ def details_table(table, title):
 SOURCES = [
     ("🛰️", "NASA POWER", "https://power.larc.nasa.gov/", True,
      "Daily weather for the farm's location since 1981: rain, temperature and the evaporation "
-     "they drive. Every rotation is backtested on it, and it sets the dry-year scenario."),
+     "they drive. Every rotation is scored and backtested on it."),
     ("🧱", "Web Soil Survey (USDA)", "https://websoilsurvey.nrcs.usda.gov/", False,
      "Soil type and how much water each field's soil can hold."),
     ("🗺️", "CropScape (USDA)", "https://nassgeodata.gmu.edu/CropScape/", False,

@@ -22,7 +22,7 @@
     --red-soft: rgba(252, 61, 33, .14);
     --accent: #BFD7FF;       /* ice blue-white: the recommendation */
     --accent-soft: rgba(191, 215, 255, .13);
-    --warm: #F0A972;         /* dry-year banner */
+    --warm: #F0A972;
     --warm-soft: rgba(240, 169, 114, .13);
     --on-crop: #141830;      /* text on the pastel crop colours */
     --mono: 'JetBrains Mono', ui-monospace, monospace;   /* numbers and labels: the "instrument" look */
@@ -123,7 +123,7 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 [class*="st-key-card_"] h3 {
     background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
 /* A thin glowing line along the top edge of each panel. */
-[class*="st-key-card_"]:not(.st-key-card_scenario)::before {
+[class*="st-key-card_"]::before {
     content: ""; position: absolute; top: -1px; left: 28px; right: 28px; height: 1px;
     background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .8;}
 .st-key-card_plan::before {background: linear-gradient(90deg, transparent, var(--accent), transparent);}
@@ -135,14 +135,6 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 .fs-eyebrow::before {content: ""; width: 3px; height: 12px; border-radius: 2px; background: var(--grad-brand);}
 .st-key-card_plan .fs-eyebrow {color: var(--accent); background: var(--accent-soft); border-color: rgba(191, 215, 255, .35);}
 
-/* ---------- Weather banner ("Plan for" switch) ---------- */
-.fs-scenario {display: flex; gap: 14px; align-items: flex-start; margin: 0 0 20px 0;
-              padding: 16px 20px; border-radius: var(--r-box); font-size: .95rem; line-height: 1.55;
-              color: var(--text-2); background: var(--blue-soft); border: 1px solid var(--border-glow);}
-.fs-scenario b {color: #B9CCFF;}
-.fs-scenario-icon {font-size: 1.5rem; line-height: 1.1;}
-.fs-scenario-dry {background: var(--warm-soft); border-color: rgba(240, 169, 114, .32);}
-.fs-scenario-dry b {color: var(--warm);}
 
 /* The typical/dry switch: a glowing pill. */
 [data-testid="stButtonGroup"] button {border-radius: 999px !important; font-weight: 600;}
@@ -217,7 +209,7 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 
 /* ---------- Built-in widgets: rounder, softer ---------- */
 [data-testid="stAlertContainer"], [data-testid="stAlert"] {border-radius: var(--r-box);}
-[data-baseweb="tag"] {border-radius: 999px !important;}
+:is([data-baseweb="tag"], [data-tag]) {border-radius: 999px !important;}
 [data-baseweb="select"] > div {border-radius: 14px;}
 [data-testid="stDataFrame"] {border-radius: 14px; overflow: hidden;}
 [data-testid="stExpander"] details {border: 1px solid var(--border); border-radius: var(--r-box); background: var(--card);}
@@ -278,9 +270,6 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 .st-key-card_plan {background: var(--grad-panel) padding-box,
                                linear-gradient(135deg, #BFD7FF 0%, rgba(191, 215, 255, .25) 45%, #4F8BFF 100%) border-box;
                    box-shadow: 0 0 0 1px rgba(191, 215, 255, .12), 0 20px 56px rgba(191, 215, 255, .12), var(--shadow);}
-.st-key-card_scenario {padding: 18px 22px; margin-bottom: 4px;}
-.st-key-card_scenario .fs-scenario {margin: 0;}
-.fs-scn-q {font-weight: 750; font-size: 1.1rem; letter-spacing: -0.02em; margin-bottom: 8px;}
 
 /* ---------- Result chips under the recommendation ---------- */
 .fs-chips {display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px 0;}
@@ -466,34 +455,6 @@ a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
 }
 
 
-/* ---------- Typical / dry year icons ---------- */
-/* On the switch buttons: drawn with CSS masks (Streamlit's buttons can't hold our SVGs),
-   so the icon takes the button's text colour. They wiggle on hover; the chosen one glows. */
-.st-key-scenario button::before {content: ""; display: inline-block; flex: none; width: 18px; height: 18px;
-    margin-right: 7px; background: currentColor; -webkit-mask: var(--wx) center / contain no-repeat;
-    mask: var(--wx) center / contain no-repeat; transition: transform .2s ease;}
-.st-key-scenario button:nth-of-type(1) {--wx: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M8 2.2v1.2M3.3 4.2l.9.8M2.7 7.5h1.2M12.7 4.2l-.9.8M5.3 9.6A3 3 0 0 1 10.6 6%22/%3E%3Cpath d=%22M7 17h10.2a3.6 3.6 0 0 0 .3-7.2 5 5 0 0 0-9.6 1.4A2.9 2.9 0 0 0 7 17z%22/%3E%3Cpath d=%22M9.5 19.6l-.7 1.6M13 19.6l-.7 1.6M16.5 19.6l-.7 1.6%22/%3E%3C/svg%3E");}
-.st-key-scenario button:nth-of-type(2) {--wx: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22black%22 stroke-width=%221.8%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Ccircle cx=%2212%22 cy=%229%22 r=%223.6%22/%3E%3Cpath d=%22M12 2.3v1.4M12 14.3v1.4M5.3 9h1.4M17.3 9h1.4M7.3 4.3l1 1M15.7 12.7l1 1M16.7 4.3l-1 1M8.3 12.7l-1 1M3 19h18M8.5 19l1 2.4M14 19l-.9 1.3.9 1.3M18.6 19l.7 1.9%22/%3E%3C/svg%3E");}
-.st-key-scenario button:hover::before {animation: fs-wiggle .6s ease-in-out;}
-[data-testid="stBaseButton-segmented_controlActive"]::before {filter: drop-shadow(0 0 4px rgba(255, 255, 255, .8));}
-
-/* In the explanation box: bigger, and fully animated. */
-.fs-scenario-icon {flex: none; width: 46px; height: 46px; border-radius: 12px; display: flex;
-    align-items: center; justify-content: center; background: rgba(10, 14, 31, .45);
-    border: 1px solid var(--border-glow); color: #CFE0FF;}
-.fs-scenario-dry .fs-scenario-icon {color: var(--warm); border-color: rgba(240, 169, 114, .35);}
-.fs-scenario-icon .fs-crop-icon {width: 32px; height: 32px; overflow: visible;}
-.fs-scenario-icon .wx-cloud {fill: #121A40;}   /* hides the sun behind the cloud */
-.wx-spin {animation: fs-spin 14s linear infinite;}
-@keyframes fs-spin {to {transform: rotate(360deg);}}
-.wx-blaze {animation: fs-spin 10s linear infinite, fs-blaze 1.8s ease-in-out infinite;}
-@keyframes fs-blaze {50% {opacity: .45;}}
-.wx-drop {animation: fs-rain 1.2s ease-in infinite;}
-@keyframes fs-rain {0% {transform: translateY(-3px); opacity: 0;} 30% {opacity: 1;}
-                     100% {transform: translateY(3px); opacity: 0;}}
-.wx-heat {animation: fs-heat 2s ease-in-out infinite;}
-@keyframes fs-heat {0%, 100% {transform: translateY(0); opacity: .9;} 50% {transform: translateY(-2px); opacity: .3;}}
-
 /* ---------- Satellite: a pencil sketch flying behind everything ----------
    Drawn on the app's own background layer (::before with z-index -1 inside an isolated
    app), so it passes behind every card and the sidebar. One flight of ~10 s, then it
@@ -512,7 +473,6 @@ a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
 }
 @media (prefers-reduced-motion: reduce) {
     [data-testid="stApp"]::before {animation: none; display: none;}
-    .wx-spin, .wx-blaze, .wx-drop, .wx-heat {animation: none;}
 }
 
 
@@ -547,7 +507,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 /* 4. Cards slide up as they scroll into view (browsers that support scroll-driven
       animations; others just show them). */
 @supports (animation-timeline: view()) {
-    .st-key-card_mine, .st-key-card_plan, .st-key-card_test, .st-key-card_scenario,
+    .st-key-card_mine, .st-key-card_plan, .st-key-card_test,
     [data-testid="stMetric"], .fs-sources, [data-testid="stExpander"] {
         animation: fs-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 35%;}
 }
@@ -636,7 +596,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 
 @media (prefers-reduced-motion: reduce) {
     .fs-topbar, .fs-hero, .fs-flow, .fs-hero-title, .fs-step::before, .st-key-card_mine,
-    .st-key-card_plan, .st-key-card_test, .st-key-card_scenario, [data-testid="stMetric"], .fs-sources,
+    .st-key-card_plan, .st-key-card_test, [data-testid="stMetric"], .fs-sources,
     [data-testid="stExpander"], .rg > .rg-cell, .fs-chip, .fs-ring,
     [data-testid="stBaseButton-primary"]::after, .fm-plot {animation: none !important;}
 }
@@ -656,23 +616,23 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 
 /* ---------- Crops you'd grow ---------- */
 /* Each tag: its crop colour and icon (set per crop by crop_tag_css() in app.py), dark text. */
-.st-key-allowed_crops [data-baseweb="tag"] {color: var(--on-crop) !important; font-weight: 650;
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]) {color: var(--on-crop) !important; font-weight: 650;
     padding-left: 6px !important; box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 3px 8px rgba(2, 5, 20, .35);
     animation: fs-tag-in .45s cubic-bezier(.3, 1.6, .5, 1) both;
     transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;}
-.st-key-allowed_crops [data-baseweb="tag"] span {color: var(--on-crop) !important;}
-.st-key-allowed_crops [data-baseweb="tag"]::before {content: ""; flex: none; width: 15px; height: 15px; margin-right: 5px;
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]) span {color: var(--on-crop) !important;}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag])::before {content: ""; flex: none; width: 15px; height: 15px; margin-right: 5px;
     background: currentColor; -webkit-mask-size: contain; mask-size: contain;
     -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;}
 @keyframes fs-tag-in {from {opacity: 0; transform: scale(.4) translateY(6px);}}
 /* Hover: lift and glow, icon wiggles. Click: press in. */
-.st-key-allowed_crops [data-baseweb="tag"]:hover {transform: translateY(-2px) scale(1.04); filter: brightness(1.06);
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):hover {transform: translateY(-2px) scale(1.04); filter: brightness(1.06);
     box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 8px 18px rgba(2, 5, 20, .5), 0 0 14px rgba(191, 215, 255, .45);}
-.st-key-allowed_crops [data-baseweb="tag"]:hover::before {animation: fs-wiggle .6s ease-in-out;}
-.st-key-allowed_crops [data-baseweb="tag"]:active {transform: scale(.94);}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):hover::before {animation: fs-wiggle .6s ease-in-out;}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):active {transform: scale(.94);}
 /* The little x: turns NASA red and spins when you aim at it. */
-.st-key-allowed_crops [data-baseweb="tag"] [role="presentation"] {transition: transform .25s ease, color .2s ease;}
-.st-key-allowed_crops [data-baseweb="tag"] [role="presentation"]:hover {transform: rotate(90deg) scale(1.2); color: var(--red);}
+.st-key-allowed_crops :is([data-baseweb="tag"] [role="presentation"], [data-tag] button) {transition: transform .25s ease, color .2s ease;}
+.st-key-allowed_crops :is([data-baseweb="tag"] [role="presentation"], [data-tag] button):hover {transform: rotate(90deg) scale(1.2); color: var(--red);}
 /* The box itself glows while you're choosing. */
 .st-key-allowed_crops [data-baseweb="select"] > div {transition: box-shadow .2s ease, border-color .2s ease;}
 .st-key-allowed_crops [data-baseweb="select"] > div:focus-within {border-color: var(--blue);
@@ -732,7 +692,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 
 @media (prefers-reduced-motion: reduce) {
     [data-testid="stApp"]::after {display: none;}
-    .st-key-allowed_crops [data-baseweb="tag"], [data-baseweb="popover"] [role="option"],
+    .st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]), [data-baseweb="popover"] [role="option"],
     .st-key-faq [data-testid="stPopoverButton"], .st-key-faq [data-testid="stPopoverButton"]::after,
     .fs-faq-orb, .st-key-faq_log [data-testid="stChatMessage"] {animation: none !important;}
 }
@@ -785,3 +745,26 @@ div.fs-step {cursor: default;}
 [class*="st-key-card_"] [data-testid="stPageLink"] a:hover {background: var(--blue-soft); border-color: var(--border-glow);}
 /* Gaps between the stacked panels. */
 [class*="st-key-card_"] {margin-bottom: 6px;}
+
+/* Crop tags: Streamlit 1.5x marks them [data-baseweb="tag"], newer versions <span data-tag>.
+   Every tag selector matches both, so the colours work on either version. */
+.st-key-allowed_crops [data-tag] {display: inline-flex; align-items: center;}
+
+/* ---------- Rotation picker (evaluator): click a tile, pick a crop ---------- */
+/* Colours and icons per crop come from ui.cell_css(); this is the shape. */
+.rp-head {font-family: var(--mono); font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 2px;}
+.rp-head:first-child {text-align: left;}
+.rp-field b {display: block; font-size: .95rem; color: var(--text);}
+.rp-field small {color: var(--text-3); font-size: .75rem;}
+[class*="st-key-cell-"] button {width: 100%; min-height: 58px; border-radius: var(--r-box) !important;
+    font-weight: 700; justify-content: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45),
+    0 6px 16px rgba(0, 0, 0, .25); transition: transform .15s ease, filter .15s ease;}
+[class*="st-key-cell-"] button:hover {transform: translateY(-2px); filter: brightness(1.06);}
+[class*="st-key-cell-"] button p {color: var(--on-crop) !important; font-weight: 700;}
+/* Streamlit's little "open" arrow on the popover button: dark like the text. */
+[class*="st-key-cell-"] button svg, [class*="st-key-cell-"] button [data-testid="stIconMaterial"] {color: var(--on-crop) !important;}
+/* Crop choices inside the menu. */
+[class*="st-key-pick-"] button {justify-content: flex-start; border-radius: var(--r-tag) !important; font-weight: 650;}
+[class*="st-key-pick-"] button p {color: var(--on-crop) !important;}
+.rp-cycle {font-family: var(--mono); font-size: .7rem; letter-spacing: .04em; color: var(--text-3); margin: 6px 0 4px;}
