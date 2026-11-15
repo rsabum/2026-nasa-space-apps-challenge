@@ -763,3 +763,9 @@ a.fs-step:nth-of-type(4) {--sc: #E0879A;}
 /* Rotation tiles glow in their own crop colour on hover. */
 .rg-cell:hover {box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 12px 28px rgba(2, 5, 20, .6),
                 0 0 24px color-mix(in srgb, var(--cc, #FFFFFF) 55%, transparent);}
+
+/* Fix: the logo's directory opened underneath the 1-4 step cards. The fade-in animations
+   put the hero and the steps in separate layers, with the steps on top; lift the hero
+   (and its menu) above them. */
+.fs-hero {position: relative; z-index: 30;}
+.fs-flow {position: relative; z-index: 1;}
