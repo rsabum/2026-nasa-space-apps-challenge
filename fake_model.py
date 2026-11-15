@@ -9,6 +9,7 @@ import pandas as pd
 
 from contract import (BACKTEST_COLUMNS, FIRST_YEAR, LAST_YEAR, PLAN_COLUMNS,
                       baseline_plan)
+from rules import rule_problems
 
 ACRE_IN_PER_MM_ACRE = 1 / 25.4
 
@@ -42,19 +43,27 @@ def evaluate(plan, farm, data=None, scenario="average"):
 
 
 def solve(farm, data=None, weights=None, scenario="average", constraints=None):
-    """Return a random plan that respects allowed crops and no-repeat, scored by evaluate()."""
+    """Return a random plan that follows every ground rule (if one can be found), scored by evaluate()."""
     constraints = constraints or {}
     allowed = constraints.get("allowed_crops") or ["corn", "soybeans"]
-    r = _rng("solve", tuple(sorted((weights or {}).items())), scenario, tuple(allowed))
-    plan = {}
-    for f in farm["fields"]:
-        prev, seq = f["last_crop"], []
-        for _ in range(farm["years"]):
-            options = [c for c in allowed if not (constraints.get("no_repeat") and c == prev)] or allowed
-            prev = r.choice(options)
-            seq.append(prev)
-        plan[f["name"]] = seq
-    return evaluate(plan, farm, data, scenario)
+    r = _rng("solve", tuple(sorted((weights or {}).items())), scenario,
+             repr(sorted(constraints.items())), repr(farm["fields"]))
+    best, best_broken = {}, None
+    for attempt in range(500):   # draw random plans; keep the one that breaks the fewest rules
+        plan = {}
+        for f in farm["fields"]:
+            prev, seq = f["last_crop"], []
+            for _ in range(farm["years"]):
+                options = [c for c in allowed if not (constraints.get("no_repeat") and c == prev)] or allowed
+                prev = r.choice(options)
+                seq.append(prev)
+            plan[f["name"]] = seq
+        broken = len(rule_problems(plan, farm, constraints))
+        if best_broken is None or broken < best_broken:
+            best, best_broken = plan, broken
+        if broken == 0:
+            break
+    return evaluate(best, farm, data, scenario)
 
 
 def solve_pareto(farm, data=None, scenario="average", constraints=None, n=9):

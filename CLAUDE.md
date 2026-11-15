@@ -47,7 +47,8 @@ Planning docs (claude.ai, shared with the team):
 | `contract.py` | Shared names: FARM, CROPS, CROP_COLORS/LABELS/ICONS, WEIGHTS, CONSTRAINTS, column lists, `baseline_plan()`. **Change only with the whole team.** |
 | `fake_model.py` | Stand-in for Robert's model, same function signatures, deterministic fake numbers |
 | `assets/logo.svg`, `assets/icon.png` | Our original logo (classical column with three crop-coloured flutes and a sprout) |
-| `.streamlit/config.toml` | Light theme colours |
+| `.streamlit/config.toml` | Dark theme colours, font name, corner radius (restart Streamlit after editing) |
+| `rules.py` | Plain-English check of a rotation against the ground rules (used by app.py and fake_model.py) |
 | `requirements.txt` | streamlit, pandas, plotly, pulp, requests |
 
 Swapping in the real model is one line in app.py: `import fake_model as model` becomes `import model`.
@@ -64,7 +65,7 @@ Swapping in the real model is one line in app.py: `import fake_model as model` b
 ## Design decisions (my choices)
 
 - **User:** a semi-experienced farmer in his 30s. Use real farming terms but keep it simple; add `help=` tooltips for anything technical.
-- **Look:** modern, minimal, light theme, "sleek and artsy". Fraunces serif for titles (Google Fonts), the default sans for body text.
+- **Look (changed Nov 15):** dark theme, modern-app feel (think X / Instagram dark mode): near-black page `#0F1115`, cards one shade lighter, mint accent `#5DD6B0`, "bubble" corners (28px cards, pill buttons and badges). **Inter** everywhere (professional sans), heavy weights for headings. Palette lives as CSS variables at the top of `style.css`, plus `.streamlit/config.toml` for Streamlit's own widgets. Text on crop-coloured tiles stays dark (`--on-crop`).
 - **Crop colours** (pastel, checked for colour-blind separation): corn `#F8E68E`, soybeans `#72BFB0`, winter wheat `#F0A972`, sorghum `#C77882`. Always pair colour with a label or icon.
 - **Icons:** corn 🌽, soybeans 🌱, winter wheat 🌾, sorghum 🌿.
 - **Layout today:** hero header with logo and "Team Athens" badge; sidebar with a farm map of "Your fields" (plots sized by acres, tinted by last crop, furrow stripes, table inside an "Edit fields" popover), "What matters most" sliders, "Ground rules"; main area with bordered cards "01 · The plan" (rotation as a tile grid) and "02 · The test" (big "N / 44" stat plus a backtest line chart), three metric cards with crop-coloured top borders, an expander with the raw numbers, and a footer.

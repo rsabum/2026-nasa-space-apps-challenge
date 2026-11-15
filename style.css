@@ -1,103 +1,147 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap');
+/* Field Shift: dark, rounded, modern.
+   Colours for Streamlit's own widgets live in .streamlit/config.toml,
+   which also names Inter as the font. The font file itself loads here. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ---------- Palette: change colours here, once ---------- */
+:root {
+    --bg: #0F1115;          /* page */
+    --card: #171A21;        /* cards */
+    --raised: #1E222B;      /* boxes inside cards */
+    --border: #2A2F3A;
+    --text: #E8EAED;
+    --text-2: #A0A7B4;      /* secondary text */
+    --text-3: #8A92A1;      /* labels, captions */
+    --accent: #5DD6B0;      /* mint: the suggested plan, highlights */
+    --accent-soft: rgba(93, 214, 176, .12);
+    --warm: #F0A972;        /* dry-year banner */
+    --warm-soft: rgba(240, 169, 114, .12);
+    --on-crop: #15181D;     /* text on the pastel crop colours */
+    --r-card: 28px;         /* "bubble" corners */
+    --r-box: 20px;
+    --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 12px 32px rgba(0, 0, 0, .35);
+}
 
 /* ---------- Page ---------- */
-.block-container {padding-top: 2.2rem; padding-bottom: 3rem; max-width: 1180px;}
-h1, h2, h3, .fs-serif {font-family: 'Fraunces', Georgia, 'Times New Roman', serif !important; letter-spacing: -0.01em;}
-h2 {font-weight: 600 !important;}
+.block-container {padding-top: 2rem; padding-bottom: 3rem; max-width: 1180px;}
+h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em;}
+[data-testid="stCaptionContainer"] {color: var(--text-3);}
 
 /* ---------- Hero ---------- */
-.fs-hero {display: flex; align-items: center; gap: 20px; padding: 6px 0 20px 0;
-          border-bottom: 1px solid #DCD8CA; margin-bottom: 6px;}
-.fs-hero svg {width: 72px; height: 72px; flex: none; border-radius: 17px;
-              box-shadow: 0 6px 18px rgba(47, 93, 80, .22);}
-.fs-hero-title {font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 3.1rem;
-                line-height: 1; letter-spacing: -0.02em; color: #26302A;}
-.fs-hero-tag {color: #5E6A62; margin-top: 8px; font-size: 1.02rem;}
-.fs-hero-team {margin-left: auto; align-self: flex-start; margin-top: 8px; white-space: nowrap; font-size: .72rem;
-               letter-spacing: .14em; text-transform: uppercase; color: #3F7D6B;
-               border: 1px solid #3F7D6B; border-radius: 999px; padding: 6px 14px;}
-.fs-pills {display: flex; gap: 6px; margin: 0 0 18px 0;}
-.fs-pills span {height: 6px; width: 46px; border-radius: 999px; display: block;}
+.fs-hero {display: flex; align-items: center; gap: 18px; padding: 4px 0 22px 0;}
+.fs-hero svg {width: 64px; height: 64px; flex: none; border-radius: 20px;
+              box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 10px 30px rgba(93, 214, 176, .18);}
+.fs-hero-title {font-weight: 800; font-size: 2.6rem; line-height: 1.15; letter-spacing: -0.04em;
+                background: linear-gradient(90deg, #FFFFFF 0%, #BDEFDF 100%);
+                -webkit-background-clip: text; background-clip: text; color: transparent;}
+.fs-hero-tag {color: var(--text-2); margin-top: 8px; font-size: 1rem;}
+.fs-hero-team {margin-left: auto; align-self: center; white-space: nowrap; font-size: .78rem;
+               font-weight: 600; color: var(--accent); background: var(--accent-soft);
+               border: 1px solid rgba(93, 214, 176, .3); border-radius: 999px; padding: 8px 16px;}
+.fs-pills {display: flex; gap: 6px; margin: 0 0 22px 0;}
+.fs-pills span {height: 6px; flex: 1; max-width: 64px; border-radius: 999px; display: block;}
 
 /* ---------- Section cards ---------- */
 .st-key-card_mine, .st-key-card_plan, .st-key-card_test {
-    background: #FFFFFF; border: 1px solid #DCD8CA; border-radius: 22px;
-    padding: 26px 28px 22px 28px; box-shadow: 0 1px 0 rgba(38, 48, 42, .03);}
-.fs-eyebrow {font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-             color: #3F7D6B; font-weight: 600; margin-bottom: -6px;}
+    background: var(--card); border: 1px solid var(--border); border-radius: var(--r-card);
+    padding: 26px 28px 22px 28px; box-shadow: var(--shadow);}
+.fs-eyebrow {display: inline-block; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+             font-weight: 700; color: var(--accent); background: var(--accent-soft);
+             border-radius: 999px; padding: 5px 12px; margin-bottom: 2px;}
+
+/* ---------- Weather banner ("Plan for" switch) ---------- */
+.fs-scenario {display: flex; gap: 14px; align-items: flex-start; margin: 0 0 20px 0;
+              padding: 16px 20px; border-radius: var(--r-box); font-size: .95rem; line-height: 1.5;
+              color: var(--text-2); background: var(--accent-soft); border: 1px solid rgba(93, 214, 176, .25);}
+.fs-scenario b {color: var(--accent);}
+.fs-scenario-icon {font-size: 1.5rem; line-height: 1.1;}
+.fs-scenario-dry {background: var(--warm-soft); border-color: rgba(240, 169, 114, .3);}
+.fs-scenario-dry b {color: var(--warm);}
+
+/* ---------- "Why this plan" box ---------- */
+.fs-why {margin: 6px 0 6px 0; padding: 16px 20px; border-radius: var(--r-box); background: var(--raised);
+         border: 1px solid var(--border); font-size: .95rem; line-height: 1.6; color: var(--text-2);}
+.fs-why b {color: var(--text);}
+.fs-why-title {font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+               color: var(--accent); font-weight: 700; margin-bottom: 6px;}
 
 /* ---------- Rotation grid ---------- */
-.rg {display: grid; gap: 8px; margin: 6px 0 14px 0;}
-.rg-year {text-align: center; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
-          color: #7B857E; padding-bottom: 2px;}
-.rg-field {align-self: center; font-family: 'Fraunces', Georgia, serif; font-size: 1.08rem; color: #26302A;}
-.rg-cell {border-radius: 16px; border: 1px solid rgba(38, 48, 42, .14); padding: 14px 8px 12px 8px;
-          display: flex; flex-direction: column; align-items: center; gap: 2px; color: #26302A;
-          transition: transform .12s ease, box-shadow .12s ease;}
-.rg-cell:hover {transform: translateY(-2px); box-shadow: 0 6px 14px rgba(38, 48, 42, .12);}
+.rg {display: grid; gap: 10px; margin: 8px 0 16px 0;}
+.rg-year {text-align: center; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase;
+          font-weight: 600; color: var(--text-3); padding-bottom: 2px;}
+.rg-field {align-self: center; font-weight: 700; font-size: 1.02rem; color: var(--text);}
+.rg-cell {border-radius: var(--r-box); padding: 14px 8px 12px 8px; color: var(--on-crop);
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset;
+          transition: transform .15s ease, box-shadow .15s ease;}
+.rg-cell:hover {transform: translateY(-3px); box-shadow: 0 10px 24px rgba(0, 0, 0, .45);}
 .rg-icon {font-size: 1.45rem; line-height: 1.2;}
-.rg-name {font-weight: 600; font-size: .95rem;}
+.rg-name {font-weight: 650; font-size: .92rem;}
 
 /* ---------- Metric cards ---------- */
-[data-testid="stMetric"] {background: #FFFFFF; border: 1px solid #DCD8CA; border-radius: 20px;
-                          padding: 18px 20px 16px 20px;}
-[data-testid="stMetricValue"], [data-testid="stMetricValue"] * {font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em;}
-.st-key-m_profit [data-testid="stMetric"] {border-top: 5px solid #F8E68E;}
-.st-key-m_water  [data-testid="stMetric"] {border-top: 5px solid #72BFB0;}
-.st-key-m_soil   [data-testid="stMetric"] {border-top: 5px solid #F0A972;}
+[data-testid="stMetric"] {background: var(--card); border: 1px solid var(--border); border-radius: var(--r-box);
+                          padding: 18px 22px 16px 22px; box-shadow: var(--shadow); position: relative; overflow: hidden;}
+[data-testid="stMetricValue"] {font-weight: 750; letter-spacing: -0.03em;}
+/* A short crop-coloured bar at the top of each card. */
+[data-testid="stMetric"]::before {content: ""; position: absolute; top: 0; left: 22px; width: 44px; height: 4px;
+                                  border-radius: 0 0 999px 999px;}
+.st-key-m_profit [data-testid="stMetric"]::before {background: #F8E68E;}
+.st-key-m_water  [data-testid="stMetric"]::before {background: #72BFB0;}
+.st-key-m_soil   [data-testid="stMetric"]::before {background: #F0A972;}
 
 /* ---------- Backtest headline ---------- */
-.fs-stat {border: 1px solid #DCD8CA; border-radius: 18px; padding: 22px 18px; text-align: center;
-          background: #FBFAF6; margin-top: 8px;}
-.fs-stat-num {font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 3.4rem;
-              line-height: 1; color: #3F7D6B;}
-.fs-stat-num small {font-size: 1.5rem; color: #7B857E; font-weight: 500;}
-.fs-stat-label {margin-top: 10px; font-size: .9rem; color: #5E6A62; line-height: 1.35;}
+.fs-stat {border: 1px solid var(--border); border-radius: var(--r-box); padding: 24px 18px; text-align: center;
+          background: var(--raised); margin-top: 8px;}
+.fs-stat-num {font-weight: 800; font-size: 3.4rem; line-height: 1; letter-spacing: -0.04em; color: var(--accent);}
+.fs-stat-num small {font-size: 1.4rem; color: var(--text-3); font-weight: 600;}
+.fs-stat-label {margin-top: 10px; font-size: .9rem; color: var(--text-2); line-height: 1.4;}
+
+/* ---------- Built-in widgets: rounder, softer ---------- */
+[data-testid="stAlertContainer"], [data-testid="stAlert"] {border-radius: var(--r-box);}
+[data-baseweb="tag"] {border-radius: 999px !important;}
+[data-baseweb="select"] > div {border-radius: 18px;}
+[data-testid="stDataFrame"] {border-radius: 16px; overflow: hidden;}
+[data-testid="stExpander"] details {border: 1px solid var(--border); border-radius: var(--r-box); background: var(--card);}
+[data-testid="stPopoverBody"] {border-radius: var(--r-box) !important; border: 1px solid var(--border);}
+[data-testid="stPopoverButton"] {border-color: var(--border); background: var(--raised);}
 
 /* ---------- Sidebar ---------- */
-[data-testid="stSidebar"] {border-right: 1px solid #DCD8CA;}
+[data-testid="stSidebar"] {border-right: 1px solid var(--border);}
 [data-testid="stSidebar"][aria-expanded="true"] {min-width: 330px; max-width: 330px;}
-[data-testid="stSidebar"] h2 {font-size: 1.25rem !important; padding-top: .6rem;
-                              border-top: 1px solid #DCD8CA; margin-top: .4rem;}
+[data-testid="stSidebar"] h2 {font-size: 1.05rem !important; font-weight: 700 !important; padding-top: .8rem;
+                              border-top: 1px solid var(--border); margin-top: .4rem;}
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child h2 {border-top: none;}
 
 /* ---------- Field map (sidebar) ---------- */
-.fm-sum {font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: #3F7D6B;
-         font-weight: 600; margin: -4px 0 10px 0;}
-.fm {display: flex; flex-direction: column; gap: 5px; background: #FFFFFF; border: 1px solid #DCD8CA;
-     border-radius: 20px; padding: 6px;}
-.fm-row {display: flex; gap: 5px; flex-basis: 0; min-height: 60px;}
+.fm-sum {font-size: .78rem; color: var(--text-2); margin: -4px 0 10px 0;}
+.fm-sum b {color: var(--text);}
+.fm {display: flex; flex-direction: column; gap: 6px; background: var(--raised); border: 1px solid var(--border);
+     border-radius: 24px; padding: 6px;}
+.fm-row {display: flex; gap: 6px; flex-basis: 0; min-height: 60px;}
 /* One plot. The faint diagonal lines are the furrows; --furrow sets their direction. */
-.fm-plot {flex-basis: 0; min-width: 72px; border-radius: 14px; border: 1px solid rgba(38, 48, 42, .14);
+.fm-plot {flex-basis: 0; min-width: 72px; border-radius: 18px; color: var(--on-crop);
           padding: 9px 10px 8px 11px; display: flex; flex-direction: column; justify-content: space-between;
-          overflow: hidden; color: #26302A;
+          overflow: hidden;
           background-image: repeating-linear-gradient(var(--furrow, 115deg),
-              rgba(255, 255, 255, .26) 0 2px, transparent 2px 11px);
-          transition: transform .12s ease, box-shadow .12s ease;}
-.fm-plot:hover {transform: translateY(-2px); box-shadow: 0 6px 14px rgba(38, 48, 42, .12);}
-.fm-name {font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.05rem; line-height: 1.15;
+              rgba(255, 255, 255, .22) 0 2px, transparent 2px 11px);
+          transition: transform .15s ease, box-shadow .15s ease;}
+.fm-plot:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, .45);}
+.fm-name {font-weight: 700; font-size: 1rem; line-height: 1.15;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 .fm-line {display: flex; justify-content: space-between; align-items: flex-end; gap: 4px;}
-.fm-acres {font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.7rem; line-height: 1;
-           white-space: nowrap;}
-.fm-acres small {font-family: 'Source Sans Pro', 'Source Sans', sans-serif; font-size: .78rem; font-weight: 600;}
+.fm-acres {font-weight: 800; font-size: 1.6rem; line-height: 1; letter-spacing: -0.03em; white-space: nowrap;}
+.fm-acres small {font-size: .76rem; font-weight: 600; letter-spacing: 0;}
 .fm-icon {font-size: 1.1rem; line-height: 1;}
-.fm-soil {font-size: .76rem; line-height: 1.2; margin-top: 3px; opacity: .8;
+.fm-soil {font-size: .74rem; line-height: 1.2; margin-top: 3px; opacity: .75;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
 .fm-small {padding: 7px 9px 7px 10px;}
-.fm-small .fm-name {font-size: .95rem;}
+.fm-small .fm-name {font-size: .9rem;}
 .fm-small .fm-icon {font-size: .95rem;}
 .fm-small .fm-acres {font-size: 1.05rem;}
 .fm-small .fm-soil {display: none;}
-.fm-empty {border-style: dashed; text-align: center; color: #7B857E; font-size: .9rem; padding: 28px 12px;}
+.fm-empty {border-style: dashed; text-align: center; color: var(--text-3); font-size: .9rem; padding: 28px 12px;}
+.fm-edit-title {font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 2px;}
 
-/* The "Edit fields" button and the panel it opens. */
-[data-testid="stPopoverButton"] {border-radius: 999px; border-color: #C9C4B4;
-                                                           background: #FFFFFF;}
-.fm-edit-title {font-family: 'Fraunces', Georgia, serif; font-weight: 600; font-size: 1.2rem; color: #26302A;
-                margin-bottom: 2px;}
-
-/* ---------- Details and footer ---------- */
-[data-testid="stExpander"] details {border: 1px solid #DCD8CA; border-radius: 16px; background: #FFFFFF;}
-.fs-footer {text-align: center; color: #7B857E; font-size: .8rem; margin-top: 26px;
-            padding-top: 16px; border-top: 1px solid #DCD8CA;}
+/* ---------- Footer ---------- */
+.fs-footer {text-align: center; color: var(--text-3); font-size: .8rem; margin-top: 30px;
+            padding-top: 18px; border-top: 1px solid var(--border);}

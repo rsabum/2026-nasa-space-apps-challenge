@@ -1,7 +1,14 @@
 [theme]
-base = "light"
-primaryColor = "#3F7D6B"
-backgroundColor = "#FBFAF6"
-secondaryBackgroundColor = "#F1EFE7"
-textColor = "#26302A"
-font = "sans serif"
+base = "dark"
+primaryColor = "#5DD6B0"              # mint accent: sliders, checkboxes, the suggested plan
+backgroundColor = "#0F1115"           # page: near-black, slightly cool
+secondaryBackgroundColor = "#1E222B"  # inputs, dropdowns, the rotation editor
+textColor = "#E8EAED"
+borderColor = "#2A2F3A"
+font = "Inter, sans-serif"            # Inter itself is loaded at the top of style.css
+baseRadius = "1rem"                   # rounded corners on every built-in widget
+buttonRadius = "full"                 # pill-shaped buttons
+
+[theme.sidebar]
+backgroundColor = "#14171D"
+secondaryBackgroundColor = "#1E222B"

@@ -9,12 +9,14 @@ import streamlit as st
 import fake_model as model  # switch to `import model` when Robert's model.py is ready
 from contract import (CONSTRAINTS, CROP_COLORS, CROP_ICONS, CROP_LABELS, CROPS, FARM,
                       WEIGHTS, baseline_plan, normalize_weights)
+from rules import rule_problems
 
 HERE = Path(__file__).parent
 ASSETS = HERE / "assets"
-INK = "#26302A"      # text
-ACCENT = "#3F7D6B"   # the suggested plan
-MUTED = "#A3AAA4"    # the current rotation
+INK = "#E8EAED"      # text (dark theme; palette also in style.css and config.toml)
+ACCENT = "#5DD6B0"   # the suggested plan
+MUTED = "#8B93A1"    # the farmer's rotation
+GRID = "#2A2F3A"     # chart gridlines
 SCENARIO_LABELS = {"average": "A typical year", "dry": "A dry year"}
 MAP_WIDTH = 266     # pixels the field map gets inside the sidebar
 
@@ -83,6 +85,63 @@ def editor_to_plan(table, farm):
             crops.append(crop)
         plan[row["Field"]] = crops
     return plan, blanks
+
+
+def bullet_list(items, limit=5):
+    """Markdown bullets, at most `limit` of them, then '…and N more'."""
+    lines = [f"- {item}" for item in items[:limit]]
+    if len(items) > limit:
+        lines.append(f"- …and {len(items) - limit} more")
+    return "\n".join(lines)
+
+
+def totals(t):
+    """The three headline numbers for a plan table: profit ($), water shortfall
+    (acre-inches, area-weighted) and soil health change."""
+    return (t["profit_usd"].sum(),
+            (t["water_shortfall_mm"] * t["acres"]).sum() / 25.4,
+            t["soil_score_change"].sum())
+
+
+def why_this_plan_html(suggested, mine, plan_table, base_table, farm, scenario):
+    """Up to three sentences on how the suggestion differs from the farmer's rotation
+    and what that buys. Built only from model output, so it never claims more than
+    the numbers show."""
+    acres = {f["name"]: f["acres"] for f in farm["fields"]}
+    changed = {f: sum(a != b for a, b in zip(crops, mine.get(f, []))) for f, crops in suggested.items()}
+    n_changed = sum(changed.values())
+    if n_changed == 0:
+        body = ("The optimizer couldn't find anything better for your priorities and ground rules, "
+                "so it suggests keeping your rotation as it is.")
+    else:
+        # Sentence 1: the field where the change is biggest (most years changed, then most acres).
+        field = max(changed, key=lambda f: (changed[f], acres.get(f, 0)))
+        new = " → ".join(CROP_LABELS.get(c, c) for c in suggested[field])
+        old = " → ".join(CROP_LABELS.get(c, c) for c in mine[field])
+        n_total = sum(len(c) for c in suggested.values())
+        body = (f"It changes {n_changed} of your {n_total} field-years. The biggest change is on "
+                f"<b>{html.escape(str(field))}</b> ({acres.get(field, 0):g} ac): {new}, "
+                f"instead of your {old}. ")
+
+        # Sentence 2: what the change buys, honest in both directions.
+        p, w, s = totals(plan_table)
+        bp, bw, bs = totals(base_table)
+        profit = f"earns ${p - bp:,.0f} more" if p >= bp else f"earns ${bp - p:,.0f} less"
+        water = (f"{bw - w:,.0f} acre-in less water shortfall" if w <= bw
+                 else f"{w - bw:,.0f} acre-in more water shortfall")
+        soil = ("better soil health" if s > bs else "lower soil health" if s < bs
+                else "the same soil health")
+        body += f"Over four years it {profit}, with {water} and {soil} ({s - bs:+.1f}). "
+
+    # Sentence 3: average water need of the crops, weighted by acres.
+    def need(t):
+        return (t["water_need_mm"] * t["acres"]).sum() / t["acres"].sum()
+    sn, bn = need(plan_table), need(base_table)
+    if abs(sn - bn) >= 5:
+        lead = "Because you're planning for a dry year, water need matters: its" if scenario == "dry" else "Its"
+        body += (f"{lead} crops need {sn:.0f} mm of water a season on average, "
+                 f"against {bn:.0f} mm for your rotation.")
+    return f'<div class="fs-why"><div class="fs-why-title">Why this plan</div>{body}</div>'
 
 
 def field_map_html(fields):
@@ -182,7 +241,17 @@ with st.sidebar:
     no_repeat = st.checkbox(
         "No back-to-back crops", CONSTRAINTS["no_repeat"],
         help="Planting the same crop two years running builds pest and disease "
-             "pressure and wears the soil down.")
+             "pressure and wears the soil down. Last season's crop counts too.")
+    min_soy = st.checkbox(
+        "At least one soybean year per field", CONSTRAINTS["min_legume_years"] >= 1,
+        help="Soybeans are a legume: they fix nitrogen in the soil, so the crop "
+             "after them needs less fertilizer.")
+    max_share = st.slider(
+        "Most acres in one crop", 30, 100, int(CONSTRAINTS["max_crop_share"] * 100), step=5,
+        format="%d%%",
+        help="The largest share of your land any one crop can take in a single year, "
+             "so one bad price or one bad season can't hit every acre. "
+             "Set it at or above your biggest field's share, or no plan can meet it.")
     scenario = st.radio(
         "Plan for", ["average", "dry"], horizontal=True,
         format_func=SCENARIO_LABELS.get,
@@ -197,7 +266,23 @@ if not allowed:
     st.stop()
 
 farm = {**FARM, "fields": fields.to_dict("records")}
-constraints = {**CONSTRAINTS, "allowed_crops": allowed, "no_repeat": no_repeat}
+constraints = {**CONSTRAINTS, "allowed_crops": allowed, "no_repeat": no_repeat,
+               "min_legume_years": 1 if min_soy else 0, "max_crop_share": max_share / 100}
+
+# ---------- Which weather the plan assumes (the "Plan for" switch) ----------
+if scenario == "dry":
+    show_html('<div class="fs-scenario fs-scenario-dry"><span class="fs-scenario-icon">🌵</span><div>'
+              '<b>Planning for a dry year.</b> The suggestion and the four-year numbers assume '
+              'growing-season rain like a dry season from the NASA record, so they favor crops '
+              'that hold up when rain runs short. The 1981–2024 test below still runs every real year.'
+              '</div></div>')
+else:
+    show_html('<div class="fs-scenario"><span class="fs-scenario-icon">☀️</span><div>'
+              '<b>Planning for a typical year.</b> The suggestion and the four-year numbers assume '
+              'average growing-season rain from the NASA record. The 1981–2024 test below runs '
+              'every real year, wet and dry. Switch to <i>A dry year</i> in the sidebar to plan for drought.'
+              '</div></div>')
+season = "dry" if scenario == "dry" else "typical"
 
 # ---------- 01 · Your rotation (the farmer types it in) ----------
 with st.container(key="card_mine"):
@@ -220,12 +305,20 @@ with st.container(key="card_mine"):
     if blanks:
         st.caption(f":orange[{blanks} empty cell{'' if blanks == 1 else 's'} filled in with "
                    "the corn–soy crop for that year.]")
+    my_problems = rule_problems(my_plan, farm, constraints)
+    if my_problems:
+        st.warning("**Your rotation breaks some of your ground rules.** We'll still test it "
+                   "as you entered it.\n\n" + bullet_list(my_problems),
+                   icon="⚠️")
+    else:
+        st.caption(":green[✓ Follows all your ground rules.]")
 
 # ---------- Run the model ----------
 try:
     plan_table = model.solve(farm, None, normalize_weights(weights), scenario, constraints)
     base_table = model.evaluate(my_plan, farm, None, scenario)
-    bt_plan = model.backtest(model.table_to_plan(plan_table), farm)
+    suggested = model.table_to_plan(plan_table)
+    bt_plan = model.backtest(suggested, farm)
     bt_base = model.backtest(my_plan, farm)
 except Exception as e:  # never show a traceback to a judge
     st.error(f"The model could not run: {e}")
@@ -234,31 +327,32 @@ except Exception as e:  # never show a traceback to a judge
 # ---------- 01 · The plan ----------
 with st.container(key="card_plan"):
     eyebrow("02 · The suggestion")
-    st.subheader("Suggested rotation")
+    st.subheader(f"Suggested rotation for a {season} year")
     st.caption("One crop per field per year. Read across for each field's next four seasons.")
     grid = (plan_table.pivot(index="field", columns="year", values="crop")
             .reindex(plan_table["field"].unique()))
     show_html(rotation_grid_html(grid))
+    sug_problems = rule_problems(suggested, farm, constraints)
+    if sug_problems:
+        st.warning("**The suggestion couldn't meet every ground rule**, so these rules may not "
+                   "fit together on your farm. Try loosening one in the sidebar.\n\n"
+                   + bullet_list(sug_problems), icon="⚠️")
+    show_html(why_this_plan_html(suggested, my_plan, plan_table, base_table, farm, scenario))
 
-# ---------- The three key numbers, against the current rotation ----------
-def totals(t):
-    return (t["profit_usd"].sum(),
-            (t["water_shortfall_mm"] * t["acres"]).sum() / 25.4,
-            t["soil_score_change"].sum())
-
+# ---------- The three key numbers, against the farmer's rotation ----------
 p, w, s = totals(plan_table)
 bp, bw, bs = totals(base_table)
 c1, c2, c3 = st.columns(3)
 with c1.container(key="m_profit"):
-    st.metric("Net profit, 4 years", f"${p:,.0f}", f"{p - bp:+,.0f} vs your rotation",
+    st.metric(f"Net profit, 4 {season} years", f"${p:,.0f}", f"{p - bp:+,.0f} vs your rotation",
               help="Revenue minus seed, fertilizer and operating costs, across all fields.")
 with c2.container(key="m_water"):
-    st.metric("Water shortfall", f"{w:,.0f} acre-in", f"{w - bw:+,.0f} vs your rotation",
+    st.metric(f"Water shortfall, 4 {season} years", f"{w:,.0f} acre-in", f"{w - bw:+,.0f} vs your rotation",
               delta_color="inverse",
               help="How far growing-season rain fell short of what the crops needed. "
                    "One acre-inch is an inch of water over one acre. Lower is better.")
 with c3.container(key="m_soil"):
-    st.metric("Soil health", f"{s:+.1f}", f"{s - bs:+.1f} vs your rotation",
+    st.metric(f"Soil health, 4 {season} years", f"{s:+.1f}", f"{s - bs:+.1f} vs your rotation",
               help="A score for what the rotation does to your soil: residue, nitrogen "
                    "from legumes and crop variety. Higher is better.")
 
@@ -288,7 +382,10 @@ with st.container(key="card_test"):
         bt.update_layout(
             height=330, margin=dict(l=0, r=0, t=10, b=0), hovermode="x unified",
             paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-            yaxis=dict(title="Whole-farm net profit", tickprefix="$"),
+            font=dict(family="Inter, sans-serif", color=MUTED),
+            hoverlabel=dict(bgcolor="#1E222B", bordercolor=GRID, font=dict(color=INK)),
+            xaxis=dict(gridcolor=GRID, zeroline=False),
+            yaxis=dict(title="Whole-farm net profit", tickprefix="$", gridcolor=GRID, zeroline=False),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
         st.plotly_chart(bt)
 
