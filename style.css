@@ -639,3 +639,99 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
     [data-testid="stExpander"], .rg > .rg-cell, .fs-chip, .fs-ring,
     [data-testid="stBaseButton-primary"]::after, .fm-plot {animation: none !important;}
 }
+
+
+/* ---------- Faint trace through the grid ----------
+   Two lines follow the background grid like a data trace, each with a brighter pulse
+   travelling along it (the animation lives inside the SVG). Sits with the satellite,
+   behind everything; the grid is 48px and starts at the window's corner, so they line up. */
+[data-testid="stApp"]::after {content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 3072%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%223212%22 to=%220%22 dur=%2216s%22 begin=%220s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 2448%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%222588%22 to=%220%22 dur=%2221s%22 begin=%22-7s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .28;}
+
+/* ---------- Sliders: smoother feel ---------- */
+[data-testid="stSlider"] [role="slider"] {transition: transform .15s ease, box-shadow .15s ease;}
+[data-testid="stSlider"] [role="slider"]:hover {transform: scale(1.18);}
+[data-testid="stSlider"] [role="slider"]:active {transform: scale(1.3); box-shadow: 0 0 0 6px rgba(191, 215, 255, .18), 0 0 16px rgba(191, 215, 255, .7);}
+
+/* ---------- Crops you'd grow ---------- */
+/* Each tag: its crop colour and icon (set per crop by crop_tag_css() in app.py), dark text. */
+.st-key-allowed_crops [data-baseweb="tag"] {color: var(--on-crop) !important; font-weight: 650;
+    padding-left: 6px !important; box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 3px 8px rgba(2, 5, 20, .35);
+    animation: fs-tag-in .45s cubic-bezier(.3, 1.6, .5, 1) both;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;}
+.st-key-allowed_crops [data-baseweb="tag"] span {color: var(--on-crop) !important;}
+.st-key-allowed_crops [data-baseweb="tag"]::before {content: ""; flex: none; width: 15px; height: 15px; margin-right: 5px;
+    background: currentColor; -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;}
+@keyframes fs-tag-in {from {opacity: 0; transform: scale(.4) translateY(6px);}}
+/* Hover: lift and glow, icon wiggles. Click: press in. */
+.st-key-allowed_crops [data-baseweb="tag"]:hover {transform: translateY(-2px) scale(1.04); filter: brightness(1.06);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 8px 18px rgba(2, 5, 20, .5), 0 0 14px rgba(191, 215, 255, .45);}
+.st-key-allowed_crops [data-baseweb="tag"]:hover::before {animation: fs-wiggle .6s ease-in-out;}
+.st-key-allowed_crops [data-baseweb="tag"]:active {transform: scale(.94);}
+/* The little x: turns NASA red and spins when you aim at it. */
+.st-key-allowed_crops [data-baseweb="tag"] [role="presentation"] {transition: transform .25s ease, color .2s ease;}
+.st-key-allowed_crops [data-baseweb="tag"] [role="presentation"]:hover {transform: rotate(90deg) scale(1.2); color: var(--red);}
+/* The box itself glows while you're choosing. */
+.st-key-allowed_crops [data-baseweb="select"] > div {transition: box-shadow .2s ease, border-color .2s ease;}
+.st-key-allowed_crops [data-baseweb="select"] > div:focus-within {border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(79, 139, 255, .2), 0 0 18px rgba(79, 139, 255, .25);}
+/* Dropdown list: options slide in and nudge right on hover, with a gradient edge. */
+[data-baseweb="popover"] [role="option"] {animation: fs-chip-in .3s ease-out both; border-radius: 10px;
+    transition: transform .15s ease, background .15s ease; box-shadow: inset 0 0 0 0 transparent;}
+[data-baseweb="popover"] [role="option"]:nth-child(2) {animation-delay: .05s;}
+[data-baseweb="popover"] [role="option"]:nth-child(3) {animation-delay: .1s;}
+[data-baseweb="popover"] [role="option"]:nth-child(4) {animation-delay: .15s;}
+[data-baseweb="popover"] [role="option"]:hover {transform: translateX(4px); background: var(--blue-soft) !important;
+    box-shadow: inset 3px 0 0 var(--accent);}
+
+/* ---------- Assistant: floating bubble, bottom right ---------- */
+.st-key-faq {position: fixed; right: 26px; bottom: 26px; z-index: 990; width: auto !important;}
+.st-key-faq [data-testid="stPopoverButton"] {height: 52px; padding: 0 20px 0 16px; border: none !important;
+    background: var(--grad-brand) !important; color: var(--bg) !important; font-weight: 750;
+    box-shadow: 0 10px 30px rgba(2, 5, 20, .6), 0 0 24px rgba(79, 139, 255, .45);
+    transition: transform .2s ease, box-shadow .2s ease; animation: fs-faq-float 5s ease-in-out infinite;}
+.st-key-faq [data-testid="stPopoverButton"] p {color: var(--bg) !important; font-weight: 750;}
+.st-key-faq [data-testid="stPopoverButton"]:hover {transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 14px 34px rgba(2, 5, 20, .6), 0 0 34px rgba(191, 215, 255, .6);}
+/* A soft ring pulses out from the bubble every few seconds. */
+.st-key-faq [data-testid="stPopoverButton"]::after {content: ""; position: absolute; inset: 0; border-radius: 999px;
+    box-shadow: 0 0 0 0 rgba(191, 215, 255, .55); animation: fs-faq-ping 3.2s ease-out infinite; pointer-events: none;}
+@keyframes fs-faq-ping {0% {box-shadow: 0 0 0 0 rgba(191, 215, 255, .55);} 70%, 100% {box-shadow: 0 0 0 16px rgba(191, 215, 255, 0);}}
+@keyframes fs-faq-float {50% {transform: translateY(-4px);}}
+
+/* The chat panel. */
+[data-testid="stPopoverBody"]:has(.fs-faq-head) {width: 410px !important; max-width: calc(100vw - 32px);
+    background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) padding-box,
+                var(--grad-edge) border-box !important;
+    border: 1px solid transparent !important; box-shadow: 0 30px 70px rgba(2, 5, 20, .75), 0 0 40px rgba(79, 139, 255, .2);
+    animation: fs-drop .25s ease-out;}
+.fs-faq-head {display: flex; align-items: center; gap: 12px; padding-bottom: 4px;}
+.fs-faq-orb {flex: none; width: 38px; height: 38px; border-radius: 50%;
+    background: conic-gradient(from var(--angle), #4F8BFF, #BFD7FF, #0B3D91, #4F8BFF);
+    box-shadow: 0 0 18px rgba(79, 139, 255, .55); animation: fs-orbit 4s linear infinite; position: relative;}
+.fs-faq-orb::after {content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #121A40;
+    box-shadow: inset 0 0 8px rgba(191, 215, 255, .5);}
+.fs-faq-title {font-weight: 750; font-size: 1rem; color: var(--text);}
+.fs-faq-sub {font-size: .76rem; color: var(--text-3); line-height: 1.35;}
+.fs-faq-mode {margin-left: auto; align-self: flex-start; white-space: nowrap; font-family: var(--mono); font-size: .62rem;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); border: 1px solid var(--border);
+    border-radius: var(--r-tag); padding: 3px 7px;}
+.fs-faq-ai {color: var(--accent); border-color: rgba(191, 215, 255, .4); background: var(--accent-soft);}
+.st-key-faq_log {border-radius: var(--r-box); background: rgba(10, 14, 31, .45); border: 1px solid var(--border) !important;}
+.st-key-faq_log [data-testid="stChatMessage"] {background: transparent; padding: 6px 4px; animation: fs-msg-in .35s ease-out both;}
+@keyframes fs-msg-in {from {opacity: 0; transform: translateY(8px);}}
+.st-key-faq_log [data-testid="stChatMessage"] p, .st-key-faq_log [data-testid="stChatMessage"] li {font-size: .88rem; line-height: 1.5;}
+.st-key-faq_log a {color: var(--accent) !important;}
+.st-key-faq_chips button {width: 100%; min-height: 0; padding: 6px 10px; border-radius: 10px !important;
+    background: var(--raised) !important; border: 1px solid var(--border) !important; text-align: left;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;}
+.st-key-faq_chips button p {font-size: .76rem !important; line-height: 1.3;}
+.st-key-faq_chips button:hover {transform: translateY(-2px); border-color: var(--blue) !important; background: var(--blue-soft) !important;}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stApp"]::after {display: none;}
+    .st-key-allowed_crops [data-baseweb="tag"], [data-baseweb="popover"] [role="option"],
+    .st-key-faq [data-testid="stPopoverButton"], .st-key-faq [data-testid="stPopoverButton"]::after,
+    .fs-faq-orb, .st-key-faq_log [data-testid="stChatMessage"] {animation: none !important;}
+}

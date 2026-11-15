@@ -1,5 +1,6 @@
 """Field Shift: Streamlit app (owner: Claude-Thomas, Team Athens)."""
 import html
+import urllib.parse
 from pathlib import Path
 
 import pandas as pd
@@ -11,6 +12,7 @@ import fake_model as model  # switch to `import model` when Robert's model.py is
 from contract import (CONSTRAINTS, CROP_LABELS, CROPS, FARM,
                       WEIGHTS, baseline_plan, normalize_weights)
 from rules import rule_problems
+import assistant
 
 HERE = Path(__file__).parent
 ASSETS = HERE / "assets"
@@ -345,6 +347,52 @@ def add_replay(fig, base, plan, rain_mm, floor, driest):
                         args=[[str(y)], step]) for y in years])])
 
 
+def crop_tag_css():
+    """Give each tag in "Crops you'd grow" its crop's colour and icon. Streamlit marks each
+    tag with the crop's label (title="Corn"), which is what the selectors match on."""
+    rules = ""
+    for crop, svg in CROP_SVG.items():
+        icon = svg.replace('<svg class="fs-crop-icon"', '<svg xmlns="http://www.w3.org/2000/svg"')
+        uri = "data:image/svg+xml," + urllib.parse.quote(icon, safe=" =:/,.-()")
+        tag = f'.st-key-allowed_crops [data-baseweb="tag"]:has(span[title="{CROP_LABELS[crop]}"])'
+        rules += (f'{tag} {{background: {CROP_COLORS[crop]} !important;}}'
+                  f'{tag}::before {{-webkit-mask-image: url("{uri}"); mask-image: url("{uri}");}}')
+    return f"<style>{rules}</style>"
+
+
+def faq_context(farm, scenario, weights, plan_table, base_table, wins, n_seasons, driest_year,
+                my_problems, suggested, my_plan):
+    """What the farmer is looking at, for the assistant. Only numbers the app shows."""
+    p, w, s = totals(plan_table)
+    bp, bw, bs = totals(base_table)
+    changed = sum(a != b for f, crops in suggested.items() for a, b in zip(crops, my_plan.get(f, [])))
+    return {
+        "farm_location": f"lat {farm['lat']}, lon {farm['lon']}" if "lat" in farm else "central Illinois",
+        "fields": ", ".join(f"{f['name']} ({f['acres']:g} ac, {f['soil']})" for f in farm["fields"]),
+        "total_acres": f"{sum(f['acres'] for f in farm['fields']):g}",
+        "planning_for": "dry" if scenario == "dry" else "typical",
+        "priority_profit": f"{weights['profit']:.1f}",
+        "priority_water": f"{weights['water']:.1f}",
+        "priority_soil": f"{weights['soil']:.1f}",
+        "your_rotation": "; ".join(f"{f}: " + " → ".join(CROP_LABELS[c] for c in cs) for f, cs in my_plan.items()),
+        "recommended_rotation": "; ".join(f"{f}: " + " → ".join(CROP_LABELS[c] for c in cs) for f, cs in suggested.items()),
+        "recommendation_vs_yours": ("the same as your rotation" if changed == 0
+                                    else f"different from your rotation in {changed} field-years"),
+        "your_rotation_rules": ("follows all your ground rules" if not my_problems
+                                else f"breaks {len(my_problems)} ground rule(s): " + "; ".join(my_problems[:3])),
+        "net_profit_4_years_recommendation": f"${p:,.0f}",
+        "profit_change_vs_yours": f"{p - bp:+,.0f} dollars",
+        "water_shortfall_4_years_recommendation": f"{w:,.0f} acre-inches",
+        "water_shortfall_change_vs_yours": f"{w - bw:+,.0f} acre-inches (lower is better)",
+        "soil_health_recommendation": f"{s:+.1f}",
+        "soil_health_change_vs_yours": f"{s - bs:+.1f}",
+        "seasons_tested": n_seasons,
+        "seasons_recommendation_won": f"{wins} of {n_seasons}",
+        "driest_season": driest_year,
+        "data_status": "sample values until the NASA POWER data and the optimizer are connected",
+    }
+
+
 def field_map_html(fields):
     """Draw the farm from above: one plot per field, sized by its acres and
     tinted by the crop that grew there last season."""
@@ -384,6 +432,7 @@ st.set_page_config(page_title="Field Shift", page_icon=str(ASSETS / "icon.png"),
 
 # All the styling lives in style.css. The colours and theme base are in .streamlit/config.toml.
 show_html(f"<style>{(HERE / 'style.css').read_text()}</style>")
+show_html(crop_tag_css())
 
 # ---------- Header ----------
 logo_svg = (ASSETS / "logo.svg").read_text()
@@ -482,21 +531,21 @@ with st.sidebar:
     st.header("What matters most", anchor=False)
     weights = {
         "profit": st.slider(
-            "Profit", 0, 10, WEIGHTS["profit"],
+            "Profit", 0.0, 10.0, float(WEIGHTS["profit"]), step=0.1, format="%.1f",
             help="Net return after seed, fertilizer and operating costs."),
         "water": st.slider(
-            "Water", 0, 10, WEIGHTS["water"],
+            "Water", 0.0, 10.0, float(WEIGHTS["water"]), step=0.1, format="%.1f",
             help="Favors crops whose water need is covered by the season's rain, "
                  "so the plan is less exposed in a dry year."),
         "soil": st.slider(
-            "Soil health", 0, 10, WEIGHTS["soil"],
+            "Soil health", 0.0, 10.0, float(WEIGHTS["soil"]), step=0.1, format="%.1f",
             help="Favors rotations that build the soil: legumes that fix nitrogen, "
                  "more residue, more variety."),
     }
 
     anchor("rules")   # sidebar headings get no id from Streamlit, so add our own
     st.header("Ground rules", anchor=False)
-    allowed = st.multiselect("Crops you'd grow", CROPS, CONSTRAINTS["allowed_crops"],
+    allowed = st.multiselect("Crops you'd grow", CROPS, CONSTRAINTS["allowed_crops"], key="allowed_crops",
                              format_func=crop_name)
     no_repeat = st.checkbox(
         "No back-to-back crops", CONSTRAINTS["no_repeat"],
@@ -507,7 +556,7 @@ with st.sidebar:
         help="Soybeans are a legume: they fix nitrogen in the soil, so the crop "
              "after them needs less fertilizer.")
     max_share = st.slider(
-        "Most acres in one crop", 30, 100, int(CONSTRAINTS["max_crop_share"] * 100), step=5,
+        "Most acres in one crop", 30, 100, int(CONSTRAINTS["max_crop_share"] * 100), step=1,
         format="%d%%",
         help="The largest share of your land any one crop can take in a single year, "
              "so one bad price or one bad season can't hit every acre. "
@@ -757,3 +806,9 @@ show_html(f'<div id="sources" class="fs-sources"><div class="fs-sources-title">D
           '<div class="fs-src-sample">Sample numbers for now: the NASA POWER data and the optimizer '
           'are being connected.</div></div>'
           '<div class="fs-footer">Built by Team Athens for NASA Space Apps 2026.</div>')
+
+# ---------- The assistant: floating chat bubble, bottom right ----------
+assistant.render(
+    faq_context(farm, scenario, weights, plan_table, base_table, wins, len(bt_plan),
+                int(driest["year"]), my_problems, suggested, my_plan),
+    avatar=str(ASSETS / "icon.png"))
