@@ -903,45 +903,45 @@ div.fs-step {cursor: default;}
    path), instead of re-drawing a full-screen animated image every frame. The head leads,
    the gradient tail trails behind, and offset-rotate turns them at each corner. */
 .fs-comets {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
-/* Comets along the grid routes: straight runs, square corners. Each is a bright head and
-   16 fading dots on the same route, each 0.06 s behind the one ahead, so the trail follows
-   slowly and turns every corner on the line. They move with transform keyframes (one per
-   corner, at its share of the route's length), which the browser runs on the compositor:
-   no main-thread work per frame. */
+/* Comets along the grid routes: straight runs, square corners. Each is a round glowing head
+   and a trail of 16 short line pieces on the same route, each 0.05 s behind the one ahead.
+   The pieces overlap a little, so the trail is one continuous streak; each lies along the
+   stretch it's on and turns at the instant it reaches a corner, so the trail bends round
+   corners on the line. Transform keyframes (one or two stops per corner) + opacity only:
+   the compositor runs them, no main-thread work per frame. */
 .fs-comets span {position: absolute; inset: 0;}
-.fs-comets i {position: absolute; left: 0; top: 0; width: var(--sz); height: var(--sz);
-    margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2); border-radius: 50%;
-    background: rgba(191, 215, 255, var(--a)); box-shadow: 0 0 calc(var(--sz) * 2.6) calc(var(--sz) * .3) rgba(111, 160, 255, var(--a));
-    opacity: 0; will-change: transform, opacity;
+.fs-comets i {position: absolute; left: 0; top: 0; width: var(--len); height: var(--h);
+    margin: calc(var(--h) / -2) 0 0 calc(var(--len) / -2); border-radius: 2px;
+    background: rgba(191, 215, 255, var(--a)); opacity: 0; will-change: transform, opacity;
     animation-name: var(--route), fs-comet-fade; animation-duration: var(--dur);
     animation-timing-function: linear; animation-iteration-count: infinite;
-    animation-delay: calc(var(--delay) + var(--k) * 0.06s);}
-.fs-comets i:first-child {background: #FFFFFF;
-    box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9), 0 0 18px 4px rgba(79, 139, 255, .45);}
+    animation-delay: calc(var(--delay) + var(--k) * 0.05s);}
+.fs-comets i:first-child {width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #FFFFFF;
+    box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9), 0 0 18px 4px rgba(79, 139, 255, .45); z-index: 1;}
 @keyframes fs-comet-fade {0% {opacity: 0;} 5% {opacity: .85;} 93% {opacity: .85;} 100% {opacity: 0;}}
-@keyframes fs-r1 {0% {transform: translate(0.5px, 816.5px);} 6.250% {transform: translate(192.5px, 816.5px);} 10.938% {transform: translate(192.5px, 672.5px);} 18.750% {transform: translate(432.5px, 672.5px);} 21.875% {transform: translate(432.5px, 768.5px);} 29.688% {transform: translate(672.5px, 768.5px);} 37.500% {transform: translate(672.5px, 528.5px);} 45.312% {transform: translate(912.5px, 528.5px);} 48.438% {transform: translate(912.5px, 624.5px);} 56.250% {transform: translate(1152.5px, 624.5px);} 64.062% {transform: translate(1152.5px, 384.5px);} 71.875% {transform: translate(1392.5px, 384.5px);} 75.000% {transform: translate(1392.5px, 480.5px);} 82.812% {transform: translate(1632.5px, 480.5px);} 90.625% {transform: translate(1632.5px, 240.5px);} 100.000% {transform: translate(1920.5px, 240.5px);}}
-.fs-comets span:nth-child(1) i {--route: fs-r1; --dur: 18s; --delay: 0s;}
-@keyframes fs-r2 {0% {transform: translate(288.5px, 1152.5px);} 5.882% {transform: translate(288.5px, 1008.5px);} 17.647% {transform: translate(576.5px, 1008.5px);} 21.569% {transform: translate(576.5px, 1104.5px);} 31.373% {transform: translate(816.5px, 1104.5px);} 39.216% {transform: translate(816.5px, 912.5px);} 50.980% {transform: translate(1104.5px, 912.5px);} 52.941% {transform: translate(1104.5px, 960.5px);} 62.745% {transform: translate(1344.5px, 960.5px);} 72.549% {transform: translate(1344.5px, 720.5px);} 82.353% {transform: translate(1584.5px, 720.5px);} 86.275% {transform: translate(1584.5px, 816.5px);} 100.000% {transform: translate(1920.5px, 816.5px);}}
-.fs-comets span:nth-child(2) i {--route: fs-r2; --dur: 22s; --delay: -8s;}
-@keyframes fs-r3 {0% {transform: translate(1920.5px, 1056.5px);} 7.812% {transform: translate(1680.5px, 1056.5px);} 12.500% {transform: translate(1680.5px, 912.5px);} 20.312% {transform: translate(1440.5px, 912.5px);} 28.125% {transform: translate(1440.5px, 1152.5px);} 40.625% {transform: translate(1056.5px, 1152.5px);} 45.312% {transform: translate(1056.5px, 1008.5px);} 54.688% {transform: translate(768.5px, 1008.5px);} 67.188% {transform: translate(768.5px, 624.5px);} 76.562% {transform: translate(480.5px, 624.5px);} 84.375% {transform: translate(480.5px, 384.5px);} 100.000% {transform: translate(0.5px, 384.5px);}}
-.fs-comets span:nth-child(3) i {--route: fs-r3; --dur: 25s; --delay: -15s;}
-.fs-comets i:nth-child(1) {--k: 0; --sz: 4.80px; --a: 0.940;}
-.fs-comets i:nth-child(2) {--k: 1; --sz: 4.64px; --a: 0.862;}
-.fs-comets i:nth-child(3) {--k: 2; --sz: 4.47px; --a: 0.787;}
-.fs-comets i:nth-child(4) {--k: 3; --sz: 4.31px; --a: 0.713;}
-.fs-comets i:nth-child(5) {--k: 4; --sz: 4.15px; --a: 0.642;}
-.fs-comets i:nth-child(6) {--k: 5; --sz: 3.99px; --a: 0.573;}
-.fs-comets i:nth-child(7) {--k: 6; --sz: 3.82px; --a: 0.506;}
-.fs-comets i:nth-child(8) {--k: 7; --sz: 3.66px; --a: 0.442;}
-.fs-comets i:nth-child(9) {--k: 8; --sz: 3.50px; --a: 0.381;}
-.fs-comets i:nth-child(10) {--k: 9; --sz: 3.34px; --a: 0.323;}
-.fs-comets i:nth-child(11) {--k: 10; --sz: 3.17px; --a: 0.268;}
-.fs-comets i:nth-child(12) {--k: 11; --sz: 3.01px; --a: 0.217;}
-.fs-comets i:nth-child(13) {--k: 12; --sz: 2.85px; --a: 0.169;}
-.fs-comets i:nth-child(14) {--k: 13; --sz: 2.69px; --a: 0.126;}
-.fs-comets i:nth-child(15) {--k: 14; --sz: 2.52px; --a: 0.089;}
-.fs-comets i:nth-child(16) {--k: 15; --sz: 2.36px; --a: 0.059;}
-.fs-comets i:nth-child(17) {--k: 16; --sz: 2.20px; --a: 0.040;}
+@keyframes fs-r1 {0% {transform: translate(0.5px, 816.5px) rotate(0deg);} 6.250% {transform: translate(192.5px, 816.5px) rotate(0deg);} 6.254% {transform: translate(192.5px, 816.5px) rotate(90deg);} 10.938% {transform: translate(192.5px, 672.5px) rotate(90deg);} 10.941% {transform: translate(192.5px, 672.5px) rotate(0deg);} 18.750% {transform: translate(432.5px, 672.5px) rotate(0deg);} 18.754% {transform: translate(432.5px, 672.5px) rotate(90deg);} 21.875% {transform: translate(432.5px, 768.5px) rotate(90deg);} 21.879% {transform: translate(432.5px, 768.5px) rotate(0deg);} 29.688% {transform: translate(672.5px, 768.5px) rotate(0deg);} 29.692% {transform: translate(672.5px, 768.5px) rotate(90deg);} 37.500% {transform: translate(672.5px, 528.5px) rotate(90deg);} 37.504% {transform: translate(672.5px, 528.5px) rotate(0deg);} 45.312% {transform: translate(912.5px, 528.5px) rotate(0deg);} 45.316% {transform: translate(912.5px, 528.5px) rotate(90deg);} 48.438% {transform: translate(912.5px, 624.5px) rotate(90deg);} 48.441% {transform: translate(912.5px, 624.5px) rotate(0deg);} 56.250% {transform: translate(1152.5px, 624.5px) rotate(0deg);} 56.254% {transform: translate(1152.5px, 624.5px) rotate(90deg);} 64.062% {transform: translate(1152.5px, 384.5px) rotate(90deg);} 64.067% {transform: translate(1152.5px, 384.5px) rotate(0deg);} 71.875% {transform: translate(1392.5px, 384.5px) rotate(0deg);} 71.879% {transform: translate(1392.5px, 384.5px) rotate(90deg);} 75.000% {transform: translate(1392.5px, 480.5px) rotate(90deg);} 75.004% {transform: translate(1392.5px, 480.5px) rotate(0deg);} 82.812% {transform: translate(1632.5px, 480.5px) rotate(0deg);} 82.817% {transform: translate(1632.5px, 480.5px) rotate(90deg);} 90.625% {transform: translate(1632.5px, 240.5px) rotate(90deg);} 90.629% {transform: translate(1632.5px, 240.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 240.5px) rotate(0deg);}}
+.fs-comets span:nth-child(1) i {--route: fs-r1; --dur: 18s; --delay: 0s; --len: 10.7px;}
+@keyframes fs-r2 {0% {transform: translate(288.5px, 1152.5px) rotate(90deg);} 5.882% {transform: translate(288.5px, 1008.5px) rotate(90deg);} 5.886% {transform: translate(288.5px, 1008.5px) rotate(0deg);} 17.647% {transform: translate(576.5px, 1008.5px) rotate(0deg);} 17.651% {transform: translate(576.5px, 1008.5px) rotate(90deg);} 21.569% {transform: translate(576.5px, 1104.5px) rotate(90deg);} 21.573% {transform: translate(576.5px, 1104.5px) rotate(0deg);} 31.373% {transform: translate(816.5px, 1104.5px) rotate(0deg);} 31.377% {transform: translate(816.5px, 1104.5px) rotate(90deg);} 39.216% {transform: translate(816.5px, 912.5px) rotate(90deg);} 39.220% {transform: translate(816.5px, 912.5px) rotate(0deg);} 50.980% {transform: translate(1104.5px, 912.5px) rotate(0deg);} 50.984% {transform: translate(1104.5px, 912.5px) rotate(90deg);} 52.941% {transform: translate(1104.5px, 960.5px) rotate(90deg);} 52.945% {transform: translate(1104.5px, 960.5px) rotate(0deg);} 62.745% {transform: translate(1344.5px, 960.5px) rotate(0deg);} 62.749% {transform: translate(1344.5px, 960.5px) rotate(90deg);} 72.549% {transform: translate(1344.5px, 720.5px) rotate(90deg);} 72.553% {transform: translate(1344.5px, 720.5px) rotate(0deg);} 82.353% {transform: translate(1584.5px, 720.5px) rotate(0deg);} 82.357% {transform: translate(1584.5px, 720.5px) rotate(90deg);} 86.275% {transform: translate(1584.5px, 816.5px) rotate(90deg);} 86.279% {transform: translate(1584.5px, 816.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 816.5px) rotate(0deg);}}
+.fs-comets span:nth-child(2) i {--route: fs-r2; --dur: 22s; --delay: -8s; --len: 7.0px;}
+@keyframes fs-r3 {0% {transform: translate(1920.5px, 1056.5px) rotate(0deg);} 7.812% {transform: translate(1680.5px, 1056.5px) rotate(0deg);} 7.816% {transform: translate(1680.5px, 1056.5px) rotate(90deg);} 12.500% {transform: translate(1680.5px, 912.5px) rotate(90deg);} 12.504% {transform: translate(1680.5px, 912.5px) rotate(0deg);} 20.312% {transform: translate(1440.5px, 912.5px) rotate(0deg);} 20.317% {transform: translate(1440.5px, 912.5px) rotate(90deg);} 28.125% {transform: translate(1440.5px, 1152.5px) rotate(90deg);} 28.129% {transform: translate(1440.5px, 1152.5px) rotate(0deg);} 40.625% {transform: translate(1056.5px, 1152.5px) rotate(0deg);} 40.629% {transform: translate(1056.5px, 1152.5px) rotate(90deg);} 45.312% {transform: translate(1056.5px, 1008.5px) rotate(90deg);} 45.316% {transform: translate(1056.5px, 1008.5px) rotate(0deg);} 54.688% {transform: translate(768.5px, 1008.5px) rotate(0deg);} 54.691% {transform: translate(768.5px, 1008.5px) rotate(90deg);} 67.188% {transform: translate(768.5px, 624.5px) rotate(90deg);} 67.192% {transform: translate(768.5px, 624.5px) rotate(0deg);} 76.562% {transform: translate(480.5px, 624.5px) rotate(0deg);} 76.567% {transform: translate(480.5px, 624.5px) rotate(90deg);} 84.375% {transform: translate(480.5px, 384.5px) rotate(90deg);} 84.379% {transform: translate(480.5px, 384.5px) rotate(0deg);} 100% {transform: translate(0.5px, 384.5px) rotate(0deg);}}
+.fs-comets span:nth-child(3) i {--route: fs-r3; --dur: 25s; --delay: -15s; --len: 7.7px;}
+.fs-comets i:nth-child(1) {--k: 0; --h: 2.60px; --a: 0.880;}
+.fs-comets i:nth-child(2) {--k: 1; --h: 2.50px; --a: 0.812;}
+.fs-comets i:nth-child(3) {--k: 2; --h: 2.40px; --a: 0.745;}
+.fs-comets i:nth-child(4) {--k: 3; --h: 2.30px; --a: 0.679;}
+.fs-comets i:nth-child(5) {--k: 4; --h: 2.20px; --a: 0.615;}
+.fs-comets i:nth-child(6) {--k: 5; --h: 2.10px; --a: 0.552;}
+.fs-comets i:nth-child(7) {--k: 6; --h: 2.00px; --a: 0.491;}
+.fs-comets i:nth-child(8) {--k: 7; --h: 1.90px; --a: 0.432;}
+.fs-comets i:nth-child(9) {--k: 8; --h: 1.80px; --a: 0.375;}
+.fs-comets i:nth-child(10) {--k: 9; --h: 1.70px; --a: 0.320;}
+.fs-comets i:nth-child(11) {--k: 10; --h: 1.60px; --a: 0.267;}
+.fs-comets i:nth-child(12) {--k: 11; --h: 1.50px; --a: 0.217;}
+.fs-comets i:nth-child(13) {--k: 12; --h: 1.40px; --a: 0.170;}
+.fs-comets i:nth-child(14) {--k: 13; --h: 1.30px; --a: 0.126;}
+.fs-comets i:nth-child(15) {--k: 14; --h: 1.20px; --a: 0.087;}
+.fs-comets i:nth-child(16) {--k: 15; --h: 1.10px; --a: 0.053;}
+.fs-comets i:nth-child(17) {--k: 16; --h: 1.00px; --a: 0.030;}
 
 
 /* Satellite: drawn once into its own layer, then only moved. */
