@@ -56,7 +56,7 @@
 }
 [data-testid="stHeader"] {background: transparent;}
 
-.block-container {padding-top: 2.6rem; padding-bottom: 3rem; max-width: 1220px;}
+.block-container {padding-top: 2.6rem; padding-bottom: 7rem; max-width: 1220px;}   /* room below for the assistant bubble */
 h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--text);}
 [data-testid="stCaptionContainer"] {color: var(--text-3);}
 
@@ -77,7 +77,7 @@ h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--
 
 /* ---------- Hero ---------- */
 .fs-hero {display: flex; align-items: center; gap: 20px; padding: 0 0 22px 0;}
-.fs-hero svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
+.fs-hero summary > svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .35);}
 .fs-hero-title {font-weight: 800; font-size: 2.7rem; line-height: 1.12; letter-spacing: -0.04em;
                 background: linear-gradient(90deg, #FFFFFF 0%, #B9CCFF 55%, #E4EEFF 100%);
@@ -302,20 +302,20 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 /* ---------- Logo: idle float ----------
    The whole logo drifts up and down slowly while its glow breathes,
    and the two sprout leaves sway a little, out of step with each other. */
-.fs-hero svg {animation: fs-float 6s ease-in-out infinite;}
+.fs-hero summary > svg {animation: fs-float 6s ease-in-out infinite;}
 @keyframes fs-float {
     0%, 100% {transform: translateY(0) rotate(0deg);
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 26px rgba(79, 139, 255, .30), 0 14px 22px rgba(2, 5, 20, .45);}
     50%      {transform: translateY(-7px) rotate(-1.5deg);
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 40px rgba(79, 139, 255, .50), 0 24px 30px rgba(2, 5, 20, .30);}
 }
-.fs-hero svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
-.fs-hero svg path:first-of-type {transform-origin: right bottom;}
-.fs-hero svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
+.fs-hero summary > svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
+.fs-hero summary > svg path:first-of-type {transform-origin: right bottom;}
+.fs-hero summary > svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
 @keyframes fs-sway {50% {transform: rotate(-6deg);}}
 /* Respect people who turn animations off in their system settings. */
 @media (prefers-reduced-motion: reduce) {
-    .fs-hero svg, .fs-hero svg path, .fs-live i {animation: none;}
+    .fs-hero summary > svg, .fs-hero summary > svg path, .fs-live i {animation: none;}
 }
 
 /* ---------- Logo directory (click the logo) ---------- */
@@ -602,12 +602,11 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
 }
 
 
-/* ---------- Faint trace through the grid ----------
-   Two lines follow the background grid like a data trace, each with a brighter pulse
-   travelling along it (the animation lives inside the SVG). Sits with the satellite,
-   behind everything; the grid is 48px and starts at the window's corner, so they line up. */
+/* ---------- Trace through the grid ----------
+   Faint routes along the 48px background grid, drawn once as a still image. The
+   moving comets on them are small elements (.fs-comets, near the end of this file). */
 [data-testid="stApp"]::after {content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 3072%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%223212%22 to=%220%22 dur=%2216s%22 begin=%220s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.10%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22 stroke-opacity=%22.9%22 stroke-width=%222%22 stroke-dasharray=%22140 2448%22%3E%3Canimate attributeName=%22stroke-dashoffset%22 from=%222588%22 to=%220%22 dur=%2221s%22 begin=%22-7s%22 repeatCount=%22indefinite%22/%3E%3C/path%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .28;}
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-opacity=%22.12%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22/%3E%3Cpath d=%22M1920.5 1056.5 L1680.5 1056.5 L1680.5 912.5 L1440.5 912.5 L1440.5 1152.5 L1056.5 1152.5 L1056.5 1008.5 L768.5 1008.5 L768.5 624.5 L480.5 624.5 L480.5 384.5 L0.5 384.5%22/%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .55;}
 
 /* ---------- Sliders: smoother feel ---------- */
 [data-testid="stSlider"] [role="slider"] {transition: transform .15s ease, box-shadow .15s ease;}
@@ -768,3 +767,358 @@ div.fs-step {cursor: default;}
 [class*="st-key-pick-"] button {justify-content: flex-start; border-radius: var(--r-tag) !important; font-weight: 650;}
 [class*="st-key-pick-"] button p {color: var(--on-crop) !important;}
 .rp-cycle {font-family: var(--mono); font-size: .7rem; letter-spacing: .04em; color: var(--text-3); margin: 6px 0 4px;}
+
+/* ---------- Going back to Home from the tool pages ---------- */
+/* Top bar on the tool pages: same pill bar as the home page, built from real Streamlit
+   elements so the Home button is a page link (instant, keeps your inputs). */
+.st-key-fs_topnav {background: rgba(18, 24, 56, .7); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px 6px 6px !important; margin-bottom: 26px; backdrop-filter: blur(8px);
+    animation: fs-in-down .6s ease-out both;}
+.st-key-fs_topnav [data-testid="stHorizontalBlock"] {gap: 12px; align-items: center;}
+.st-key-fs_topnav .fs-status {justify-content: flex-end;}
+.st-key-fs_topnav [data-testid="stMarkdownContainer"] p {margin: 0;}
+
+/* The Home button: a glowing pill; the arrow nudges left on hover. */
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] {background: var(--grad-brand) !important;
+    border-radius: 999px !important; padding: 6px 16px 6px 12px !important; width: fit-content;
+    box-shadow: 0 0 18px rgba(79, 139, 255, .35); transition: transform .18s ease, box-shadow .18s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] p,
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] span {color: var(--bg) !important; font-weight: 750 !important;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(191, 215, 255, .6);}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] [data-testid="stIconMaterial"] {transition: transform .2s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover [data-testid="stIconMaterial"] {transform: translateX(-4px);}
+
+/* "Where next?" card at the bottom of each tool page. */
+.st-key-fs_endnav {margin-top: 26px; padding: 20px 24px 16px !important; border: 1px solid transparent;
+    border-radius: var(--r-card); background: var(--grad-panel) padding-box, var(--grad-edge) border-box;}
+.fs-endnav-title {font-weight: 750; font-size: 1.1rem; color: var(--text);}
+.fs-endnav-sub {font-size: .85rem; color: var(--text-3); margin-bottom: 6px;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] {border: 1px solid var(--border); border-radius: 12px !important;
+    background: var(--raised); padding: 10px 14px !important; transition: transform .18s ease, border-color .18s ease, background .18s ease;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-2px); border-color: var(--blue);
+    background: var(--blue-soft);}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] p {font-weight: 650 !important;}
+
+/* A soft fade-up every time a page opens, so switching feels like a transition. */
+.block-container {animation: fs-page-in .45s ease-out both;}
+@keyframes fs-page-in {from {opacity: 0; transform: translateY(8px);}}
+
+@media (prefers-reduced-motion: reduce) {
+    .st-key-fs_topnav, .block-container {animation: none !important;}
+}
+
+/* ---------- Crop picker animations (Rotation evaluator tiles) ----------
+   Tiles are popovers keyed "cell-<crop>-<field>-<year>"; their menus hold one button per
+   crop keyed "pick-<crop>-…" ("-sel" on the current crop). --cc is the crop's colour. */
+
+/* 1. Opening the menu: it fades down from the tile, then the choices fade down in turn. */
+[data-testid="stPopoverBody"]:has([class*="st-key-pick-"]) {
+    animation: fs-menu-open .3s ease-out both;}
+@keyframes fs-menu-open {from {opacity: 0; transform: translateY(-6px);}}
+[class*="st-key-pick-"] {animation: fs-choice-in .35s ease-out both;}
+/* Crops always appear in this order, so time each by name: a reliable stagger. */
+[class*="st-key-pick-soybeans-"] {animation-delay: .04s;}
+[class*="st-key-pick-winter_wheat-"] {animation-delay: .08s;}
+[class*="st-key-pick-sorghum-"] {animation-delay: .12s;}
+@keyframes fs-choice-in {from {opacity: 0; transform: translateY(-4px);}}
+
+/* 2. In the menu: hover nudges the crop with a soft glow in its own colour;
+      a click presses it in; the current crop has a soft pulsing ring. */
+[class*="st-key-pick-"] button {transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;}
+[class*="st-key-pick-"] button:hover {transform: translateX(2px); filter: brightness(1.04);
+    box-shadow: 0 6px 16px rgba(2, 5, 20, .45), 0 0 18px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+[class*="st-key-pick-"] button:active {transform: scale(.98);}
+[class*="st-key-pick-"][class*="-sel"] button {animation: fs-sel-ring 3s ease-in-out infinite;}
+@keyframes fs-sel-ring {
+    0%, 100% {box-shadow: 0 0 0 0 color-mix(in srgb, var(--cc, #BFD7FF) 0%, transparent);}
+    50%      {box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, #BFD7FF) 28%, transparent);}
+}
+
+/* 3. The tiles: a changed tile fades down into place with its new crop (its key includes the crop, so
+      only the tile you changed is new and animates). Hover lifts with a matching glow. */
+[class*="st-key-cell-"] button {transition: transform .18s ease, box-shadow .18s ease;
+    animation: fs-tile-fade .45s ease-out both;}
+@keyframes fs-tile-fade {from {opacity: 0; transform: translateY(-6px);}}
+[class*="st-key-cell-"] button:hover {transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(2, 5, 20, .5), 0 0 20px color-mix(in srgb, var(--cc, #BFD7FF) 55%, transparent);}
+[class*="st-key-cell-"] button[aria-expanded="true"] {transform: translateY(-1px);
+    box-shadow: 0 0 0 2px var(--cc, #BFD7FF), 0 0 22px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stPopoverBody"]:has([class*="st-key-pick-"]), [class*="st-key-pick-"],
+    [class*="st-key-pick-"] button, [class*="st-key-cell-"] button {animation: none !important;}
+}
+
+/* ---------- Calmer entrance for the rotation cards ----------
+   "What you plan to plant" had three animations at once (page fade-up, the card sliding
+   up and growing as it scrolled in, every tile fading down), which felt jerky. Now: one
+   slow opacity fade for the card, no movement, and a gentle opacity fade for its tiles.
+   A tile you change still fades in on its own (its key changes, so it's a new element). */
+.st-key-card_mine, .st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto !important; animation-range: normal !important;}
+.st-key-card_plan {animation: fs-orbit 8s linear infinite, fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto, auto !important;}
+@keyframes fs-soft-in {from {opacity: 0;}}
+[class*="st-key-cell-"] button {animation: fs-soft-in .7s ease-out both !important;}
+/* The recommended plan's tiles: the same soft fade, no bouncy pop. */
+.rg > .rg-cell {animation: fs-soft-in .8s ease-out both !important;}
+@media (prefers-reduced-motion: reduce) {
+    .st-key-card_mine, .st-key-card_plan, [class*="st-key-cell-"] button, .rg > .rg-cell {animation: none !important;}
+}
+
+/* ---------- Clean entrances: fade only, no movement ----------
+   Everything that used to slide, grow, bounce or draw in now just fades in where it
+   belongs. These redefine the earlier keyframes of the same name (the later one wins). */
+@keyframes fs-drop       {from {opacity: 0;}}
+@keyframes fs-in-down    {from {opacity: 0;}}
+@keyframes fs-reveal     {from {opacity: 0;}}
+@keyframes fs-sprout     {from {opacity: 0;}}
+@keyframes fs-chip-in    {from {opacity: 0;}}
+@keyframes fs-tag-in     {from {opacity: 0;}}
+@keyframes fs-msg-in     {from {opacity: 0;}}
+@keyframes fs-page-in    {from {opacity: 0;}}
+@keyframes fs-menu-open  {from {opacity: 0;}}
+@keyframes fs-choice-in  {from {opacity: 0;}}
+@keyframes fs-tile-fade  {from {opacity: 0;}}
+@keyframes fs-grow       {from {opacity: 0;}}
+
+/* Charts: the lines no longer draw themselves left to right, and the rain bars no longer
+   grow in a wave; the whole chart fades in once, cleanly. */
+.st-key-card_test .scatterlayer .js-line {stroke-dasharray: none !important; stroke-dashoffset: 0 !important;
+    animation: none !important;}
+.st-key-card_test .scatterlayer .js-fill, .st-key-card_test .barlayer .point path {animation: none !important;}
+[data-testid="stPlotlyChart"] {animation: fs-soft-in .6s ease-out both;}
+
+
+/* =====================================================================
+   Smoothness pass: keep the look, stop the browser repainting big areas every frame.
+   Only transform and opacity animate continuously (the GPU moves those for free).
+   ===================================================================== */
+
+/* Background: no fixed attachment (the app's scrolling happens inside it anyway). */
+[data-testid="stApp"] {background-attachment: scroll !important;}
+
+/* Comets: three small glowing streaks gliding along the background routes (CSS motion
+   path), instead of re-drawing a full-screen animated image every frame. The head leads,
+   the gradient tail trails behind, and offset-rotate turns them at each corner. */
+.fs-comets {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+/* Comets along the grid routes: straight runs, square corners. Each is a round glowing head
+   and a trail of 16 short line pieces on the same route, each 0.05 s behind the one ahead.
+   The pieces overlap a little, so the trail is one continuous streak; each lies along the
+   stretch it's on and turns at the instant it reaches a corner, so the trail bends round
+   corners on the line. Transform keyframes (one or two stops per corner) + opacity only:
+   the compositor runs them, no main-thread work per frame. */
+.fs-comets span {position: absolute; inset: 0;}
+.fs-comets i {position: absolute; left: 0; top: 0; width: var(--len); height: var(--h);
+    margin: calc(var(--h) / -2) 0 0 calc(var(--len) / -2); border-radius: 2px;
+    background: rgba(191, 215, 255, var(--a)); opacity: 0; will-change: transform, opacity;
+    animation-name: var(--route), fs-comet-fade; animation-duration: var(--dur);
+    animation-timing-function: linear; animation-iteration-count: infinite;
+    animation-delay: calc(var(--delay) + var(--k) * 0.05s);}
+.fs-comets i:first-child {width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #FFFFFF;
+    box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9), 0 0 18px 4px rgba(79, 139, 255, .45); z-index: 1;}
+@keyframes fs-comet-fade {0% {opacity: 0;} 5% {opacity: .85;} 93% {opacity: .85;} 100% {opacity: 0;}}
+@keyframes fs-r1 {0% {transform: translate(0.5px, 816.5px) rotate(0deg);} 6.250% {transform: translate(192.5px, 816.5px) rotate(0deg);} 6.254% {transform: translate(192.5px, 816.5px) rotate(90deg);} 10.938% {transform: translate(192.5px, 672.5px) rotate(90deg);} 10.941% {transform: translate(192.5px, 672.5px) rotate(0deg);} 18.750% {transform: translate(432.5px, 672.5px) rotate(0deg);} 18.754% {transform: translate(432.5px, 672.5px) rotate(90deg);} 21.875% {transform: translate(432.5px, 768.5px) rotate(90deg);} 21.879% {transform: translate(432.5px, 768.5px) rotate(0deg);} 29.688% {transform: translate(672.5px, 768.5px) rotate(0deg);} 29.692% {transform: translate(672.5px, 768.5px) rotate(90deg);} 37.500% {transform: translate(672.5px, 528.5px) rotate(90deg);} 37.504% {transform: translate(672.5px, 528.5px) rotate(0deg);} 45.312% {transform: translate(912.5px, 528.5px) rotate(0deg);} 45.316% {transform: translate(912.5px, 528.5px) rotate(90deg);} 48.438% {transform: translate(912.5px, 624.5px) rotate(90deg);} 48.441% {transform: translate(912.5px, 624.5px) rotate(0deg);} 56.250% {transform: translate(1152.5px, 624.5px) rotate(0deg);} 56.254% {transform: translate(1152.5px, 624.5px) rotate(90deg);} 64.062% {transform: translate(1152.5px, 384.5px) rotate(90deg);} 64.067% {transform: translate(1152.5px, 384.5px) rotate(0deg);} 71.875% {transform: translate(1392.5px, 384.5px) rotate(0deg);} 71.879% {transform: translate(1392.5px, 384.5px) rotate(90deg);} 75.000% {transform: translate(1392.5px, 480.5px) rotate(90deg);} 75.004% {transform: translate(1392.5px, 480.5px) rotate(0deg);} 82.812% {transform: translate(1632.5px, 480.5px) rotate(0deg);} 82.817% {transform: translate(1632.5px, 480.5px) rotate(90deg);} 90.625% {transform: translate(1632.5px, 240.5px) rotate(90deg);} 90.629% {transform: translate(1632.5px, 240.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 240.5px) rotate(0deg);}}
+.fs-comets span:nth-child(1) i {--route: fs-r1; --dur: 18s; --delay: 0s; --len: 10.7px;}
+@keyframes fs-r2 {0% {transform: translate(288.5px, 1152.5px) rotate(90deg);} 5.882% {transform: translate(288.5px, 1008.5px) rotate(90deg);} 5.886% {transform: translate(288.5px, 1008.5px) rotate(0deg);} 17.647% {transform: translate(576.5px, 1008.5px) rotate(0deg);} 17.651% {transform: translate(576.5px, 1008.5px) rotate(90deg);} 21.569% {transform: translate(576.5px, 1104.5px) rotate(90deg);} 21.573% {transform: translate(576.5px, 1104.5px) rotate(0deg);} 31.373% {transform: translate(816.5px, 1104.5px) rotate(0deg);} 31.377% {transform: translate(816.5px, 1104.5px) rotate(90deg);} 39.216% {transform: translate(816.5px, 912.5px) rotate(90deg);} 39.220% {transform: translate(816.5px, 912.5px) rotate(0deg);} 50.980% {transform: translate(1104.5px, 912.5px) rotate(0deg);} 50.984% {transform: translate(1104.5px, 912.5px) rotate(90deg);} 52.941% {transform: translate(1104.5px, 960.5px) rotate(90deg);} 52.945% {transform: translate(1104.5px, 960.5px) rotate(0deg);} 62.745% {transform: translate(1344.5px, 960.5px) rotate(0deg);} 62.749% {transform: translate(1344.5px, 960.5px) rotate(90deg);} 72.549% {transform: translate(1344.5px, 720.5px) rotate(90deg);} 72.553% {transform: translate(1344.5px, 720.5px) rotate(0deg);} 82.353% {transform: translate(1584.5px, 720.5px) rotate(0deg);} 82.357% {transform: translate(1584.5px, 720.5px) rotate(90deg);} 86.275% {transform: translate(1584.5px, 816.5px) rotate(90deg);} 86.279% {transform: translate(1584.5px, 816.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 816.5px) rotate(0deg);}}
+.fs-comets span:nth-child(2) i {--route: fs-r2; --dur: 22s; --delay: -8s; --len: 7.0px;}
+@keyframes fs-r3 {0% {transform: translate(1920.5px, 1056.5px) rotate(0deg);} 7.812% {transform: translate(1680.5px, 1056.5px) rotate(0deg);} 7.816% {transform: translate(1680.5px, 1056.5px) rotate(90deg);} 12.500% {transform: translate(1680.5px, 912.5px) rotate(90deg);} 12.504% {transform: translate(1680.5px, 912.5px) rotate(0deg);} 20.312% {transform: translate(1440.5px, 912.5px) rotate(0deg);} 20.317% {transform: translate(1440.5px, 912.5px) rotate(90deg);} 28.125% {transform: translate(1440.5px, 1152.5px) rotate(90deg);} 28.129% {transform: translate(1440.5px, 1152.5px) rotate(0deg);} 40.625% {transform: translate(1056.5px, 1152.5px) rotate(0deg);} 40.629% {transform: translate(1056.5px, 1152.5px) rotate(90deg);} 45.312% {transform: translate(1056.5px, 1008.5px) rotate(90deg);} 45.316% {transform: translate(1056.5px, 1008.5px) rotate(0deg);} 54.688% {transform: translate(768.5px, 1008.5px) rotate(0deg);} 54.691% {transform: translate(768.5px, 1008.5px) rotate(90deg);} 67.188% {transform: translate(768.5px, 624.5px) rotate(90deg);} 67.192% {transform: translate(768.5px, 624.5px) rotate(0deg);} 76.562% {transform: translate(480.5px, 624.5px) rotate(0deg);} 76.567% {transform: translate(480.5px, 624.5px) rotate(90deg);} 84.375% {transform: translate(480.5px, 384.5px) rotate(90deg);} 84.379% {transform: translate(480.5px, 384.5px) rotate(0deg);} 100% {transform: translate(0.5px, 384.5px) rotate(0deg);}}
+.fs-comets span:nth-child(3) i {--route: fs-r3; --dur: 25s; --delay: -15s; --len: 7.7px;}
+.fs-comets i:nth-child(1) {--k: 0; --h: 2.60px; --a: 0.880;}
+.fs-comets i:nth-child(2) {--k: 1; --h: 2.50px; --a: 0.812;}
+.fs-comets i:nth-child(3) {--k: 2; --h: 2.40px; --a: 0.745;}
+.fs-comets i:nth-child(4) {--k: 3; --h: 2.30px; --a: 0.679;}
+.fs-comets i:nth-child(5) {--k: 4; --h: 2.20px; --a: 0.615;}
+.fs-comets i:nth-child(6) {--k: 5; --h: 2.10px; --a: 0.552;}
+.fs-comets i:nth-child(7) {--k: 6; --h: 2.00px; --a: 0.491;}
+.fs-comets i:nth-child(8) {--k: 7; --h: 1.90px; --a: 0.432;}
+.fs-comets i:nth-child(9) {--k: 8; --h: 1.80px; --a: 0.375;}
+.fs-comets i:nth-child(10) {--k: 9; --h: 1.70px; --a: 0.320;}
+.fs-comets i:nth-child(11) {--k: 10; --h: 1.60px; --a: 0.267;}
+.fs-comets i:nth-child(12) {--k: 11; --h: 1.50px; --a: 0.217;}
+.fs-comets i:nth-child(13) {--k: 12; --h: 1.40px; --a: 0.170;}
+.fs-comets i:nth-child(14) {--k: 13; --h: 1.30px; --a: 0.126;}
+.fs-comets i:nth-child(15) {--k: 14; --h: 1.20px; --a: 0.087;}
+.fs-comets i:nth-child(16) {--k: 15; --h: 1.10px; --a: 0.053;}
+.fs-comets i:nth-child(17) {--k: 16; --h: 1.00px; --a: 0.030;}
+
+
+/* Satellite: drawn once into its own layer, then only moved. */
+[data-testid="stApp"]::before {will-change: transform;}
+
+/* Top bars: no live blur behind them (it was recomputed every frame as things moved behind). */
+.fs-topbar, .st-key-fs_topnav {backdrop-filter: none !important; background: rgba(18, 24, 56, .92) !important;}
+.fs-dir-panel {backdrop-filter: none !important;}
+
+/* Recommended plan: a still gradient border instead of one that orbits (it repainted the
+   whole card every frame). Same colours. */
+.st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    background: var(--grad-panel) padding-box,
+                linear-gradient(135deg, #4F8BFF, rgba(191, 215, 255, .35) 45%, #BFD7FF) border-box !important;}
+
+/* Logo: float by moving only (its glow stays put); no more animated shadows. */
+@keyframes fs-float {0%, 100% {transform: translateY(0) rotate(0deg);} 50% {transform: translateY(-7px) rotate(-1.5deg);}}
+.fs-hero summary > svg {will-change: transform;
+    box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .38), 0 18px 26px rgba(2, 5, 20, .4);}
+
+/* Title and field map: still (their gradients were repainted continuously). */
+.fs-hero-title, .fm-plot {animation: none !important;}
+
+/* Assistant button: the pulse ring grows and fades (transform + opacity), not a shadow. */
+.st-key-faq [data-testid="stPopoverButton"] {will-change: transform;}
+.st-key-faq [data-testid="stPopoverButton"]::after {box-shadow: none !important;
+    border: 2px solid rgba(191, 215, 255, .55); animation: fs-ping-ring 3.2s ease-out infinite !important;}
+@keyframes fs-ping-ring {0% {transform: scale(1); opacity: .8;} 70%, 100% {transform: scale(1.25); opacity: 0;}}
+
+/* Current crop in the picker: a steady ring (no pulsing shadow). */
+[class*="st-key-pick-"][class*="-sel"] button {animation: none !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc, #BFD7FF) 45%, transparent) !important;}
+
+/* Moving pseudo-elements get their own layer. */
+.fs-step::before, [data-testid="stBaseButton-primary"]::after {will-change: transform;}
+
+@media (prefers-reduced-motion: reduce) {.fs-comets {display: none;}}
+
+/* ---------- Your rotation in 3D (left panel) ---------- */
+.st-key-rot3d [data-testid="stPlotlyChart"] {background: rgba(10, 14, 31, .6); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden;}
+.st-key-rot3d [data-testid="stBaseButton-secondary"] {border-radius: 999px !important;}
+/* The full-screen window: our dark panel look. */
+[data-testid="stDialog"] [role="dialog"] {background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) !important;
+    border: 1px solid var(--border-glow) !important; border-radius: var(--r-card) !important;}
+
+/* 3D farm in the left panel: rounded frame for the iframe. */
+.st-key-rot3d iframe {border-radius: 16px; border: 1px solid var(--border) !important; background: #0A0E1F;}
+[data-testid="stDialog"] iframe {border-radius: 18px;}
+
+/* ---------- Page menu (top of the left panel): bigger, sleek, animated ----------
+   Home · Rotation evaluator · Rotation optimizer. Pill links with an icon; hover slides in a
+   soft highlight; the open page has a gradient pill with a glowing edge bar; a click presses
+   the link in and sends a ripple of light across it. */
+[data-testid="stSidebarNavItems"] {gap: 6px; padding: 4px 2px 10px !important; display: flex; flex-direction: column;}
+[data-testid="stSidebarNavLink"] {position: relative; overflow: hidden; min-height: 46px !important;
+    padding: 10px 14px !important; border-radius: 14px !important; border: 1px solid transparent;
+    background: rgba(26, 33, 72, .55) !important;
+    transition: transform .18s ease, background .25s ease, border-color .25s ease, box-shadow .25s ease;}
+[data-testid="stSidebarNavLink"] span {font-size: 1rem !important; font-weight: 650 !important; color: var(--text-2) !important;
+    transition: color .2s ease;}
+[data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {font-size: 1.3rem !important; color: var(--text-3) !important;
+    transition: color .2s ease, transform .25s ease;}
+[data-testid="stSidebarNavLink"]:hover {transform: translateX(3px); border-color: var(--border-glow);
+    background: rgba(79, 139, 255, .14) !important;}
+[data-testid="stSidebarNavLink"]:hover span {color: var(--text) !important;}
+[data-testid="stSidebarNavLink"]:hover [data-testid="stIconMaterial"] {color: var(--accent) !important; transform: scale(1.12);}
+/* The open page. */
+[data-testid="stSidebarNavLink"][aria-current="page"] {
+    background: linear-gradient(90deg, rgba(79, 139, 255, .32), rgba(191, 215, 255, .10)) !important;
+    border-color: rgba(191, 215, 255, .45); box-shadow: 0 0 22px rgba(79, 139, 255, .25);}
+[data-testid="stSidebarNavLink"][aria-current="page"] span {color: var(--text) !important;}
+[data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"] {color: var(--accent) !important;}
+[data-testid="stSidebarNavLink"][aria-current="page"]::before {content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0; background: var(--grad-brand); box-shadow: 0 0 10px rgba(191, 215, 255, .8);}
+/* Click: press in, and a sweep of light runs across. */
+[data-testid="stSidebarNavLink"]:active {transform: scale(.97);}
+[data-testid="stSidebarNavLink"]::after {content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .28), transparent);
+    transform: translateX(-130%); pointer-events: none; will-change: transform;}
+[data-testid="stSidebarNavLink"]:active::after, [data-testid="stSidebarNavLink"][aria-current="page"]::after {
+    animation: fs-nav-sweep .7s ease-out;}
+@keyframes fs-nav-sweep {to {transform: translateX(320%);}}
+[data-testid="stSidebarNavSeparator"] {border-color: var(--border) !important; margin: 6px 4px !important;}
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stSidebarNavLink"]::after {animation: none !important;}
+}
+
+/* ---------- Layout tidy-up (Nov 15) ----------
+   Side-by-side cards and metric tiles are the same height, with the tool cards' buttons
+   lined up along the bottom; one divider (ours) between the page menu and "Your fields". */
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval),
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) {align-items: stretch;}
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {height: 100%;}
+/* Streamlit 1.50 puts a stLayoutWrapper between the column and the keyed container. */
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_eval),
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_opt),
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-m_"]) {flex: 1 1 auto; display: flex; flex-direction: column;}
+.st-key-card_tool_eval, .st-key-card_tool_opt {flex: 1 1 auto; height: 100%;}
+.st-key-card_tool_eval > :last-child, .st-key-card_tool_opt > :last-child {margin-top: auto;}
+[class*="st-key-m_"] {flex: 1 1 auto; height: 100%;}
+[class*="st-key-m_"] > [data-testid="stElementContainer"] {flex: 1 1 auto;}
+[class*="st-key-m_"] [data-testid="stMetric"] {height: 100%; box-sizing: border-box;}
+[data-testid="stSidebarNavSeparator"] {display: none !important;}
+/* Top bar on the tool pages: Home button, crumb and status pills on one centred line. */
+.st-key-fs_topnav [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {justify-content: center; height: 100%;}
+.st-key-fs_topnav [data-testid="stElementContainer"] {margin: 0 !important;}
+.st-key-fs_topnav .fs-crumb {line-height: 1; display: flex; align-items: center; min-height: 40px;}
+/* "Where next?": the two buttons side by side, evenly spaced, not stretched across columns. */
+.st-key-fs_endnav [data-testid="stHorizontalBlock"] {justify-content: flex-start; gap: 12px; flex-wrap: wrap;}
+.st-key-fs_endnav [data-testid="stColumn"] {flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;}
+.st-key-fs_endnav [data-testid="stColumn"]:empty,
+.st-key-fs_endnav [data-testid="stColumn"]:last-child:not(:has([data-testid="stPageLink-NavLink"])) {display: none;}
+
+/* ---------- Background stars that gently appear (Nov 15) ----------
+   18 small stars behind everything (fixed, z-index -1, like the comets). Each fades in, glows
+   for a moment and fades out on its own cycle (9-19 s), so now and then a star appears
+   somewhere. Opacity/transform only; positions are fixed so pages match. */
+.fs-stars {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+.fs-stars i {position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c), 0 0 14px 3px rgba(79, 139, 255, .35); opacity: 0;
+  will-change: opacity, transform; animation: fs-star-appear 12s ease-in-out infinite;}
+.fs-stars i::before, .fs-stars i::after {content: ""; position: absolute; left: 50%; top: 50%;   /* a soft 4-point glint */
+  background: linear-gradient(90deg, transparent, var(--c), transparent); opacity: .7;
+  width: calc(var(--s) * 6); height: 1px; transform: translate(-50%, -50%);}
+.fs-stars i::after {transform: translate(-50%, -50%) rotate(90deg);}
+@keyframes fs-star-appear {
+  0%, 58%, 100% {opacity: 0; transform: scale(.4);}
+  70%           {opacity: .95; transform: scale(1);}
+  78%           {opacity: .75; transform: scale(.85);}
+  90%           {opacity: 0; transform: scale(.5);}
+}
+.fs-stars i:nth-child(1) {left: 93.7%; top: 5.1%; --s: 2px; --c: #E6E9F5; animation-duration: 10.6s; animation-delay: -10.4s;}
+.fs-stars i:nth-child(2) {left: 8.2%; top: 78.0%; --s: 2px; --c: #BFD7FF; animation-duration: 17.6s; animation-delay: -17.6s;}
+.fs-stars i:nth-child(3) {left: 14.0%; top: 46.9%; --s: 2.5px; --c: #BFD7FF; animation-duration: 11.8s; animation-delay: -3.1s;}
+.fs-stars i:nth-child(4) {left: 90.9%; top: 23.0%; --s: 2.5px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -3.8s;}
+.fs-stars i:nth-child(5) {left: 24.8%; top: 45.9%; --s: 3px; --c: #BFD7FF; animation-duration: 13.9s; animation-delay: -6.4s;}
+.fs-stars i:nth-child(6) {left: 44.3%; top: 33.0%; --s: 3px; --c: #E6E9F5; animation-duration: 13.1s; animation-delay: -11.3s;}
+.fs-stars i:nth-child(7) {left: 49.1%; top: 90.9%; --s: 2px; --c: #E6E9F5; animation-duration: 11.0s; animation-delay: -5.9s;}
+.fs-stars i:nth-child(8) {left: 29.9%; top: 49.5%; --s: 2px; --c: #E6E9F5; animation-duration: 17.9s; animation-delay: -7.1s;}
+.fs-stars i:nth-child(9) {left: 47.1%; top: 81.3%; --s: 3.5px; --c: #BFD7FF; animation-duration: 12.0s; animation-delay: -11.0s;}
+.fs-stars i:nth-child(10) {left: 19.8%; top: 91.2%; --s: 2.5px; --c: #BFD7FF; animation-duration: 9.8s; animation-delay: -3.0s;}
+.fs-stars i:nth-child(11) {left: 80.5%; top: 33.3%; --s: 3px; --c: #E6E9F5; animation-duration: 12.4s; animation-delay: -5.5s;}
+.fs-stars i:nth-child(12) {left: 74.2%; top: 81.1%; --s: 2.5px; --c: #F5E6C4; animation-duration: 13.7s; animation-delay: -1.6s;}
+.fs-stars i:nth-child(13) {left: 39.6%; top: 5.4%; --s: 2.5px; --c: #BFD7FF; animation-duration: 18.3s; animation-delay: -13.5s;}
+.fs-stars i:nth-child(14) {left: 9.0%; top: 45.5%; --s: 2px; --c: #F5E6C4; animation-duration: 18.4s; animation-delay: -2.9s;}
+.fs-stars i:nth-child(15) {left: 56.1%; top: 84.3%; --s: 3px; --c: #E6E9F5; animation-duration: 9.4s; animation-delay: -0.6s;}
+.fs-stars i:nth-child(16) {left: 56.5%; top: 46.5%; --s: 3.5px; --c: #E6E9F5; animation-duration: 13.5s; animation-delay: -9.7s;}
+.fs-stars i:nth-child(17) {left: 60.4%; top: 9.2%; --s: 3px; --c: #BFD7FF; animation-duration: 13.3s; animation-delay: -0.7s;}
+.fs-stars i:nth-child(18) {left: 59.0%; top: 32.7%; --s: 2px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -15.2s;}
+@media (prefers-reduced-motion: reduce) {.fs-stars {display: none;}}
+
+/* ---------- Smoothness pass 2 (Nov 15) ----------
+   The last continuous repaints: the assistant's orb animated a gradient angle (repaint
+   every frame); now the gradient is still and the orb turns (compositor only, same look).
+   The logo's leaves swayed as SVG shapes (repaint every frame); the logo still floats. */
+.fs-faq-orb {background: conic-gradient(#4F8BFF, #BFD7FF, #0B3D91, #4F8BFF) !important;
+             animation: fs-spin 4s linear infinite !important; will-change: transform;}
+.fs-faq-orb::after {animation: fs-spin 4s linear infinite reverse;}   /* keeps the inner disc still */
+@keyframes fs-spin {to {transform: rotate(360deg);}}
+.fs-hero summary > svg path {animation: none !important;}
+
+/* Data sources: line icons on small tiles, like the crop icons and the "Jump to" menu. */
+.fs-src-icon {flex: none; width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center;
+              justify-content: center; background: var(--raised); border: 1px solid var(--border);
+              color: #BFD7FF; font-size: 1rem; line-height: 1; margin-top: 1px;}
+.fs-src-nasa .fs-src-icon {background: rgba(11, 61, 145, .45); border-color: rgba(79, 139, 255, .55); color: #DCE8FF;}
+.fs-src-icon .fs-dir-svg {width: 19px; height: 19px;}
+.fs-src:hover .fs-src-icon {border-color: var(--border-glow); color: #fff;}
+/* The hidden page-fade helper takes no space. */
+.st-key-fs_fx {display: none !important;}
+
+/* "Jump to" directory icons: line icons in the app's accent, like the page menu and crop icons.
+   Explicit sizes (min/max too): an SVG with no size can collapse to nothing in a flex box. */
+.fs-dir-icon {color: #BFD7FF; transition: color .15s ease, background .15s ease, border-color .15s ease;}
+.fs-dir-svg {width: 18px !important; height: 18px !important; min-width: 18px; min-height: 18px;
+             display: block; flex: none; overflow: visible;}
+.fs-src-icon .fs-dir-svg {width: 19px !important; height: 19px !important; min-width: 19px; min-height: 19px;}
+a.fs-dir-link:hover .fs-dir-icon {color: #fff; background: var(--blue-soft); border-color: var(--border-glow);}

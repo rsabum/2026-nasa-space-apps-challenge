@@ -11,10 +11,10 @@ ui.page_header(
     "Rotation evaluator", "Rotation evaluator",
     "Enter what you plan to plant. We test it on every growing season since 1981.",
     [("On this page", "Enter and test", [
-        ("rotation", "🌽", "Your rotation", "Enter what you plan to plant"),
-        ("numbers", "💵", "Key numbers", "Profit, water shortfall, soil health"),
-        ("backtest", "🛰️", "NASA weather test", "Every season, 1981–2024"),
-        ("details", "📋", "Numbers behind it", "Field-by-field table"),
+        ("rotation", "rotation", "Your rotation", "Enter what you plan to plant"),
+        ("numbers", "money", "Key numbers", "Profit, water shortfall, soil health"),
+        ("backtest", "satellite", "NASA weather test", "Every season, 1981–2024"),
+        ("details", "table", "Numbers behind it", "Field-by-field table"),
     ]), ui.SETUP_GROUP], compact=True)
 
 ctx = ui.farm_ready()
@@ -60,12 +60,14 @@ with st.container(key="card_test"):
         worst = bt.loc[bt["total_profit_usd"].idxmin()]
         best = bt.loc[bt["total_profit_usd"].idxmax()]
         avg = bt["total_profit_usd"].mean()
-        st.caption(f"Each season is run on that year's actual weather. Average season: "
+        st.caption(ui.md_text(f"Each season is run on that year's actual weather. Average season: "
                    f"{ui.money(avg)}. Toughest: {int(worst['year'])} at {ui.money(worst['total_profit_usd'])}. "
                    f"Best: {int(best['year'])} at {ui.money(best['total_profit_usd'])}. "
-                   f"The driest was {a['driest']}.")
+                   f"The driest was {a['driest']}."))
     with chart_col:
         st.plotly_chart(ui.backtest_chart(bt), key="bt_mine")
         st.caption(ui.backtest_caption())
 
 ui.details_table(a["table"], "See the numbers behind your rotation")
+
+ui.page_end_nav("Rotation evaluator")

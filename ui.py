@@ -9,6 +9,7 @@ app.py is the entry point: it sets up the page, draws the farm setup in the side
 and runs whichever page is open (views/home.py, views/evaluate.py, views/optimize.py).
 """
 import html
+import json
 import math
 import urllib.parse
 from pathlib import Path
@@ -18,7 +19,8 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-import model  # Robert's optimizer
+import model  # Robert's optimizer (Gurobi when licensed, else CBC)
+import real_data
 from contract import (CONSTRAINTS, CROP_LABELS, CROPS, DEFAULT_LIMITS, FARM, GOAL_HELP,
                       GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, WORST_SHARE, baseline_plan)
 
@@ -59,32 +61,44 @@ def crop_key_html():
 
 
 def crop_mix_chart(plans, farm):
-    """Acres of each crop, year by year, for each plan side by side: stacked bars in the
-    crop colours. Built only from the plans and field acres, so nothing is invented."""
+    """Acres of each crop, year by year, for each plan side by side: slim stacked bars in the
+    crop colours, rounded on top, with the acres written inside each crop's segment. Built
+    only from the plans and field acres, so nothing is invented."""
     acres = {f["name"]: f["acres"] for f in farm["fields"]}
+    single = len(plans) == 1
     fig = make_subplots(rows=1, cols=len(plans), shared_yaxes=True, horizontal_spacing=0.06,
-                        subplot_titles=list(plans))
+                        subplot_titles=None if single else list(plans))
+    total = sum(float(a) for a in acres.values()) or 1
     for col, plan in enumerate(plans.values(), start=1):
         n_years = len(next(iter(plan.values())))     # each plan's own rotation length
         years = [f"Year {i + 1}" for i in range(n_years)]
         for crop in CROPS:
             ys = [sum(acres.get(f, 0) for f, cs in plan.items() if cs[i] == crop)
                   for i in range(n_years)]
+            if not any(ys):
+                continue                               # crops this plan never plants stay out of the legend
             fig.add_trace(go.Bar(
                 x=years, y=ys, name=CROP_LABELS[crop], legendgroup=crop, showlegend=(col == 1),
-                marker=dict(color=CROP_COLORS[crop], line=dict(color="#0A0E1F", width=1.5)),
+                marker=dict(color=CROP_COLORS[crop], line=dict(color="#121838", width=2)),
+                # Acres inside the segment, only where there's room for the label.
+                text=[f"{v:g} ac" if v / total >= 0.12 else "" for v in ys], textposition="inside",
+                insidetextanchor="middle", textfont=dict(color="#141830", size=11, family="Inter, sans-serif"),
                 hovertemplate=f"{CROP_LABELS[crop]}: %{{y:g}} ac<extra></extra>"), row=1, col=col)
     fig.update_layout(
-        barmode="stack", height=270, margin=dict(l=0, r=0, t=28, b=0), bargap=0.32,
+        barmode="stack", barcornerradius=7, bargap=0.45, height=280,
+        margin=dict(l=0, r=0, t=36 if single else 52, b=0), hovermode="x unified",
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(family="Inter, sans-serif", color=MUTED),
+        font=dict(family="Inter, sans-serif", color=MUTED), uniformtext=dict(minsize=9, mode="hide"),
         hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
-        legend=dict(orientation="h", yanchor="bottom", y=-0.28, x=0))
-    fig.update_annotations(font=dict(color=INK, size=13))
-    fig.update_xaxes(gridcolor=GRID, zeroline=False)
-    fig.update_yaxes(gridcolor=GRID, zeroline=False)
-    fig.update_yaxes(title_text="Acres", row=1, col=1)
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0, font=dict(color=INK, size=12),
+                    itemclick=False, itemdoubleclick=False))
+    fig.update_annotations(font=dict(color=INK, size=13), y=1.12)
+    fig.update_xaxes(showgrid=False, zeroline=False, tickfont=dict(color=INK, size=12))
+    fig.update_yaxes(gridcolor=GRID, griddash="dot", zeroline=False, ticksuffix=" ac",
+                     range=[0, total * 1.04])
     return fig
+
+
 # Our own crop icons: matching line art (24x24, drawn in the text colour, with a light
 # duotone fill), so the app doesn't look like stock emoji. contract.py's CROP_ICONS
 # emoji stay untouched for the team; dropdowns show the plain label, since they can't
@@ -250,13 +264,90 @@ def cell_css():
         uri = icon_uri(crop)
         for kind in ("cell", "pick"):
             sel = f'[class*="st-key-{kind}-{crop}-"] button'
-            rules += (f'{sel} {{background: {CROP_COLORS[crop]} !important; '
+            rules += (f'{sel} {{--cc: {CROP_COLORS[crop]}; background: {CROP_COLORS[crop]} !important; '
                       f'border-color: {CROP_COLORS[crop]} !important; color: var(--on-crop) !important;}}'
                       f'{sel}::before {{content: ""; flex: none; width: 1.15em; height: 1.15em; '
                       f'margin-right: .45em; background: currentColor; '
                       f'-webkit-mask: url("{uri}") center / contain no-repeat; '
                       f'mask: url("{uri}") center / contain no-repeat;}}')
     return f"<style>{rules}</style>"
+
+
+def farm_3d_html(farm, plan, big=False):
+    """The farmer's rotation as a realistic 3D farm (assets/farm3d.html, Three.js): fields
+    laid out like the field map, the chosen year's crop planted in rows, a barn and trees,
+    day and night. Buttons pick the year; hover a field for its whole rotation. Returns
+    the page to show with st.components.v1.html."""
+    fields = [{"name": str(f["name"]), "acres": float(f"{float(f['acres']):g}"), "soil": str(f.get("soil", "")),
+               "last_crop": str(f.get("last_crop", "")), "irrigated": bool(f.get("irrigated", False))}
+              for f in farm["fields"] if str(f["name"]) in plan]
+    data = {
+        "big": bool(big),
+        "years": len(next(iter(plan.values()))) if plan else 0,
+        "fields": fields,
+        "plan": {str(k): list(v) for k, v in plan.items()},
+        "labels": dict(CROP_LABELS),
+        "colors": dict(CROP_COLORS),
+        # Keyed on the data too (mode + real files' signature), so a data change can't
+        # leave the 3D farm showing numbers from the old tables.
+        "stats": _farm_3d_stats(json.dumps({"fields": fields, "plan": plan,
+                                            "data": [model.data_source()["mode"], real_data.signature()]},
+                                           sort_keys=True, default=str)),
+    }
+    page = (ASSETS / "farm3d.html").read_text()
+    return page.replace("__DATA__", json.dumps(data).replace("</", "<\\/"))
+
+
+@st.cache_data(show_spinner=False, max_entries=32)
+def _farm_3d_stats(key):
+    """The numbers the 3D farm shows, all straight from the model (nothing invented):
+    per field and year of the cycle (profit, water need / shortfall / irrigation in inches,
+    soil points per acre, rye after), each field's record on 1981-2024 weather, the farm's
+    totals per year, and the crop-after-crop effects the model applies. None if the model
+    can't run (the 3D farm then just shows crops). Cached by fields + plan + data."""
+    try:
+        spec = json.loads(key)
+        fields, plan = spec["fields"], spec["plan"]
+        farm = {**FARM, "fields": fields}
+        table = model.evaluate(plan, farm, None, "average")
+        per_field = {}
+        for name, rows in table.groupby("field", sort=False):
+            rows = rows.sort_values("year")
+            one = next(f for f in fields if f["name"] == name)
+            bt = model.backtest({name: plan[name]}, {**farm, "fields": [one]})
+            worst = bt.loc[bt["total_profit_usd"].idxmin()]
+            per_field[str(name)] = {
+                "years": [{"profit": round(float(r.profit_usd)),
+                           "need_in": round(float(r.water_need_mm) / 25.4, 1),
+                           "short_in": round(float(r.water_shortfall_mm) / 25.4, 1),
+                           "irr_in": round(float(r.irrigation_mm) / 25.4, 1),
+                           "soil": round(float(r.soil_score_change), 2),
+                           "cover": bool(r.cover)} for r in rows.itertuples()],
+                "record": {"profitable": int((bt["total_profit_usd"] > 0).sum()), "seasons": int(len(bt)),
+                           "worst_year": int(worst["year"]), "worst": round(float(worst["total_profit_usd"])),
+                           "avg": round(float(bt["total_profit_usd"].mean()))},
+            }
+        acres = sum(f["acres"] for f in fields) or 1
+        farm_years = [{"profit": round(float(g["profit_usd"].sum())),
+                       "short_acin": round(float((g["water_shortfall_mm"] * g["acres"]).sum() / 25.4)),
+                       "soil": round(float((g["soil_score_change"] * g["acres"]).sum() / acres), 2)}
+                      for _, g in table.groupby("year")]
+        bt = model.backtest(plan, farm)
+        worst = bt.loc[bt["total_profit_usd"].idxmin()]
+        effects, soils = {}, {}
+        try:
+            tables = model.active_data()           # the tables the model is running on (real or sample)
+            for r in tables["rotation_effects"].itertuples():
+                effects[f"{r.prev_crop}>{r.crop}"] = [float(r.yield_mult), float(r.n_credit_lb)]
+            soils = {str(r.soil): float(r.awc_mm_per_m) for r in tables["soils"].itertuples()}
+        except Exception:
+            pass
+        return {"fields": per_field, "farm_years": farm_years, "effects": effects, "soils": soils,
+                "farm": {"avg": round(float(totals(table)[0])), "profitable": int((bt["total_profit_usd"] > 0).sum()),
+                         "seasons": int(len(bt)), "worst_year": int(worst["year"]),
+                         "worst": round(float(worst["total_profit_usd"]))}}
+    except Exception:
+        return None
 
 
 def faq_context(farm, mine, rec):
@@ -457,7 +548,7 @@ def rotation_picker(farm, plan):
     cycle. Click a tile to open a small menu of crops; pick one to plant it there.
     Tiles and choices are coloured by cell_css() through their container keys."""
     years = len(next(iter(plan.values())))
-    widths = [1.1] + [1] * years
+    widths = [0.72] + [1] * years          # a slim field-name column, wide crop tiles
     head = st.columns(widths)
     head[0].markdown('<div class="rp-head">Field</div>', unsafe_allow_html=True)
     for t in range(years):
@@ -473,7 +564,7 @@ def rotation_picker(farm, plan):
                                 help=f"{name}, year {t + 1}: click to change the crop"):
                     st.markdown(f"**{html.escape(name)} · Year {t + 1}**")
                     for c in CROPS:
-                        with st.container(key=f"pick-{c}-{fi}-{t}"):
+                        with st.container(key=f"pick-{c}-{fi}-{t}" + ("-sel" if c == crop else "")):
                             st.button(crop_name(c) + ("  ✓" if c == crop else ""),
                                       key=f"pickbtn_{fi}_{t}_{c}", use_container_width=True,
                                       on_click=set_cell, args=(name, t, c))
@@ -731,8 +822,62 @@ def anchor(name):
 # The logo doubles as a directory of the open page: click it and a panel lists its parts.
 # Links jump within the page only (a plain link to another page would reload the app and
 # lose your inputs; the page menu in the left panel switches pages safely).
+
+# Line icons for the logo's "Jump to" directory, drawn like the crop icons (24px grid,
+# 1.6 stroke in currentColor, light duotone fill) so they match the rest of the app.
+_DIR = _ICON.replace('class="fs-crop-icon"', 'class="fs-dir-svg" width="18" height="18"')   # sized in the markup too
+DIR_SVG = {
+    "tools": _DIR.format(   # compass
+        f'<circle cx="12" cy="12" r="9" {_DUO}/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" '
+        'fill="currentColor" fill-opacity=".55"/><path d="M12 3v1.7M12 19.3V21M3 12h1.7M19.3 12H21"/>'),
+    "satellite": _DIR.format(
+        f'<path d="M12 7.6l4.4 4.4-4.4 4.4L7.6 12z" {_DUO}/>'
+        '<path d="M9.8 9.8L7.4 7.4M14.2 14.2l2.4 2.4"/>'
+        f'<path d="M2.6 6.6l4-4 3.2 3.2-4 4zM14.2 18.2l4-4 3.2 3.2-4 4z" {_DUO}/>'
+        '<path d="M15.6 3.6a4.8 4.8 0 0 1 4.8 4.8"/>'),
+    "chart": _DIR.format(
+        '<path d="M3.5 20.5h17"/>'
+        f'<rect x="5" y="11" width="3.2" height="7.5" rx=".8" {_DUO}/>'
+        f'<rect x="10.4" y="5.5" width="3.2" height="13" rx=".8" {_DUO}/>'
+        f'<rect x="15.8" y="13.5" width="3.2" height="5" rx=".8" {_DUO}/>'),
+    "sources": _DIR.format(   # a stack of data
+        f'<ellipse cx="12" cy="5.6" rx="7" ry="2.6" {_DUO}/>'
+        '<path d="M5 5.6v12.8c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V5.6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/>'),
+    "fields": _DIR.format(   # plots on a field map
+        f'<rect x="3" y="3.5" width="18" height="17" rx="2.5" {_DUO}/>'
+        '<path d="M12.8 3.5v17M3 11.6h9.8M12.8 14.2H21"/>'),
+    "rotation": _DIR.format(   # a cycle that repeats
+        '<path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/>'
+        '<path d="M17.6 3.2v3.6H14M6.4 20.8v-3.6H10"/>'
+        f'<circle cx="12" cy="12" r="2.4" {_DUO}/>'),
+    "money": _DIR.format(
+        f'<circle cx="12" cy="12" r="9" {_DUO}/>'
+        '<path d="M14.8 9.3c-.4-1-1.5-1.7-2.8-1.7-1.6 0-2.8.8-2.8 2.1 0 2.9 5.8 1.5 5.8 4.4 '
+        '0 1.3-1.3 2.2-3 2.2-1.4 0-2.6-.7-3-1.8M12 6v1.6M12 16.3V18"/>'),
+    "table": _DIR.format(
+        f'<rect x="3" y="4" width="18" height="16" rx="2.5" {_DUO}/>'
+        '<path d="M3 9.2h18M3 14.5h18M9.2 9.2V20"/>'),
+    "goal": _DIR.format(   # target
+        f'<circle cx="12" cy="12" r="9" {_DUO}/><circle cx="12" cy="12" r="5.2"/>'
+        '<circle cx="12" cy="12" r="1.6" fill="currentColor"/>'),
+    "limits": _DIR.format(   # sliders
+        '<path d="M4 6.5h9.6M18.4 6.5H20M4 12h4.6M13.4 12H20M4 17.5h1.6M10.4 17.5H20"/>'
+        f'<circle cx="16" cy="6.5" r="2.3" {_DUO}/><circle cx="11" cy="12" r="2.3" {_DUO}/>'
+        f'<circle cx="8" cy="17.5" r="2.3" {_DUO}/>'),
+    "soil": _DIR.format(   # soil layers with a root
+        f'<path d="M3 8.5c3-1.6 6-1.6 9 0s6 1.6 9 0" {_DUO}/>'
+        '<path d="M3 13c3-1.4 6-1.4 9 0s6 1.4 9 0M3 17.5c3-1.4 6-1.4 9 0s6 1.4 9 0"/>'
+        '<path d="M12 3.5v6.5M12 6.5l-2-1.6M12 7.8l2.2-1.7"/>'),
+    "cropmap": _DIR.format(   # a map of planted fields
+        f'<path d="M3 6.2l5.5-2.2 7 2.2L21 4v13.8l-5.5 2.2-7-2.2L3 20z" {_DUO}/>'
+        '<path d="M8.5 4v13.8M15.5 6.2V20"/>'
+        '<circle cx="12" cy="11" r="1.3" fill="currentColor"/>'),
+    "star": _DIR.format(
+        f'<path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.6l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z" {_DUO}/>'),
+}
+
 SETUP_GROUP = ("Set up", "In the left panel (open it with » if hidden)", [
-    ("fields", "🗺️", "Your fields", "Acres, soil, irrigation, last crop"),
+    ("fields", "fields", "Your fields", "Acres, soil, irrigation, last crop"),
 ])
 
 
@@ -741,7 +886,7 @@ def directory_html(logo, groups):
     out = ""
     for title, note, items in groups:
         links = "".join(
-            f'<a class="fs-dir-link" href="#{anchor_id}"><span class="fs-dir-icon">{icon}</span>'
+            f'<a class="fs-dir-link" href="#{anchor_id}"><span class="fs-dir-icon">{DIR_SVG.get(icon, icon)}</span>'
             f'<span><b>{name}</b><small>{desc}</small></span></a>'
             for anchor_id, icon, name, desc in items)
         out += (f'<div class="fs-dir-group"><div class="fs-dir-head">{title}'
@@ -753,14 +898,42 @@ def directory_html(logo, groups):
             f'<span>Click the logo again to close</span></div>{out}</nav></details>')
 
 
+HOME_PAGE = "views/home.py"
+TOOL_PAGES = {   # the two tools, for "where next?" links
+    "Rotation evaluator": ("views/evaluate.py", ":material/fact_check:"),
+    "Rotation optimizer": ("views/optimize.py", ":material/auto_awesome:"),
+}
+
+
+def _status_html():
+    """The top bar's status pills: the farm's location, and which data the numbers come
+    from (Real / Sample data, with the details in the tooltip)."""
+    return (f'<div class="fs-status"><span class="fs-live"><i></i>Lat {FARM["lat"]} · Lon {FARM["lon"]}</span>'
+            f'<span class="fs-live" title="{html.escape(data_note(plain=True))}">{data_label()}</span></div>')
+
+
 def page_header(crumb, title, tag, groups, compact=False):
-    """Top bar, then the hero: logo (directory), title, tagline and badges."""
+    """Top bar, then the hero: logo (directory), title, tagline and badges. On the tool
+    pages the top bar starts with a "Home" button: a real Streamlit page link, so going
+    back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
+    # Background comets, and stars that gently appear and fade in the background (style.css).
+    show_html('<div class="fs-comets" aria-hidden="true">' + ("<span>" + "<i></i>" * 17 + "</span>") * 3 + '</div>'
+              '<div class="fs-stars" aria-hidden="true">' + "<i></i>" * 18 + '</div>')
+    if crumb == "Home":
+        show_html('<div class="fs-topbar">'
+                  f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
+                  + _status_html() + '</div>')
+    else:
+        with st.container(key="fs_topnav"):
+            back, where, status = st.columns([0.8, 2.8, 2.4], vertical_alignment="center", gap="small")
+            back.page_link(HOME_PAGE, label="Home", icon=":material/arrow_back:",
+                           help="Back to the home page. Your fields, rotation and settings stay as they are.")
+            with where:
+                show_html(f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>')
+            with status:
+                show_html(_status_html())
     show_html(
-        '<div class="fs-topbar">'
-        f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
-        f'<div class="fs-status"><span class="fs-live"><i></i>Lat {FARM["lat"]} · Lon {FARM["lon"]}</span>'
-        f'<span class="fs-live" title="{html.escape(data_note(plain=True))}">{data_label()}</span></div></div>'
         f'<div class="fs-hero{" fs-hero-compact" if compact else ""}">' + directory_html(logo, groups) +
         '<div><div class="fs-hero-sub">NASA <em>climate</em>-powered crop rotation planner</div>'
         f'<div class="fs-hero-title">{title}</div>'
@@ -770,8 +943,29 @@ def page_header(crumb, title, tag, groups, compact=False):
         '<span class="fs-badge">Team Athens</span></div></div>')
 
 
+def page_end_nav(current):
+    """Bottom of a tool page: back to Home, or on to the other tool, so nobody has to
+    scroll back up. Page links again, so nothing the farmer entered is lost."""
+    other = next(name for name in TOOL_PAGES if name != current)
+    page, icon = TOOL_PAGES[other]
+    with st.container(key="fs_endnav"):
+        show_html('<div class="fs-endnav-title">Where next?</div>'
+                  '<div class="fs-endnav-sub">Your fields, rotation and settings come with you.</div>')
+        home_col, other_col, _ = st.columns([1, 1.3, 1.2], gap="small")
+        home_col.page_link(HOME_PAGE, label="Back to Home", icon=":material/home:")
+        other_col.page_link(page, label=f"Open the {other.lower()}", icon=icon)
+
+
+def md_text(text):
+    """Text for st.caption / st.markdown with its dollar signs escaped: Streamlit reads
+    anything between two $ signs as a maths formula ("$46,397 ... $8,208" came out garbled)."""
+    return text.replace("$", "\\$")
+
+
 def money(v):
-    """$12,345 or −$8,208 (minus sign before the dollar sign)."""
+    """$12,345 or −$8,208 (minus sign before the dollar sign). Rounded first, so a value
+    just below zero shows as $0, not −$0."""
+    v = round(float(v))
     return f"{'−' if v < 0 else ''}${abs(v):,.0f}"
 
 
@@ -803,6 +997,10 @@ def ring_html(n, total, label):
             f'<div class="fs-stat-label">{label}</div></div>')
 
 
+# A dark backing for chart labels, so they stay readable where they cross a line.
+LABEL_BG = dict(bgcolor="rgba(10,14,31,0.78)", borderpad=2)
+
+
 def backtest_chart(mine, rec=None, name="Your rotation"):
     """Profit per season (top panel) over NASA growing-season rain (bottom), 1981-2024,
     with a replay: ▶ plays the seasons one at a time and a slider jumps to any year.
@@ -828,7 +1026,10 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
             animated.append((len(fig.data) - 1, lambda k: [floor] * (k + 1)))
         fig.add_trace(go.Scatter(
             x=years, y=ys, name=name, line=dict(color=color, width=width, shape="spline", smoothing=0.6),
-            fill="tonexty" if star else None, fillcolor="rgba(191,215,255,0.12)" if star else None,
+            # The fill under the starring line fades from soft ice-blue at the top to nothing.
+            fill="tonexty" if star else None,
+            fillgradient=dict(type="vertical", colorscale=[[0, "rgba(191,215,255,0)"],
+                                                           [1, "rgba(191,215,255,0.30)"]]) if star else None,
             hovertemplate="$%{y:,.0f}"), row=1, col=1)
         animated.append((len(fig.data) - 1, lambda k, ys=ys: ys[:k + 1]))
         if star:
@@ -840,11 +1041,17 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
     # Rain bars: driest quarter of seasons NASA red, wettest quarter NASA blue, the rest navy.
     low, high = mm.quantile(0.25), mm.quantile(0.75)
     fig.add_trace(go.Bar(x=years, y=rain, name="Growing-season rain",
-                         marker=dict(color=[DRY if v <= low else WET if v >= high else NORMAL for v in mm]),
+                         marker=dict(color=[DRY if v <= low else WET if v >= high else NORMAL for v in mm],
+                                     opacity=0.85, line=dict(width=0)),
                          hovertemplate="%{y:.0f} mm rain", showlegend=False), row=2, col=1)
     animated.append((len(fig.data) - 1, lambda k: rain[:k + 1]))
     fig.add_hline(y=mm.mean(), line=dict(color=MUTED, width=1, dash="dot"), row=2, col=1)
     fig.add_vrect(x0=driest - 0.5, x1=driest + 0.5, fillcolor=DRY, opacity=0.12, line_width=0)
+    star_ys = next(ys for _, ys, _, _, st in lines if st)
+    avg = sum(star_ys) / len(star_ys)
+    fig.add_hline(y=avg, line=dict(color="rgba(191,215,255,0.35)", width=1, dash="dot"), row=1, col=1)
+    if floor < 0 < top:   # break-even, only when some seasons lose money
+        fig.add_hline(y=0, line=dict(color="rgba(252,61,33,0.35)", width=1, dash="dash"), row=1, col=1)
 
     # A marker on each line at the current season (empty until the replay runs).
     fig.add_trace(go.Scatter(x=[], y=[], mode="markers", hoverinfo="skip", showlegend=False,
@@ -852,8 +1059,32 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
                                          line=dict(color="#0A0E1F", width=2))), row=1, col=1)
     marker = len(fig.data) - 1
 
-    driest_note = dict(x=driest + 0.6, y=0.995, xref="x", yref="paper", xanchor="left", yanchor="top",
-                       showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11))
+    driest_note = dict(x=driest, y=1.0, xref="x", yref="paper", xanchor="center", yanchor="bottom", yshift=2,   # just above the chart
+                       showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11), **LABEL_BG)
+    # Labels for the reference lines, and callouts on the best and toughest seasons of the
+    # starring line (these appear in the replay once the line reaches them).
+    line_notes = [dict(x=0, xref="paper", xanchor="left", y=avg, yref="y", yanchor="bottom",
+                       showarrow=False, text=f"average {money(avg)}",
+                       font=dict(color="rgba(191,215,255,0.85)", size=10), **LABEL_BG)]
+    if floor < 0 < top:
+        line_notes.append(dict(x=0, xref="paper", xanchor="left", y=0, yref="y", yanchor="bottom",
+                               showarrow=False, text="break-even", font=dict(color="rgba(252,61,33,0.85)", size=10),
+                               **LABEL_BG))
+    i_best = max(range(len(years)), key=lambda i: star_ys[i])
+    i_worst = min(range(len(years)), key=lambda i: star_ys[i])
+
+    def callout(i, label, color, ay):
+        return dict(x=years[i], y=star_ys[i], xref="x", yref="y", text=f"{label} {years[i]}",
+                    showarrow=True, arrowhead=0, arrowwidth=1, arrowcolor=color, ax=0, ay=ay,
+                    font=dict(color=color, size=10), bgcolor="rgba(10,14,31,0.75)", borderpad=3)
+
+    def notes(k):
+        out = [driest_note] + line_notes
+        if i_best <= k:
+            out.append(callout(i_best, "Best", ACCENT, -26))
+        if i_worst <= k:
+            out.append(callout(i_worst, "Toughest", "#E9A866", 26))
+        return out
 
     def tally(k):
         so_far = " so far" if k < len(years) - 1 else ""
@@ -870,12 +1101,13 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
         name=str(years[k]), traces=[i for i, _ in animated] + [marker],
         data=[(go.Bar if i == animated[-1][0] else go.Scatter)(x=years[:k + 1], y=f(k)) for i, f in animated]
         + [go.Scatter(x=[years[k]] * len(lines), y=[y[k] for _, y, *_ in lines])],
-        layout=dict(annotations=[driest_note, tally(k)])) for k in range(len(years))]
+        layout=dict(annotations=notes(k) + [tally(k)])) for k in range(len(years))]
 
     step = dict(frame=dict(duration=0, redraw=True), mode="immediate", transition=dict(duration=0))
     fig.update_layout(
-        annotations=[driest_note, tally(len(years) - 1)],
-        height=500, margin=dict(l=0, r=6, t=34, b=0), hovermode="x unified", bargap=0.25,
+        annotations=notes(len(years) - 1) + [tally(len(years) - 1)],
+        height=530, margin=dict(l=0, r=6, t=64, b=0), hovermode="x unified", bargap=0.35,
+        barcornerradius=3, showlegend=rec is not None,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=MUTED),
         hoverlabel=dict(bgcolor="#1A2148", bordercolor="#262F5E", font=dict(color=INK)),
@@ -899,8 +1131,10 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
             currentvalue=dict(prefix="Season: ", font=dict(color=INK, size=12), xanchor="right"),
             steps=[dict(label=str(y), method="animate", args=[[str(y)], step]) for y in years])])
     # Fixed axes, so nothing jumps around while the replay runs.
-    fig.update_xaxes(gridcolor=GRID, zeroline=False, range=[years[0] - 0.7, years[-1] + 0.7])
-    fig.update_yaxes(gridcolor=GRID, zeroline=False)
+    fig.update_xaxes(showgrid=False, zeroline=False, range=[years[0] - 0.7, years[-1] + 0.7], dtick=5,
+                     showspikes=True, spikemode="across", spikethickness=1, spikedash="dot",
+                     spikecolor="rgba(191,215,255,0.35)")
+    fig.update_yaxes(gridcolor=GRID, griddash="dot", zeroline=False)
     fig.update_yaxes(title_text="Net profit", tickprefix="$", range=[floor, top + 0.06 * abs(top)], row=1, col=1)
     fig.update_yaxes(title_text="Rain (mm)", range=[0, max(rain) * 1.12], row=2, col=1)
     return fig
@@ -950,21 +1184,21 @@ def details_table(table, title):
 
 
 SOURCES = [
-    ("🛰️", "NASA POWER", "https://power.larc.nasa.gov/", True,
+    ("satellite", "NASA POWER", "https://power.larc.nasa.gov/", True,
      "Daily weather for the farm's location since 1981: rain, temperature and the evaporation "
      "they drive. Every rotation is scored and backtested on it."),
-    ("🧱", "Web Soil Survey (USDA)", "https://websoilsurvey.nrcs.usda.gov/", False,
+    ("soil", "Web Soil Survey (USDA)", "https://websoilsurvey.nrcs.usda.gov/", False,
      "Soil type and how much water each field's soil can hold."),
-    ("🗺️", "CropScape (USDA)", "https://nassgeodata.gmu.edu/CropScape/", False,
+    ("cropmap", "CropScape (USDA)", "https://nassgeodata.gmu.edu/CropScape/", False,
      "What was actually planted here in recent years: each field's last crop."),
-    ("📊", "USDA NASS QuickStats", "https://quickstats.nass.usda.gov/", False,
+    ("chart", "USDA NASS QuickStats", "https://quickstats.nass.usda.gov/", False,
      "County yields, used to check that the model's numbers are realistic."),
 ]
 
 
 def sources_html():
     rows = "".join(
-        f'<div class="fs-src{" fs-src-nasa" if nasa else ""}"><span class="fs-src-icon">{icon}</span>'
+        f'<div class="fs-src{" fs-src-nasa" if nasa else ""}"><span class="fs-src-icon">{DIR_SVG.get(icon, icon)}</span>'
         f'<div><a href="{url}" target="_blank">{name} ↗</a><div class="fs-src-note">{note}</div></div></div>'
         for icon, name, url, nasa, note in SOURCES)
     return (f'<div id="sources" class="fs-sources"><div class="fs-sources-title">Data sources</div>{rows}'

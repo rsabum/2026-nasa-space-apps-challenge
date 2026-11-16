@@ -73,6 +73,12 @@ def _default_data():
     return _DATA[key]
 
 
+def active_data():
+    """The five tables the model runs on right now (real when all are valid, else synthetic).
+    For displays that show the model's inputs, such as the 3D farm's rotation effects."""
+    return _default_data()
+
+
 def data_source():
     """Which data the app is on, for honest labels: {"kind": "real" | "synthetic", "mode",
     "ready": [tables], "problems": {table: [..]}, "folder"}."""

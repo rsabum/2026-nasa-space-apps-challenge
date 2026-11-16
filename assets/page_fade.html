@@ -1,0 +1,38 @@
+<!doctype html>
+<!-- Field Shift: a soft fade between pages (owner: Claude-Thomas). Loaded once by app.py in a
+     hidden component iframe; it installs itself on the app page (same origin) and does nothing
+     else. Click a page link -> the page content fades out (0.16 s); when the new page has
+     drawn (the crumb in the top bar changes, or 1.5 s at most) it fades back in (0.45 s).
+     Opacity only, on the main area; the left panel and the 3D farm are left alone. -->
+<html><body><script>
+(function () {
+  var w, d;
+  try { w = window.parent; d = w.document; } catch (e) { return; }
+  if (!d || w.__fsPageFade) return;                 // installed already (reruns, other pages)
+  w.__fsPageFade = true; d.documentElement.setAttribute("data-fs-fade", "on");   // (visible marker, for testing)
+  var LINKS = '[data-testid="stSidebarNavLink"], [data-testid="stPageLink-NavLink"]';
+  function main() { return d.querySelector('[data-testid="stMainBlockContainer"]') || d.querySelector(".block-container"); }
+  function crumb() { var c = d.querySelector(".fs-crumb b"); return c ? c.textContent : ""; }
+  var busy = false;
+  d.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest && e.target.closest(LINKS);
+    if (!a || busy || a.getAttribute("aria-current") === "page") return;
+    var m = main(); if (!m) return;
+    busy = true;
+    var before = crumb(), start = Date.now();
+    m.style.transition = "opacity .16s ease"; m.style.opacity = "0";
+    (function wait() {
+      var now = crumb();
+      if ((now && now !== before) || Date.now() - start > 1500) {
+        w.setTimeout(function () {                    // one frame for the new page to settle
+          var mm = main(); if (!mm) { busy = false; return; }
+          mm.style.transition = "opacity .45s ease-out"; mm.style.opacity = "1";
+          w.setTimeout(function () { mm.style.transition = ""; busy = false; }, 500);
+        }, 60);
+        return;
+      }
+      w.setTimeout(wait, 40);
+    })();
+  }, true);
+})();
+</script></body></html>
