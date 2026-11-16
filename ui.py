@@ -984,7 +984,7 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
     step = dict(frame=dict(duration=0, redraw=True), mode="immediate", transition=dict(duration=0))
     fig.update_layout(
         annotations=notes(len(years) - 1) + [tally(len(years) - 1)],
-        height=500, margin=dict(l=0, r=6, t=34, b=0), hovermode="x unified", bargap=0.35,
+        height=530, margin=dict(l=0, r=6, t=64, b=0), hovermode="x unified", bargap=0.35,
         barcornerradius=3, showlegend=rec is not None,
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(family="Inter, sans-serif", color=MUTED),
