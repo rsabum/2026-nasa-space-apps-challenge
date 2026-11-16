@@ -284,17 +284,73 @@ def farm_3d_html(farm, plan, big=False):
     laid out like the field map, the chosen year's crop planted in rows, a barn and trees,
     day and night. Buttons pick the year; hover a field for its whole rotation. Returns
     the page to show with st.components.v1.html."""
+    fields = [{"name": str(f["name"]), "acres": float(f"{float(f['acres']):g}"), "soil": str(f.get("soil", "")),
+               "last_crop": str(f.get("last_crop", "")), "irrigated": bool(f.get("irrigated", False))}
+              for f in farm["fields"] if str(f["name"]) in plan]
     data = {
         "big": bool(big),
         "years": len(next(iter(plan.values()))) if plan else 0,
-        "fields": [{"name": str(f["name"]), "acres": float(f"{float(f['acres']):g}"), "soil": str(f.get("soil", "")),
-                    "last_crop": str(f.get("last_crop", ""))} for f in farm["fields"] if str(f["name"]) in plan],
+        "fields": fields,
         "plan": {str(k): list(v) for k, v in plan.items()},
         "labels": dict(CROP_LABELS),
         "colors": dict(CROP_COLORS),
+        "stats": _farm_3d_stats(json.dumps({"fields": fields, "plan": plan}, sort_keys=True)),
     }
     page = (ASSETS / "farm3d.html").read_text()
     return page.replace("__DATA__", json.dumps(data).replace("</", "<\\/"))
+
+
+@st.cache_data(show_spinner=False, max_entries=32)
+def _farm_3d_stats(key):
+    """The numbers the 3D farm shows, all straight from the model (nothing invented):
+    per field and year of the cycle (profit, water need / shortfall / irrigation in inches,
+    soil points per acre, rye after), each field's record on 1981-2024 weather, the farm's
+    totals per year, and the crop-after-crop effects the model applies. None if the model
+    can't run (the 3D farm then just shows crops). Cached by fields + plan."""
+    try:
+        spec = json.loads(key)
+        fields, plan = spec["fields"], spec["plan"]
+        farm = {**FARM, "fields": fields}
+        table = model.evaluate(plan, farm, None, "average")
+        per_field = {}
+        for name, rows in table.groupby("field", sort=False):
+            rows = rows.sort_values("year")
+            one = next(f for f in fields if f["name"] == name)
+            bt = model.backtest({name: plan[name]}, {**farm, "fields": [one]})
+            worst = bt.loc[bt["total_profit_usd"].idxmin()]
+            per_field[str(name)] = {
+                "years": [{"profit": round(float(r.profit_usd)),
+                           "need_in": round(float(r.water_need_mm) / 25.4, 1),
+                           "short_in": round(float(r.water_shortfall_mm) / 25.4, 1),
+                           "irr_in": round(float(r.irrigation_mm) / 25.4, 1),
+                           "soil": round(float(r.soil_score_change), 2),
+                           "cover": bool(r.cover)} for r in rows.itertuples()],
+                "record": {"profitable": int((bt["total_profit_usd"] > 0).sum()), "seasons": int(len(bt)),
+                           "worst_year": int(worst["year"]), "worst": round(float(worst["total_profit_usd"])),
+                           "avg": round(float(bt["total_profit_usd"].mean()))},
+            }
+        acres = sum(f["acres"] for f in fields) or 1
+        farm_years = [{"profit": round(float(g["profit_usd"].sum())),
+                       "short_acin": round(float((g["water_shortfall_mm"] * g["acres"]).sum() / 25.4)),
+                       "soil": round(float((g["soil_score_change"] * g["acres"]).sum() / acres), 2)}
+                      for _, g in table.groupby("year")]
+        bt = model.backtest(plan, farm)
+        worst = bt.loc[bt["total_profit_usd"].idxmin()]
+        effects, soils = {}, {}
+        try:
+            import synthetic_data                  # the same tables the model uses until Tebit's land
+            tables = synthetic_data.load_data()
+            for r in tables["rotation_effects"].itertuples():
+                effects[f"{r.prev_crop}>{r.crop}"] = [float(r.yield_mult), float(r.n_credit_lb)]
+            soils = {str(r.soil): float(r.awc_mm_per_m) for r in tables["soils"].itertuples()}
+        except Exception:
+            pass
+        return {"fields": per_field, "farm_years": farm_years, "effects": effects, "soils": soils,
+                "farm": {"avg": round(float(totals(table)[0])), "profitable": int((bt["total_profit_usd"] > 0).sum()),
+                         "seasons": int(len(bt)), "worst_year": int(worst["year"]),
+                         "worst": round(float(worst["total_profit_usd"]))}}
+    except Exception:
+        return None
 
 
 def faq_context(farm, mine, rec):

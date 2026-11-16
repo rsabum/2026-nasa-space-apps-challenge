@@ -31,7 +31,9 @@ def rotation_3d_fullscreen(farm):
     """The 3D rotation model, big: opened by the Full screen button in the left panel."""
     components.html(ui.farm_3d_html(farm, ui.current_plan(farm), big=True), height=640)
     st.caption("Drag to turn, scroll to zoom, right-drag to move. Y1, Y2… show each year of your "
-               "rotation (▶ plays through it); hover a field for its whole rotation. Slide the time "
+               "rotation (▶ plays through it). Water stress / Profit / Soil colour each field by that "
+               "measure (red = worse, green = better); yellowed, shorter plants are short of water. "
+               "Hover a field for its numbers and its record on 1981–2024 weather. Slide the time "
                "of day, or let ↻ Day cycle run. Close with ✕ or Esc.")
 
 
@@ -78,13 +80,14 @@ with st.sidebar:
             farm3d = {**FARM, "fields": fields.to_dict("records")}
             plan3d = ui.current_plan(farm3d)
             if plan3d:
-                components.html(ui.farm_3d_html(farm3d, plan3d), height=270)
+                components.html(ui.farm_3d_html(farm3d, plan3d), height=310)
                 if st.button(":material/open_in_full: Full screen", key="rot3d_full",
                              use_container_width=True,
                              help="Open the 3D model big, to spin and zoom it."):
                     rotation_3d_fullscreen(farm3d)
                 st.caption("Your rotation from the Rotation evaluator, planted. Y1, Y2… switch "
-                           "years, ☀/☾ day or night, drag to turn, hover a field for details.")
+                           "years, ◐ colours the fields by water stress, profit or soil, ☀/☾ day or night. "
+                           "Yellowed plants are short of water. Hover a field for its numbers.")
 
 # What the pages read (through ui.farm_ready). Rebuilt on every run, so it's never stale.
 st.session_state["_farm_ctx"] = {
