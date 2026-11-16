@@ -80,6 +80,14 @@
   body:not(.big) .summary b {font-size: 10px; padding: 2px 6px;}
   body:not(.big) .summary span {font-size: 9px; padding: 1px 6px;}
   body:not(.big) .summary .note-stress {display: none;}
+  /* Grow / shrink button (top right). */
+  .expand {position: absolute; top: 8px; right: 10px; z-index: 5; width: 30px; height: 30px; padding: 0;
+           display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1;}
+  .big .expand {width: auto; padding: 6px 12px; font-size: 13px;}
+  .summary {right: 48px !important;}
+  .views {display: none !important;}
+  .big .views {display: inline-flex !important;}
+  .big .cyc {display: none;}
   .msg {position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
         color: #A9B0CF; font-size: 12px; padding: 16px;}
 </style></head>
@@ -108,12 +116,12 @@
     return;
   }
   msg.style.display = "none";
-  if (DATA.big) document.body.classList.add("big");
+  var big = false;                                  // grown to full screen? (setBig)
 
   // ------------------------------------------------------------ renderer, scene, camera
   var view = document.getElementById("view");
   var renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DATA.big ? 2 : 1.25));   // small panel: lighter
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));   // small panel: lighter (setBig raises it)
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
@@ -130,8 +138,8 @@
   controls.maxPolarAngle = Math.PI / 2.15;
   controls.minDistance = 25;
   controls.maxDistance = 190;
-  controls.enablePan = !!DATA.big;
-  controls.enableZoom = !!DATA.big;
+  controls.enablePan = false;                       // zoom and pan only when grown (setBig)
+  controls.enableZoom = false;
   // The slow spin is worked out from the clock (frame), so the small panel and full screen
   // face the same way. Once the farmer drags, this view is theirs.
   var userMoved = false, CAM_R = Math.hypot(62, 70), CAM_Y = 48, CAM_A0 = Math.atan2(70, 62);
@@ -153,7 +161,7 @@
   scene.add(hemi);
   var sun = new THREE.DirectionalLight(0xfff1d6, 1.2);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(DATA.big ? 2048 : 1024, DATA.big ? 2048 : 1024);
+  sun.shadow.mapSize.set(1024, 1024);
   var sc = sun.shadow.camera;
   sc.left = -55; sc.right = 55; sc.top = 55; sc.bottom = -55; sc.near = 10; sc.far = 300;
   sun.shadow.bias = -0.0008;
@@ -487,7 +495,7 @@
 
   // ------------------------------------------------------------ plant the chosen year
   var planted = [], labels = [];
-  var MAX_PER_FIELD = DATA.big ? 3200 : 1700;
+  function maxPerField() { return big ? 3200 : 1700; }
   var DRY = new THREE.Color(1.0, 0.74, 0.42), WHITE = new THREE.Color(1, 1, 1);
   function plant(year) {
     planted.forEach(function (m) { scene.remove(m); m.dispose && m.dispose(); });
@@ -504,7 +512,7 @@
       var w = r.x1 - r.x0 - 1.2, d = r.z1 - r.z0 - 1.2;
       var rowGap = spec.row, step = spec.step;
       var count = (w / rowGap) * (d / step);
-      if (count > MAX_PER_FIELD) { var k = Math.sqrt(count / MAX_PER_FIELD); rowGap *= k; step *= k; }
+      if (count > maxPerField()) { var k = Math.sqrt(count / maxPerField()); rowGap *= k; step *= k; }
       var rand = rng(1000 + fi * 97 + year * 13);
       (byCrop[crop] = byCrop[crop] || []);
       for (var z = r.z0 + 0.6 + rowGap / 2; z < r.z1 - 0.6; z += rowGap) {
@@ -558,7 +566,7 @@
         '<span class="stat' + (fy.profit < 0 ? " bad" : "") + '" title="Farm profit this year of the rotation, average weather 1981–2024">' + money(fy.profit) + " profit</span>" +
         '<span class="stat" title="Water the crops needed but rain and soil did not supply, all fields">' + fy.short_acin.toLocaleString() + " ac-in short</span>" +
         '<span class="stat" title="Soil health points per acre, area-weighted">Soil ' + signed(fy.soil, 2) + "/ac</span>";
-      if (DATA.big && ST.farm) {
+      if (big && ST.farm) {
         html += '<span class="stat" title="Whole rotation, per year, and how often it made money in 1981–2024 weather">Whole rotation ' +
           money(ST.farm.avg) + "/yr · profitable " + ST.farm.profitable + " of " + ST.farm.seasons + " seasons</span>";
       }
@@ -607,21 +615,22 @@
   var cloudMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 1, flatShading: true,
                                                  transparent: true, opacity: 0, depthWrite: false});
   var clouds = [], crand = rng(31);
-  for (var ci = 0; ci < (DATA.big ? 22 : 14); ci++) {
+  for (var ci = 0; ci < 18; ci++) {
     var cg = new THREE.Group(), puffs = 4 + Math.floor(crand() * 4);
     for (var pi = 0; pi < puffs; pi++) {
       var pm = new THREE.Mesh(new THREE.IcosahedronGeometry(4 + crand() * 4, 1), cloudMat);
       pm.position.set((pi - puffs / 2) * 4.2 + crand() * 2, crand() * 2.5, crand() * 5 - 2.5);
       pm.scale.y = 0.6; cg.add(pm);
     }
-    var ca = crand() * Math.PI * 2, cr = 60 + crand() * 100;     // a ring toward the horizon, in view
-    cg.position.set(Math.cos(ca) * cr, 24 + crand() * 16, Math.sin(ca) * cr);
+    var ca = crand() * Math.PI * 2, cr = 135 + crand() * 60;    // a ring out by the horizon
+    cg.position.set(Math.cos(ca) * cr, 30 + crand() * 18, Math.sin(ca) * cr);
+    cg.userData.a0 = ca; cg.userData.r = cr;
     cg.scale.setScalar(0.8 + crand() * 0.7);
     cg.userData.speed = 1.5 + crand() * 2; cg.userData.x0 = cg.position.x;
     cg.visible = false; scene.add(cg); clouds.push(cg);
   }
   // Rain: short falling streaks over the farm.
-  var DROPS = DATA.big ? 3000 : 1400, dropPos = new Float32Array(DROPS * 6), drand = rng(57);
+  var DROPS = 2200, dropPos = new Float32Array(DROPS * 6), drand = rng(57);
   for (var di = 0; di < DROPS; di++) {
     var dx = drand() * 160 - 80, dy = drand() * 60, dz = drand() * 160 - 80;
     dropPos.set([dx, dy, dz, dx - 0.15, dy + 1.1, dz], di * 6);
@@ -645,7 +654,8 @@
     // Clouds drift; rain falls.
     var c = skyNow.cloud;
     clouds.forEach(function (g, i) {
-      g.position.x = ((g.userData.x0 + g.userData.speed * Date.now() / 1000 + 170) % 340 + 340) % 340 - 170;
+      var ga = g.userData.a0 + g.userData.speed * Date.now() / 1000 * 0.004;   // circle slowly, same in every window
+      g.position.x = Math.cos(ga) * g.userData.r; g.position.z = Math.sin(ga) * g.userData.r;
       g.visible = c > 0.03 && (i / clouds.length) < 0.25 + c;
     });
     rain.visible = skyNow.rain > 0.02;
@@ -697,7 +707,7 @@
     if (timeInput) timeInput.value = hour;
     if (timeOut) timeOut.textContent = String(Math.floor(hour)).padStart(2, "0") + ":" + String(Math.floor((hour % 1) * 60)).padStart(2, "0");
     if (dayBtn) {
-      dayBtn.textContent = (day > 0.5 ? "☾" : "☀") + (DATA.big ? (day > 0.5 ? " Night" : " Day") : "");
+      dayBtn.textContent = (day > 0.5 ? "☾" : "☀") + (big ? (day > 0.5 ? " Night" : " Day") : "");
       dayBtn.title = day > 0.5 ? "Switch to night" : "Switch to day";
     }
   }
@@ -726,19 +736,20 @@
   }
   var viewBtns = [], cycleView = null;
   if (ST) {
-    if (DATA.big) {                                  // full screen: all four as a switch
+    {                                                // grown: all four as a switch
       var vbox = document.createElement("div"); vbox.className = "views"; ui.appendChild(vbox);
       VIEWS.forEach(function (v) {
         var b = document.createElement("button"); b.className = "chip"; b.textContent = v[1]; b.dataset.v = v[0];
         b.addEventListener("click", function () { setView(v[0]); share(); }); vbox.appendChild(b); viewBtns.push(b);
       });
       viewBtns[0].classList.add("on");
-    } else {                                         // small panel: one chip that cycles
+    }
+    {                                                // small panel: one chip that cycles
       cycleView = chip("◐ Crops", function () {
         var i = VIEWS.map(function (x) { return x[0]; }).indexOf(mode);
         setView(VIEWS[(i + 1) % VIEWS.length][0]); share();
       });
-      cycleView.title = "Colour the fields by water stress, profit or soil health";
+      cycleView.title = "Colour the fields by water stress, profit or soil health"; cycleView.classList.add("cyc");
     }
   }
   // No day/sky controls: the sky and time of day change by themselves (updateSky).
@@ -775,23 +786,124 @@
   if (bc) bc.onmessage = function (e) { adopt(e.data); };
   window.addEventListener("storage", function (e) { if (e.key === SYNC_KEY) { try { lastSeen = e.newValue; adopt(JSON.parse(e.newValue)); } catch (x) {} } });
   // Fallback for browsers that don't deliver those events between iframes: look every 0.7 s.
-  // Full screen says it's open (a heartbeat); the small panel then stops drawing, since it's
-  // hidden behind the dialog anyway.
-  var BIG_KEY = "fs3d-big-open", bigOpen = false;
-  if (DATA.big) {
-    var beat = function () { try { localStorage.setItem(BIG_KEY, String(Date.now())); } catch (e) {} };
-    beat(); setInterval(beat, 1000);
-    window.addEventListener("pagehide", function () { try { localStorage.removeItem(BIG_KEY); } catch (e) {} });
-  }
+  var bigOpen = false;                              // (old two-window pause; one farm now)
   setInterval(function () {
-    if (!DATA.big) {
-      var t = 0; try { t = +localStorage.getItem(BIG_KEY) || 0; } catch (e) {}
-      bigOpen = Date.now() - t < 2500;
-    }
     var v = null;
     try { v = localStorage.getItem(SYNC_KEY); } catch (e) { return; }
     if (v && v !== lastSeen) { lastSeen = v; try { adopt(JSON.parse(v)); } catch (e) {} }
   }, 700);
+
+  // ------------------------------------------------------------ grow into full screen and back
+  // The farm's own iframe grows from its spot in the left panel to a big centred view over a
+  // dimmed page, and shrinks back: same scene, nothing reloads. Streamlit's component iframes
+  // are same-origin, so the farm can reach its frame on the page (window.frameElement). Only
+  // transform and opacity animate (smooth). Ancestors that would trap a fixed element
+  // (transform, filter, contain, will-change) are neutralised while it's grown.
+  var host = null, pdoc = null, pwin = null;
+  try { host = window.frameElement; pdoc = host && host.ownerDocument; pwin = pdoc && pdoc.defaultView; } catch (e) { host = null; }
+  var catcher = null, savedCss = "", savedMin = "", lifted = [], raised = [], growing = false, smallH = 0;
+  var GROW = "transform .6s cubic-bezier(.2, .8, .2, 1)";
+  function target() {
+    var W = pwin.innerWidth, H = pwin.innerHeight, w = Math.min(W * 0.92, 1500), h = Math.min(H * 0.86, 920);
+    return {left: (W - w) / 2, top: (H - h) / 2, width: w, height: h};
+  }
+  function liftAncestors() {
+    for (var el = host.parentElement; el && el !== pdoc.body; el = el.parentElement) {
+      var cs = pwin.getComputedStyle(el);
+      if (cs.transform !== "none" || cs.filter !== "none" || (cs.contain && cs.contain !== "none") ||
+          cs.willChange.indexOf("transform") >= 0 ||
+          (cs.backdropFilter && cs.backdropFilter !== "none")) {
+        lifted.push([el, el.style.cssText]);     // !important beats animations too; restored after
+        ["transform", "filter", "contain", "will-change", "backdrop-filter"].forEach(function (p) {
+          el.style.setProperty(p, p === "will-change" ? "auto" : "none", "important");
+        });
+      }
+      if (cs.position !== "static" && cs.zIndex !== "auto") {     // lift its stacking context to the top
+        raised.push([el, el.style.zIndex]); el.style.setProperty("z-index", "1000001", "important");
+      }
+    }
+  }
+  function restoreAncestors() {
+    lifted.forEach(function (x) { x[0].style.cssText = x[1]; }); lifted = [];
+    raised.forEach(function (x) { x[0].style.zIndex = x[1]; }); raised = [];
+  }
+  function place(t) {
+    host.style.left = t.left + "px"; host.style.top = t.top + "px";
+    host.style.width = t.width + "px"; host.style.height = t.height + "px";
+  }
+  function fitTo(r, t) {   // the transform that makes the big frame t cover rect r
+    return "translate(" + (r.left - t.left) + "px," + (r.top - t.top) + "px) scale(" +
+           (r.width / t.width) + "," + (r.height / t.height) + ")";
+  }
+  function setBig(on) {
+    big = on;
+    document.body.classList.toggle("big", on);
+    controls.enableZoom = on; controls.enablePan = on;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, on ? 2 : 1.25));
+    sun.shadow.mapSize.set(on ? 2048 : 1024, on ? 2048 : 1024);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    expandBtn.textContent = on ? "✕ Close" : "⤢";
+    expandBtn.title = on ? "Back to the small view (Esc)" : "Grow to full screen";
+    if (!on) { userMoved = false; controls.target.set(0, 0, 0); camera.zoom = 1; camera.updateProjectionMatrix(); }
+    resize(); plant(year);
+  }
+  function onKey(e) { if (e.key === "Escape") shrink(); }
+  function afterGrow(fn) {   // run once, when the grow/shrink transition ends (or 0.8 s at most)
+    var done = false;
+    function finish(e) {
+      if (done || (e && e.propertyName !== "transform")) return;
+      done = true; host.removeEventListener("transitionend", finish); fn();
+    }
+    host.addEventListener("transitionend", finish);
+    (pwin || window).setTimeout(finish, 800);
+  }
+  function onParentResize() { if (big && !growing) place(target()); }
+  function grow() {
+    if (!host || growing || shrinking || big) return;
+    growing = true;
+    var r0 = host.getBoundingClientRect(); smallH = r0.height;
+    savedCss = host.style.cssText; savedMin = host.parentElement.style.minHeight;
+    host.parentElement.style.minHeight = r0.height + "px";        // keep the panel's layout still
+    liftAncestors();
+    catcher = pdoc.createElement("div");                           // dims the page; click to close
+    catcher.style.cssText = "position:fixed;inset:0;z-index:1000000;background:rgba(6,9,22,.74);" +
+                            "opacity:0;transition:opacity .5s ease;cursor:zoom-out;";
+    catcher.addEventListener("click", shrink);
+    host.parentElement.insertBefore(catcher, host);
+    var t = target();
+    host.style.position = "fixed"; host.style.zIndex = "1000001"; host.style.margin = "0";
+    host.style.borderRadius = "18px"; host.style.boxShadow = "0 30px 90px rgba(0,0,0,.6)";
+    host.style.transformOrigin = "0 0"; host.style.transition = "none";
+    place(t); host.style.transform = fitTo(r0, t);
+    setBig(true);
+    host.getBoundingClientRect();                                  // apply the start before animating
+    requestAnimationFrame(function () {
+      host.style.transition = GROW; host.style.transform = "none"; catcher.style.opacity = "1";
+    });
+    afterGrow(function () { growing = false; });
+    pdoc.addEventListener("keydown", onKey); pwin.addEventListener("resize", onParentResize);
+  }
+  var shrinking = false;
+  function shrink() {                     // also works mid-grow: the animation just reverses
+    if (!host || shrinking || !big) return;
+    shrinking = true;
+    var p = host.parentElement.getBoundingClientRect();
+    var r0 = {left: p.left, top: p.top, width: p.width, height: smallH || p.height};
+    host.style.transition = GROW; host.style.transform = fitTo(r0, target());
+    if (catcher) catcher.style.opacity = "0";
+    afterGrow(function () {
+      host.style.cssText = savedCss; host.parentElement.style.minHeight = savedMin;
+      if (catcher) { catcher.remove(); catcher = null; }
+      restoreAncestors(); setBig(false); growing = false; shrinking = false;
+    });
+    pdoc.removeEventListener("keydown", onKey); pwin.removeEventListener("resize", onParentResize);
+  }
+  var expandBtn = document.createElement("button");
+  expandBtn.className = "chip expand"; expandBtn.textContent = "⤢"; expandBtn.title = "Grow to full screen";
+  expandBtn.addEventListener("click", function () { if (big) shrink(); else grow(); });
+  document.body.appendChild(expandBtn);
+  if (!host) expandBtn.style.display = "none";                     // can't reach the page: no grow
+  document.addEventListener("keydown", onKey);
 
   // ------------------------------------------------------------ field info card (hover / tap)
   var card = document.getElementById("card"), ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
@@ -870,11 +982,11 @@
   if (saved && saved.years === DATA.years) adopt(saved); else pick(0);
   // The small panel draws at 30 frames a second (full screen at the screen's rate): at that
   // size it looks the same and costs half. Nothing is drawn while hidden or behind full screen.
-  var MIN_GAP = DATA.big ? 0 : 1000 / 30 - 2;
+  function minGap() { return big ? 0 : 1000 / 30 - 2; }
   function frame(now) {
     requestAnimationFrame(frame);
     if (!visible || bigOpen) { prev = now; return; }
-    if (now - prev < MIN_GAP) return;
+    if (now - prev < minGap()) return;
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     uniforms.uTime.value = now / 1000;
     var g = Math.min(1, (now - growStart) / 1300);

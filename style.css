@@ -1104,3 +1104,13 @@ div.fs-step {cursor: default;}
 .fs-faq-orb::after {animation: fs-spin 4s linear infinite reverse;}   /* keeps the inner disc still */
 @keyframes fs-spin {to {transform: rotate(360deg);}}
 .fs-hero summary > svg path {animation: none !important;}
+
+/* Data sources: line icons on small tiles, like the crop icons and the "Jump to" menu. */
+.fs-src-icon {flex: none; width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center;
+              justify-content: center; background: var(--raised); border: 1px solid var(--border);
+              color: #BFD7FF; font-size: 1rem; line-height: 1; margin-top: 1px;}
+.fs-src-nasa .fs-src-icon {background: rgba(11, 61, 145, .45); border-color: rgba(79, 139, 255, .55); color: #DCE8FF;}
+.fs-src-icon .fs-dir-svg {width: 19px; height: 19px;}
+.fs-src:hover .fs-src-icon {border-color: var(--border-glow); color: #fff;}
+/* The hidden page-fade helper takes no space. */
+.st-key-fs_fx {display: none !important;}

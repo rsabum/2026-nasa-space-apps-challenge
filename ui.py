@@ -867,6 +867,14 @@ DIR_SVG = {
         '<path d="M4 6.5h9.6M18.4 6.5H20M4 12h4.6M13.4 12H20M4 17.5h1.6M10.4 17.5H20"/>'
         f'<circle cx="16" cy="6.5" r="2.3" {_DUO}/><circle cx="11" cy="12" r="2.3" {_DUO}/>'
         f'<circle cx="8" cy="17.5" r="2.3" {_DUO}/>'),
+    "soil": _DIR.format(   # soil layers with a root
+        f'<path d="M3 8.5c3-1.6 6-1.6 9 0s6 1.6 9 0" {_DUO}/>'
+        '<path d="M3 13c3-1.4 6-1.4 9 0s6 1.4 9 0M3 17.5c3-1.4 6-1.4 9 0s6 1.4 9 0"/>'
+        '<path d="M12 3.5v6.5M12 6.5l-2-1.6M12 7.8l2.2-1.7"/>'),
+    "cropmap": _DIR.format(   # a map of planted fields
+        f'<path d="M3 6.2l5.5-2.2 7 2.2L21 4v13.8l-5.5 2.2-7-2.2L3 20z" {_DUO}/>'
+        '<path d="M8.5 4v13.8M15.5 6.2V20"/>'
+        '<circle cx="12" cy="11" r="1.3" fill="currentColor"/>'),
     "star": _DIR.format(
         f'<path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.6l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z" {_DUO}/>'),
 }
@@ -1152,21 +1160,21 @@ def details_table(table, title):
 
 
 SOURCES = [
-    ("🛰️", "NASA POWER", "https://power.larc.nasa.gov/", True,
+    ("satellite", "NASA POWER", "https://power.larc.nasa.gov/", True,
      "Daily weather for the farm's location since 1981: rain, temperature and the evaporation "
      "they drive. Every rotation is scored and backtested on it."),
-    ("🧱", "Web Soil Survey (USDA)", "https://websoilsurvey.nrcs.usda.gov/", False,
+    ("soil", "Web Soil Survey (USDA)", "https://websoilsurvey.nrcs.usda.gov/", False,
      "Soil type and how much water each field's soil can hold."),
-    ("🗺️", "CropScape (USDA)", "https://nassgeodata.gmu.edu/CropScape/", False,
+    ("cropmap", "CropScape (USDA)", "https://nassgeodata.gmu.edu/CropScape/", False,
      "What was actually planted here in recent years: each field's last crop."),
-    ("📊", "USDA NASS QuickStats", "https://quickstats.nass.usda.gov/", False,
+    ("chart", "USDA NASS QuickStats", "https://quickstats.nass.usda.gov/", False,
      "County yields, used to check that the model's numbers are realistic."),
 ]
 
 
 def sources_html():
     rows = "".join(
-        f'<div class="fs-src{" fs-src-nasa" if nasa else ""}"><span class="fs-src-icon">{icon}</span>'
+        f'<div class="fs-src{" fs-src-nasa" if nasa else ""}"><span class="fs-src-icon">{DIR_SVG.get(icon, icon)}</span>'
         f'<div><a href="{url}" target="_blank">{name} ↗</a><div class="fs-src-note">{note}</div></div></div>'
         for icon, name, url, nasa, note in SOURCES)
     return (f'<div id="sources" class="fs-sources"><div class="fs-sources-title">Data sources</div>{rows}'
