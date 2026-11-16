@@ -33,8 +33,7 @@ def rotation_3d_fullscreen(farm):
     st.caption("Drag to turn, scroll to zoom, right-drag to move. Y1, Y2… show each year of your "
                "rotation (▶ plays through it). Water stress / Profit / Soil colour each field by that "
                "measure (red = worse, green = better); yellowed, shorter plants are short of water. "
-               "Hover a field for its numbers and its record on 1981–2024 weather. Slide the time "
-               "of day, or let ↻ Day cycle run. Close with ✕ or Esc.")
+               "Hover a field for its numbers and its record on 1981–2024 weather. Close with ✕ or Esc.")
 
 
 pages = st.navigation([
@@ -86,7 +85,7 @@ with st.sidebar:
                              help="Open the 3D model big, to spin and zoom it."):
                     rotation_3d_fullscreen(farm3d)
                 st.caption("Your rotation from the Rotation evaluator, planted. Y1, Y2… switch "
-                           "years, ◐ colours the fields by water stress, profit or soil, ☀/☾ day or night. "
+                           "years, ◐ colours the fields by water stress, profit or soil. "
                            "Yellowed plants are short of water. Hover a field for its numbers.")
 
 # What the pages read (through ui.farm_ready). Rebuilt on every run, so it's never stale.

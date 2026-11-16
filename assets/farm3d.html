@@ -87,7 +87,7 @@
 <div id="view"></div>
 <div class="summary" id="summary"></div>
 <div class="card" id="card"></div>
-<div class="foot">Illustration: plants show the crop, not real planting density. Yellowed, shorter plants show water stress from the model. Hover a field for its numbers. Sky and weather change for looks only.</div>
+<div class="foot">Illustration: plants show the crop, not real planting density. Yellowed, shorter plants show water stress from the model. Hover a field for its numbers. Sky, weather and time of day change by themselves, for looks only.</div>
 <div class="ui" id="ui"></div>
 <div class="msg" id="msg">Loading 3D farm…</div>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
@@ -745,20 +745,8 @@
       cycleView.title = "Colour the fields by water stress, profit or soil health";
     }
   }
-  var sp = document.createElement("div"); sp.className = "spacer"; ui.appendChild(sp);
-  var timeBox = document.createElement("label"); timeBox.className = "time";
-  timeBox.innerHTML = '<span id="tout">13:00</span><input id="tin" type="range" min="0" max="23.9" step="0.1">';
-  ui.appendChild(timeBox);
-  var timeInput = document.getElementById("tin"), timeOut = document.getElementById("tout");
-  timeInput.addEventListener("input", function () { autoTime = false; cycleBtn.classList.remove("on"); holdSky(); setHour(parseFloat(timeInput.value)); });
-  var cycleBtn = chip("↻ Day cycle", function () { autoTime = !autoTime; cycleBtn.classList.toggle("on", autoTime); });
-  cycleBtn.title = "Let the sun cross the sky on its own";
-  if (!DATA.big) cycleBtn.style.display = "none";
-  var dayBtn = chip("☾ Night", function () { autoTime = false; cycleBtn.classList.remove("on"); holdSky(); setHour(hour > 6.5 && hour < 18 ? 22 : 13); });
-  skyBtn = chip("☀", function () {                 // next sky now; auto changes pause for a while
-    var i = SKIES.indexOf(skyGoal); skyGoal = SKIES[(i + 1) % SKIES.length]; holdSky(); skyLabel();
-  });
-  skyLabel();
+  // No day/sky controls: the sky and time of day change by themselves (updateSky).
+  var timeInput = null, timeOut = null, dayBtn = null;
   function pick(y) {
     year = y;
     yearBtns.forEach(function (b, i) { b.classList.toggle("on", i === y); });
