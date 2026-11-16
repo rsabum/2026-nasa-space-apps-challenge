@@ -911,7 +911,7 @@ def page_header(crumb, title, tag, groups, compact=False):
     back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
     # Background comets, and stars that gently appear and fade in the background (style.css).
-    show_html('<div class="fs-comets" aria-hidden="true">' + ("<span>" + "<i></i>" * 30 + "</span>") * 3 + '</div>'
+    show_html('<div class="fs-comets" aria-hidden="true">' + ("<span>" + "<i></i>" * 17 + "</span>") * 3 + '</div>'
               '<div class="fs-stars" aria-hidden="true">' + "<i></i>" * 18 + '</div>')
     if crumb == "Home":
         show_html('<div class="fs-topbar">'

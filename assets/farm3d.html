@@ -113,7 +113,7 @@
   // ------------------------------------------------------------ renderer, scene, camera
   var view = document.getElementById("view");
   var renderer = new THREE.WebGLRenderer({antialias: true});
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DATA.big ? 2 : 1.5));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DATA.big ? 2 : 1.25));   // small panel: lighter
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.outputEncoding = THREE.sRGBEncoding;
@@ -775,7 +775,19 @@
   if (bc) bc.onmessage = function (e) { adopt(e.data); };
   window.addEventListener("storage", function (e) { if (e.key === SYNC_KEY) { try { lastSeen = e.newValue; adopt(JSON.parse(e.newValue)); } catch (x) {} } });
   // Fallback for browsers that don't deliver those events between iframes: look every 0.7 s.
+  // Full screen says it's open (a heartbeat); the small panel then stops drawing, since it's
+  // hidden behind the dialog anyway.
+  var BIG_KEY = "fs3d-big-open", bigOpen = false;
+  if (DATA.big) {
+    var beat = function () { try { localStorage.setItem(BIG_KEY, String(Date.now())); } catch (e) {} };
+    beat(); setInterval(beat, 1000);
+    window.addEventListener("pagehide", function () { try { localStorage.removeItem(BIG_KEY); } catch (e) {} });
+  }
   setInterval(function () {
+    if (!DATA.big) {
+      var t = 0; try { t = +localStorage.getItem(BIG_KEY) || 0; } catch (e) {}
+      bigOpen = Date.now() - t < 2500;
+    }
     var v = null;
     try { v = localStorage.getItem(SYNC_KEY); } catch (e) { return; }
     if (v && v !== lastSeen) { lastSeen = v; try { adopt(JSON.parse(v)); } catch (e) {} }
@@ -856,10 +868,14 @@
   var saved = null;
   try { lastSeen = localStorage.getItem(SYNC_KEY); saved = JSON.parse(lastSeen || "null"); } catch (e) {}
   if (saved && saved.years === DATA.years) adopt(saved); else pick(0);
+  // The small panel draws at 30 frames a second (full screen at the screen's rate): at that
+  // size it looks the same and costs half. Nothing is drawn while hidden or behind full screen.
+  var MIN_GAP = DATA.big ? 0 : 1000 / 30 - 2;
   function frame(now) {
     requestAnimationFrame(frame);
+    if (!visible || bigOpen) { prev = now; return; }
+    if (now - prev < MIN_GAP) return;
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
-    if (!visible) return;
     uniforms.uTime.value = now / 1000;
     var g = Math.min(1, (now - growStart) / 1300);
     uniforms.uGrow.value = 0.08 + 0.92 * (1 - Math.pow(1 - g, 3));

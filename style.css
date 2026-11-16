@@ -606,7 +606,7 @@ a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
    Faint routes along the 48px background grid, drawn once as a still image. The
    moving comets on them are small elements (.fs-comets, near the end of this file). */
 [data-testid="stApp"]::after {content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
-    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-opacity=%22.12%22%3E%3Cpath d=%22M0.5 816.5 L120.5 816.5 C160.1 816.5 192.5 784.1 192.5 744.5 L192.5 744.5 C192.5 704.9 224.9 672.5 264.5 672.5 L384.5 672.5 C410.9 672.5 432.5 694.1 432.5 720.5 L432.5 720.5 C432.5 746.9 454.1 768.5 480.5 768.5 L582.5 768.5 C632 768.5 672.5 728 672.5 678.5 L672.5 618.5 C672.5 569 713 528.5 762.5 528.5 L864.5 528.5 C890.9 528.5 912.5 550.1 912.5 576.5 L912.5 576.5 C912.5 602.9 934.1 624.5 960.5 624.5 L1062.5 624.5 C1112 624.5 1152.5 584 1152.5 534.5 L1152.5 474.5 C1152.5 425 1193 384.5 1242.5 384.5 L1344.5 384.5 C1370.9 384.5 1392.5 406.1 1392.5 432.5 L1392.5 432.5 C1392.5 458.9 1414.1 480.5 1440.5 480.5 L1542.5 480.5 C1592 480.5 1632.5 440 1632.5 390.5 L1632.5 330.5 C1632.5 281 1673 240.5 1722.5 240.5 L1920.5 240.5%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1098.5 C288.5 1049 329 1008.5 378.5 1008.5 L528.5 1008.5 C554.9 1008.5 576.5 1030.1 576.5 1056.5 L576.5 1056.5 C576.5 1082.9 598.1 1104.5 624.5 1104.5 L726.5 1104.5 C776 1104.5 816.5 1064 816.5 1014.5 L816.5 1002.5 C816.5 953 857 912.5 906.5 912.5 L1080.5 912.5 C1093.7 912.5 1104.5 923.3 1104.5 936.5 L1104.5 936.5 C1104.5 949.7 1115.3 960.5 1128.5 960.5 L1254.5 960.5 C1304 960.5 1344.5 920 1344.5 870.5 L1344.5 810.5 C1344.5 761 1385 720.5 1434.5 720.5 L1536.5 720.5 C1562.9 720.5 1584.5 742.1 1584.5 768.5 L1584.5 768.5 C1584.5 794.9 1606.1 816.5 1632.5 816.5 L1920.5 816.5%22/%3E%3Cpath d=%22M1920.5 1056.5 L1752.5 1056.5 C1712.9 1056.5 1680.5 1024.1 1680.5 984.5 L1680.5 984.5 C1680.5 944.9 1648.1 912.5 1608.5 912.5 L1530.5 912.5 C1481 912.5 1440.5 953 1440.5 1002.5 L1440.5 1062.5 C1440.5 1112 1400 1152.5 1350.5 1152.5 L1128.5 1152.5 C1088.9 1152.5 1056.5 1120.1 1056.5 1080.5 L1056.5 1080.5 C1056.5 1040.9 1024.1 1008.5 984.5 1008.5 L858.5 1008.5 C809 1008.5 768.5 968 768.5 918.5 L768.5 714.5 C768.5 665 728 624.5 678.5 624.5 L570.5 624.5 C521 624.5 480.5 584 480.5 534.5 L480.5 474.5 C480.5 425 440 384.5 390.5 384.5 L0.5 384.5%22/%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .55;}
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-opacity=%22.12%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22/%3E%3Cpath d=%22M1920.5 1056.5 L1680.5 1056.5 L1680.5 912.5 L1440.5 912.5 L1440.5 1152.5 L1056.5 1152.5 L1056.5 1008.5 L768.5 1008.5 L768.5 624.5 L480.5 624.5 L480.5 384.5 L0.5 384.5%22/%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .55;}
 
 /* ---------- Sliders: smoother feel ---------- */
 [data-testid="stSlider"] [role="slider"] {transition: transform .15s ease, box-shadow .15s ease;}
@@ -903,58 +903,46 @@ div.fs-step {cursor: default;}
    path), instead of re-drawing a full-screen animated image every frame. The head leads,
    the gradient tail trails behind, and offset-rotate turns them at each corner. */
 .fs-comets {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
-/* Each comet is a chain of dots on the same route, each a moment behind the one ahead, so
-   the whole trail stays on the line and bends with it (a straight tail stuck out on turns).
-   Head bright and glowing, then smaller and fainter. */
+/* Comets along the grid routes: straight runs, square corners. Each is a bright head and
+   16 fading dots on the same route, each 0.06 s behind the one ahead, so the trail follows
+   slowly and turns every corner on the line. They move with transform keyframes (one per
+   corner, at its share of the route's length), which the browser runs on the compositor:
+   no main-thread work per frame. */
 .fs-comets span {position: absolute; inset: 0;}
-.fs-comets i {position: absolute; left: 0; top: 0; border-radius: 50%; offset-path: var(--route);
-    offset-rotate: 0deg; offset-anchor: 50% 50%; will-change: offset-distance, opacity;
-    width: var(--sz); height: var(--sz); background: rgba(191, 215, 255, var(--a));
-    animation: fs-comet var(--dur) linear infinite;
-    animation-delay: calc(var(--delay) + var(--k) * var(--dur) * 0.0011);}   /* dots trail behind the head */
-.fs-comets i:first-child {background: #FFFFFF; box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9),
-                                                           0 0 18px 4px rgba(79, 139, 255, .45);}
-.fs-comets span:nth-child(1) {--route: path('M0.5 816.5 L120.5 816.5 C160.1 816.5 192.5 784.1 192.5 744.5 L192.5 744.5 C192.5 704.9 224.9 672.5 264.5 672.5 L384.5 672.5 C410.9 672.5 432.5 694.1 432.5 720.5 L432.5 720.5 C432.5 746.9 454.1 768.5 480.5 768.5 L582.5 768.5 C632 768.5 672.5 728 672.5 678.5 L672.5 618.5 C672.5 569 713 528.5 762.5 528.5 L864.5 528.5 C890.9 528.5 912.5 550.1 912.5 576.5 L912.5 576.5 C912.5 602.9 934.1 624.5 960.5 624.5 L1062.5 624.5 C1112 624.5 1152.5 584 1152.5 534.5 L1152.5 474.5 C1152.5 425 1193 384.5 1242.5 384.5 L1344.5 384.5 C1370.9 384.5 1392.5 406.1 1392.5 432.5 L1392.5 432.5 C1392.5 458.9 1414.1 480.5 1440.5 480.5 L1542.5 480.5 C1592 480.5 1632.5 440 1632.5 390.5 L1632.5 330.5 C1632.5 281 1673 240.5 1722.5 240.5 L1920.5 240.5'); --dur: 18s; --delay: 0s;}
-.fs-comets span:nth-child(2) {--route: path('M288.5 1152.5 L288.5 1098.5 C288.5 1049 329 1008.5 378.5 1008.5 L528.5 1008.5 C554.9 1008.5 576.5 1030.1 576.5 1056.5 L576.5 1056.5 C576.5 1082.9 598.1 1104.5 624.5 1104.5 L726.5 1104.5 C776 1104.5 816.5 1064 816.5 1014.5 L816.5 1002.5 C816.5 953 857 912.5 906.5 912.5 L1080.5 912.5 C1093.7 912.5 1104.5 923.3 1104.5 936.5 L1104.5 936.5 C1104.5 949.7 1115.3 960.5 1128.5 960.5 L1254.5 960.5 C1304 960.5 1344.5 920 1344.5 870.5 L1344.5 810.5 C1344.5 761 1385 720.5 1434.5 720.5 L1536.5 720.5 C1562.9 720.5 1584.5 742.1 1584.5 768.5 L1584.5 768.5 C1584.5 794.9 1606.1 816.5 1632.5 816.5 L1920.5 816.5'); --dur: 22s; --delay: -8s;}
-.fs-comets span:nth-child(3) {--route: path('M1920.5 1056.5 L1752.5 1056.5 C1712.9 1056.5 1680.5 1024.1 1680.5 984.5 L1680.5 984.5 C1680.5 944.9 1648.1 912.5 1608.5 912.5 L1530.5 912.5 C1481 912.5 1440.5 953 1440.5 1002.5 L1440.5 1062.5 C1440.5 1112 1400 1152.5 1350.5 1152.5 L1128.5 1152.5 C1088.9 1152.5 1056.5 1120.1 1056.5 1080.5 L1056.5 1080.5 C1056.5 1040.9 1024.1 1008.5 984.5 1008.5 L858.5 1008.5 C809 1008.5 768.5 968 768.5 918.5 L768.5 714.5 C768.5 665 728 624.5 678.5 624.5 L570.5 624.5 C521 624.5 480.5 584 480.5 534.5 L480.5 474.5 C480.5 425 440 384.5 390.5 384.5 L0.5 384.5'); --dur: 25s; --delay: -15s;}
-.fs-comets i:nth-child(1) {--k: 0; --sz: 4.60px; --a: 0.930;}
-.fs-comets i:nth-child(2) {--k: 1; --sz: 4.49px; --a: 0.884;}
-.fs-comets i:nth-child(3) {--k: 2; --sz: 4.38px; --a: 0.839;}
-.fs-comets i:nth-child(4) {--k: 3; --sz: 4.27px; --a: 0.794;}
-.fs-comets i:nth-child(5) {--k: 4; --sz: 4.16px; --a: 0.750;}
-.fs-comets i:nth-child(6) {--k: 5; --sz: 4.05px; --a: 0.708;}
-.fs-comets i:nth-child(7) {--k: 6; --sz: 3.94px; --a: 0.666;}
-.fs-comets i:nth-child(8) {--k: 7; --sz: 3.83px; --a: 0.625;}
-.fs-comets i:nth-child(9) {--k: 8; --sz: 3.72px; --a: 0.585;}
-.fs-comets i:nth-child(10) {--k: 9; --sz: 3.61px; --a: 0.545;}
-.fs-comets i:nth-child(11) {--k: 10; --sz: 3.50px; --a: 0.507;}
-.fs-comets i:nth-child(12) {--k: 11; --sz: 3.39px; --a: 0.470;}
-.fs-comets i:nth-child(13) {--k: 12; --sz: 3.28px; --a: 0.434;}
-.fs-comets i:nth-child(14) {--k: 13; --sz: 3.17px; --a: 0.399;}
-.fs-comets i:nth-child(15) {--k: 14; --sz: 3.06px; --a: 0.365;}
-.fs-comets i:nth-child(16) {--k: 15; --sz: 2.94px; --a: 0.332;}
-.fs-comets i:nth-child(17) {--k: 16; --sz: 2.83px; --a: 0.300;}
-.fs-comets i:nth-child(18) {--k: 17; --sz: 2.72px; --a: 0.270;}
-.fs-comets i:nth-child(19) {--k: 18; --sz: 2.61px; --a: 0.240;}
-.fs-comets i:nth-child(20) {--k: 19; --sz: 2.50px; --a: 0.212;}
-.fs-comets i:nth-child(21) {--k: 20; --sz: 2.39px; --a: 0.186;}
-.fs-comets i:nth-child(22) {--k: 21; --sz: 2.28px; --a: 0.160;}
-.fs-comets i:nth-child(23) {--k: 22; --sz: 2.17px; --a: 0.137;}
-.fs-comets i:nth-child(24) {--k: 23; --sz: 2.06px; --a: 0.115;}
-.fs-comets i:nth-child(25) {--k: 24; --sz: 1.95px; --a: 0.094;}
-.fs-comets i:nth-child(26) {--k: 25; --sz: 1.84px; --a: 0.076;}
-.fs-comets i:nth-child(27) {--k: 26; --sz: 1.73px; --a: 0.060;}
-.fs-comets i:nth-child(28) {--k: 27; --sz: 1.62px; --a: 0.046;}
-.fs-comets i:nth-child(29) {--k: 28; --sz: 1.51px; --a: 0.036;}
-.fs-comets i:nth-child(30) {--k: 29; --sz: 1.40px; --a: 0.030;}
-/* Slow and steady, rounded corners (so the tail turns smoothly), fading in and out at the
-   ends of each run instead of jumping back to the start. */
-@keyframes fs-comet {
-  0%   {offset-distance: 0%;   opacity: 0;}
-  6%   {opacity: .75;}
-  92%  {opacity: .75;}
-  100% {offset-distance: 100%; opacity: 0;}
-}
+.fs-comets i {position: absolute; left: 0; top: 0; width: var(--sz); height: var(--sz);
+    margin: calc(var(--sz) / -2) 0 0 calc(var(--sz) / -2); border-radius: 50%;
+    background: rgba(191, 215, 255, var(--a)); box-shadow: 0 0 calc(var(--sz) * 2.6) calc(var(--sz) * .3) rgba(111, 160, 255, var(--a));
+    opacity: 0; will-change: transform, opacity;
+    animation-name: var(--route), fs-comet-fade; animation-duration: var(--dur);
+    animation-timing-function: linear; animation-iteration-count: infinite;
+    animation-delay: calc(var(--delay) + var(--k) * 0.06s);}
+.fs-comets i:first-child {background: #FFFFFF;
+    box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9), 0 0 18px 4px rgba(79, 139, 255, .45);}
+@keyframes fs-comet-fade {0% {opacity: 0;} 5% {opacity: .85;} 93% {opacity: .85;} 100% {opacity: 0;}}
+@keyframes fs-r1 {0% {transform: translate(0.5px, 816.5px);} 6.250% {transform: translate(192.5px, 816.5px);} 10.938% {transform: translate(192.5px, 672.5px);} 18.750% {transform: translate(432.5px, 672.5px);} 21.875% {transform: translate(432.5px, 768.5px);} 29.688% {transform: translate(672.5px, 768.5px);} 37.500% {transform: translate(672.5px, 528.5px);} 45.312% {transform: translate(912.5px, 528.5px);} 48.438% {transform: translate(912.5px, 624.5px);} 56.250% {transform: translate(1152.5px, 624.5px);} 64.062% {transform: translate(1152.5px, 384.5px);} 71.875% {transform: translate(1392.5px, 384.5px);} 75.000% {transform: translate(1392.5px, 480.5px);} 82.812% {transform: translate(1632.5px, 480.5px);} 90.625% {transform: translate(1632.5px, 240.5px);} 100.000% {transform: translate(1920.5px, 240.5px);}}
+.fs-comets span:nth-child(1) i {--route: fs-r1; --dur: 18s; --delay: 0s;}
+@keyframes fs-r2 {0% {transform: translate(288.5px, 1152.5px);} 5.882% {transform: translate(288.5px, 1008.5px);} 17.647% {transform: translate(576.5px, 1008.5px);} 21.569% {transform: translate(576.5px, 1104.5px);} 31.373% {transform: translate(816.5px, 1104.5px);} 39.216% {transform: translate(816.5px, 912.5px);} 50.980% {transform: translate(1104.5px, 912.5px);} 52.941% {transform: translate(1104.5px, 960.5px);} 62.745% {transform: translate(1344.5px, 960.5px);} 72.549% {transform: translate(1344.5px, 720.5px);} 82.353% {transform: translate(1584.5px, 720.5px);} 86.275% {transform: translate(1584.5px, 816.5px);} 100.000% {transform: translate(1920.5px, 816.5px);}}
+.fs-comets span:nth-child(2) i {--route: fs-r2; --dur: 22s; --delay: -8s;}
+@keyframes fs-r3 {0% {transform: translate(1920.5px, 1056.5px);} 7.812% {transform: translate(1680.5px, 1056.5px);} 12.500% {transform: translate(1680.5px, 912.5px);} 20.312% {transform: translate(1440.5px, 912.5px);} 28.125% {transform: translate(1440.5px, 1152.5px);} 40.625% {transform: translate(1056.5px, 1152.5px);} 45.312% {transform: translate(1056.5px, 1008.5px);} 54.688% {transform: translate(768.5px, 1008.5px);} 67.188% {transform: translate(768.5px, 624.5px);} 76.562% {transform: translate(480.5px, 624.5px);} 84.375% {transform: translate(480.5px, 384.5px);} 100.000% {transform: translate(0.5px, 384.5px);}}
+.fs-comets span:nth-child(3) i {--route: fs-r3; --dur: 25s; --delay: -15s;}
+.fs-comets i:nth-child(1) {--k: 0; --sz: 4.80px; --a: 0.940;}
+.fs-comets i:nth-child(2) {--k: 1; --sz: 4.64px; --a: 0.862;}
+.fs-comets i:nth-child(3) {--k: 2; --sz: 4.47px; --a: 0.787;}
+.fs-comets i:nth-child(4) {--k: 3; --sz: 4.31px; --a: 0.713;}
+.fs-comets i:nth-child(5) {--k: 4; --sz: 4.15px; --a: 0.642;}
+.fs-comets i:nth-child(6) {--k: 5; --sz: 3.99px; --a: 0.573;}
+.fs-comets i:nth-child(7) {--k: 6; --sz: 3.82px; --a: 0.506;}
+.fs-comets i:nth-child(8) {--k: 7; --sz: 3.66px; --a: 0.442;}
+.fs-comets i:nth-child(9) {--k: 8; --sz: 3.50px; --a: 0.381;}
+.fs-comets i:nth-child(10) {--k: 9; --sz: 3.34px; --a: 0.323;}
+.fs-comets i:nth-child(11) {--k: 10; --sz: 3.17px; --a: 0.268;}
+.fs-comets i:nth-child(12) {--k: 11; --sz: 3.01px; --a: 0.217;}
+.fs-comets i:nth-child(13) {--k: 12; --sz: 2.85px; --a: 0.169;}
+.fs-comets i:nth-child(14) {--k: 13; --sz: 2.69px; --a: 0.126;}
+.fs-comets i:nth-child(15) {--k: 14; --sz: 2.52px; --a: 0.089;}
+.fs-comets i:nth-child(16) {--k: 15; --sz: 2.36px; --a: 0.059;}
+.fs-comets i:nth-child(17) {--k: 16; --sz: 2.20px; --a: 0.040;}
+
 
 /* Satellite: drawn once into its own layer, then only moved. */
 [data-testid="stApp"]::before {will-change: transform;}
@@ -1106,3 +1094,13 @@ div.fs-step {cursor: default;}
 .fs-stars i:nth-child(17) {left: 60.4%; top: 9.2%; --s: 3px; --c: #BFD7FF; animation-duration: 13.3s; animation-delay: -0.7s;}
 .fs-stars i:nth-child(18) {left: 59.0%; top: 32.7%; --s: 2px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -15.2s;}
 @media (prefers-reduced-motion: reduce) {.fs-stars {display: none;}}
+
+/* ---------- Smoothness pass 2 (Nov 15) ----------
+   The last continuous repaints: the assistant's orb animated a gradient angle (repaint
+   every frame); now the gradient is still and the orb turns (compositor only, same look).
+   The logo's leaves swayed as SVG shapes (repaint every frame); the logo still floats. */
+.fs-faq-orb {background: conic-gradient(#4F8BFF, #BFD7FF, #0B3D91, #4F8BFF) !important;
+             animation: fs-spin 4s linear infinite !important; will-change: transform;}
+.fs-faq-orb::after {animation: fs-spin 4s linear infinite reverse;}   /* keeps the inner disc still */
+@keyframes fs-spin {to {transform: rotate(360deg);}}
+.fs-hero summary > svg path {animation: none !important;}
