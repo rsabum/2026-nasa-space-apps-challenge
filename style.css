@@ -77,7 +77,7 @@ h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--
 
 /* ---------- Hero ---------- */
 .fs-hero {display: flex; align-items: center; gap: 20px; padding: 0 0 22px 0;}
-.fs-hero svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
+.fs-hero summary > svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .35);}
 .fs-hero-title {font-weight: 800; font-size: 2.7rem; line-height: 1.12; letter-spacing: -0.04em;
                 background: linear-gradient(90deg, #FFFFFF 0%, #B9CCFF 55%, #E4EEFF 100%);
@@ -302,20 +302,20 @@ a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); 
 /* ---------- Logo: idle float ----------
    The whole logo drifts up and down slowly while its glow breathes,
    and the two sprout leaves sway a little, out of step with each other. */
-.fs-hero svg {animation: fs-float 6s ease-in-out infinite;}
+.fs-hero summary > svg {animation: fs-float 6s ease-in-out infinite;}
 @keyframes fs-float {
     0%, 100% {transform: translateY(0) rotate(0deg);
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 26px rgba(79, 139, 255, .30), 0 14px 22px rgba(2, 5, 20, .45);}
     50%      {transform: translateY(-7px) rotate(-1.5deg);
               box-shadow: 0 0 0 1px var(--border-glow), 0 0 40px rgba(79, 139, 255, .50), 0 24px 30px rgba(2, 5, 20, .30);}
 }
-.fs-hero svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
-.fs-hero svg path:first-of-type {transform-origin: right bottom;}
-.fs-hero svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
+.fs-hero summary > svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
+.fs-hero summary > svg path:first-of-type {transform-origin: right bottom;}
+.fs-hero summary > svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
 @keyframes fs-sway {50% {transform: rotate(-6deg);}}
 /* Respect people who turn animations off in their system settings. */
 @media (prefers-reduced-motion: reduce) {
-    .fs-hero svg, .fs-hero svg path, .fs-live i {animation: none;}
+    .fs-hero summary > svg, .fs-hero summary > svg path, .fs-live i {animation: none;}
 }
 
 /* ---------- Logo directory (click the logo) ---------- */
@@ -931,7 +931,7 @@ div.fs-step {cursor: default;}
 
 /* Logo: float by moving only (its glow stays put); no more animated shadows. */
 @keyframes fs-float {0%, 100% {transform: translateY(0) rotate(0deg);} 50% {transform: translateY(-7px) rotate(-1.5deg);}}
-.fs-hero svg {will-change: transform;
+.fs-hero summary > svg {will-change: transform;
     box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .38), 0 18px 26px rgba(2, 5, 20, .4);}
 
 /* Title and field map: still (their gradients were repainted continuously). */
@@ -1028,3 +1028,51 @@ div.fs-step {cursor: default;}
 .st-key-fs_endnav [data-testid="stColumn"] {flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;}
 .st-key-fs_endnav [data-testid="stColumn"]:empty,
 .st-key-fs_endnav [data-testid="stColumn"]:last-child:not(:has([data-testid="stPageLink-NavLink"])) {display: none;}
+
+/* ---------- Shooting stars above the top bar (Nov 15) ----------
+   .fs-shoot is a zero-height marker placed just before the top bar; its .fs-shoot-sky strip
+   hangs above it (the empty space under Streamlit's header) and scrolls away with the page.
+   Each star is a fading tail with a glowing head; it is visible for about a tenth of its
+   cycle, so they come one at a time, every few seconds. Transform/opacity only (smooth). */
+.fs-shoot {position: relative; height: 0; pointer-events: none;}
+.fs-shoot-sky {position: absolute; left: -3%; right: -3%; bottom: 6px; height: 118px; overflow: hidden;
+               pointer-events: none;
+               -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+                       mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);}
+.fs-shoot-sky::before {content: ""; position: absolute; inset: 0;        /* faint twinkling stars */
+  background:
+    radial-gradient(1.2px 1.2px at 12% 38%, rgba(230, 233, 245, .8), transparent),
+    radial-gradient(1px 1px at 27% 70%, rgba(191, 215, 255, .7), transparent),
+    radial-gradient(1.4px 1.4px at 41% 22%, rgba(230, 233, 245, .85), transparent),
+    radial-gradient(1px 1px at 58% 61%, rgba(191, 215, 255, .6), transparent),
+    radial-gradient(1.3px 1.3px at 73% 30%, rgba(230, 233, 245, .8), transparent),
+    radial-gradient(1px 1px at 86% 74%, rgba(191, 215, 255, .7), transparent),
+    radial-gradient(1.2px 1.2px at 94% 18%, rgba(230, 233, 245, .75), transparent);
+  animation: fs-twinkle 4.5s ease-in-out infinite alternate;}
+@keyframes fs-twinkle {from {opacity: .35;} to {opacity: .9;}}
+.fs-shoot-sky i {position: absolute; width: 150px; height: 1.6px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, rgba(191, 215, 255, 0), rgba(191, 215, 255, .5) 65%, #fff);
+  transform-origin: 100% 50%; will-change: transform, opacity;
+  animation: fs-shoot var(--d) cubic-bezier(.25, .1, .55, 1) var(--delay) infinite;}
+.fs-shoot-sky i::after {content: ""; position: absolute; right: -2px; top: 50%; width: 4px; height: 4px;
+  margin-top: -2px; border-radius: 50%; background: #fff;
+  box-shadow: 0 0 6px 2px rgba(191, 215, 255, .9), 0 0 16px 5px rgba(79, 139, 255, .45);}
+.fs-shoot-sky i:nth-child(1) {left: 6%;  top: 16px; --dx: 430px; --dy: 72px; --a: 9.5deg;  --d: 9s;  --delay: 1.2s;}
+.fs-shoot-sky i:nth-child(2) {left: 44%; top: 6px;  --dx: 370px; --dy: 58px; --a: 8.9deg;  --d: 12s; --delay: 4.6s;}
+.fs-shoot-sky i:nth-child(3) {left: 24%; top: 38px; --dx: 320px; --dy: 44px; --a: 7.8deg;  --d: 15s; --delay: 8.1s;}
+.fs-shoot-sky i:nth-child(4) {left: 63%; top: 12px; --dx: 350px; --dy: 66px; --a: 10.7deg; --d: 11s; --delay: 2.9s;}
+@keyframes fs-shoot {
+  0%       {opacity: 0; transform: translate(0, 0) rotate(var(--a)) scaleX(.15);}
+  2%       {opacity: 1;}
+  8%       {opacity: 1; transform: translate(var(--dx), var(--dy)) rotate(var(--a)) scaleX(1);}
+  11%, 100% {opacity: 0; transform: translate(calc(var(--dx) * 1.22), calc(var(--dy) * 1.22)) rotate(var(--a)) scaleX(.5);}
+}
+@media (prefers-reduced-motion: reduce) {
+  .fs-shoot-sky i {display: none;}
+  .fs-shoot-sky::before {animation: none;}
+}
+
+/* "Jump to" directory icons: line icons in the app's accent, like the page menu and crop icons. */
+.fs-dir-icon {color: #BFD7FF; transition: color .15s ease, background .15s ease, border-color .15s ease;}
+.fs-dir-svg {width: 18px; height: 18px; display: block;}
+a.fs-dir-link:hover .fs-dir-icon {color: #fff; background: var(--blue-soft); border-color: var(--border-glow);}

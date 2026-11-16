@@ -825,8 +825,54 @@ def anchor(name):
 # The logo doubles as a directory of the open page: click it and a panel lists its parts.
 # Links jump within the page only (a plain link to another page would reload the app and
 # lose your inputs; the page menu in the left panel switches pages safely).
+
+# Line icons for the logo's "Jump to" directory, drawn like the crop icons (24px grid,
+# 1.6 stroke in currentColor, light duotone fill) so they match the rest of the app.
+_DIR = _ICON.replace('class="fs-crop-icon"', 'class="fs-dir-svg"')
+DIR_SVG = {
+    "tools": _DIR.format(   # compass
+        f'<circle cx="12" cy="12" r="9" {_DUO}/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" '
+        'fill="currentColor" fill-opacity=".55"/><path d="M12 3v1.7M12 19.3V21M3 12h1.7M19.3 12H21"/>'),
+    "satellite": _DIR.format(
+        f'<path d="M12 7.6l4.4 4.4-4.4 4.4L7.6 12z" {_DUO}/>'
+        '<path d="M9.8 9.8L7.4 7.4M14.2 14.2l2.4 2.4"/>'
+        f'<path d="M2.6 6.6l4-4 3.2 3.2-4 4zM14.2 18.2l4-4 3.2 3.2-4 4z" {_DUO}/>'
+        '<path d="M15.6 3.6a4.8 4.8 0 0 1 4.8 4.8"/>'),
+    "chart": _DIR.format(
+        '<path d="M3.5 20.5h17"/>'
+        f'<rect x="5" y="11" width="3.2" height="7.5" rx=".8" {_DUO}/>'
+        f'<rect x="10.4" y="5.5" width="3.2" height="13" rx=".8" {_DUO}/>'
+        f'<rect x="15.8" y="13.5" width="3.2" height="5" rx=".8" {_DUO}/>'),
+    "sources": _DIR.format(   # a stack of data
+        f'<ellipse cx="12" cy="5.6" rx="7" ry="2.6" {_DUO}/>'
+        '<path d="M5 5.6v12.8c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6V5.6M5 12c0 1.4 3.1 2.6 7 2.6s7-1.2 7-2.6"/>'),
+    "fields": _DIR.format(   # plots on a field map
+        f'<rect x="3" y="3.5" width="18" height="17" rx="2.5" {_DUO}/>'
+        '<path d="M12.8 3.5v17M3 11.6h9.8M12.8 14.2H21"/>'),
+    "rotation": _DIR.format(   # a cycle that repeats
+        '<path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/>'
+        '<path d="M17.6 3.2v3.6H14M6.4 20.8v-3.6H10"/>'
+        f'<circle cx="12" cy="12" r="2.4" {_DUO}/>'),
+    "money": _DIR.format(
+        f'<circle cx="12" cy="12" r="9" {_DUO}/>'
+        '<path d="M14.8 9.3c-.4-1-1.5-1.7-2.8-1.7-1.6 0-2.8.8-2.8 2.1 0 2.9 5.8 1.5 5.8 4.4 '
+        '0 1.3-1.3 2.2-3 2.2-1.4 0-2.6-.7-3-1.8M12 6v1.6M12 16.3V18"/>'),
+    "table": _DIR.format(
+        f'<rect x="3" y="4" width="18" height="16" rx="2.5" {_DUO}/>'
+        '<path d="M3 9.2h18M3 14.5h18M9.2 9.2V20"/>'),
+    "goal": _DIR.format(   # target
+        f'<circle cx="12" cy="12" r="9" {_DUO}/><circle cx="12" cy="12" r="5.2"/>'
+        '<circle cx="12" cy="12" r="1.6" fill="currentColor"/>'),
+    "limits": _DIR.format(   # sliders
+        '<path d="M4 6.5h9.6M18.4 6.5H20M4 12h4.6M13.4 12H20M4 17.5h1.6M10.4 17.5H20"/>'
+        f'<circle cx="16" cy="6.5" r="2.3" {_DUO}/><circle cx="11" cy="12" r="2.3" {_DUO}/>'
+        f'<circle cx="8" cy="17.5" r="2.3" {_DUO}/>'),
+    "star": _DIR.format(
+        f'<path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1.1 5.9L12 16.6l-5.3 2.8 1.1-5.9-4.3-4.1 5.9-.8z" {_DUO}/>'),
+}
+
 SETUP_GROUP = ("Set up", "In the left panel (open it with » if hidden)", [
-    ("fields", "🗺️", "Your fields", "Acres, soil, irrigation, last crop"),
+    ("fields", "fields", "Your fields", "Acres, soil, irrigation, last crop"),
 ])
 
 
@@ -835,7 +881,7 @@ def directory_html(logo, groups):
     out = ""
     for title, note, items in groups:
         links = "".join(
-            f'<a class="fs-dir-link" href="#{anchor_id}"><span class="fs-dir-icon">{icon}</span>'
+            f'<a class="fs-dir-link" href="#{anchor_id}"><span class="fs-dir-icon">{DIR_SVG.get(icon, icon)}</span>'
             f'<span><b>{name}</b><small>{desc}</small></span></a>'
             for anchor_id, icon, name, desc in items)
         out += (f'<div class="fs-dir-group"><div class="fs-dir-head">{title}'
@@ -864,7 +910,10 @@ def page_header(crumb, title, tag, groups, compact=False):
     pages the top bar starts with a "Home" button: a real Streamlit page link, so going
     back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
-    show_html('<div class="fs-comets" aria-hidden="true"><i></i><i></i><i></i></div>')   # background comets (style.css)
+    # Background comets, and shooting stars in the strip of sky above the top bar (style.css).
+    show_html('<div class="fs-comets" aria-hidden="true"><i></i><i></i><i></i></div>'
+              '<div class="fs-shoot" aria-hidden="true"><div class="fs-shoot-sky">'
+              '<i></i><i></i><i></i><i></i></div></div>')
     if crumb == "Home":
         show_html('<div class="fs-topbar">'
                   f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'

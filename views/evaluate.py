@@ -11,10 +11,10 @@ ui.page_header(
     "Rotation evaluator", "Rotation evaluator",
     "Enter what you plan to plant. We test it on every growing season since 1981.",
     [("On this page", "Enter and test", [
-        ("rotation", "🌽", "Your rotation", "Enter what you plan to plant"),
-        ("numbers", "💵", "Key numbers", "Profit, water shortfall, soil health"),
-        ("backtest", "🛰️", "NASA weather test", "Every season, 1981–2024"),
-        ("details", "📋", "Numbers behind it", "Field-by-field table"),
+        ("rotation", "rotation", "Your rotation", "Enter what you plan to plant"),
+        ("numbers", "money", "Key numbers", "Profit, water shortfall, soil health"),
+        ("backtest", "satellite", "NASA weather test", "Every season, 1981–2024"),
+        ("details", "table", "Numbers behind it", "Field-by-field table"),
     ]), ui.SETUP_GROUP], compact=True)
 
 ctx = ui.farm_ready()

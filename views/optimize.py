@@ -13,12 +13,12 @@ ui.page_header(
     "Rotation optimizer", "Rotation optimizer",
     "Pick one objective and your constraints. We try every legal rotation and test the best one.",
     [("On this page", "Find a better plan", [
-        ("goal", "🎯", "Your objective", "The one thing the plan goes after"),
-        ("constraints", "📏", "Constraints", "Rotation length, limits, ground rules"),
-        ("recommendation", "⭐", "Recommended plan", "The optimizer's pick, and Use this rotation"),
-        ("numbers", "💵", "Key numbers", "Profit, water shortfall, soil health"),
-        ("backtest", "🛰️", "NASA weather test", "Every season, 1981–2024"),
-        ("details", "📋", "Numbers behind the plan", "Field-by-field table"),
+        ("goal", "goal", "Your objective", "The one thing the plan goes after"),
+        ("constraints", "limits", "Constraints", "Rotation length, limits, ground rules"),
+        ("recommendation", "star", "Recommended plan", "The optimizer's pick, and Use this rotation"),
+        ("numbers", "money", "Key numbers", "Profit, water shortfall, soil health"),
+        ("backtest", "satellite", "NASA weather test", "Every season, 1981–2024"),
+        ("details", "table", "Numbers behind the plan", "Field-by-field table"),
     ]), ui.SETUP_GROUP], compact=True)
 
 ctx = ui.farm_ready()

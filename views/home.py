@@ -8,10 +8,10 @@ ui.page_header(
     "Home", "Field Shift",
     "Test your crop rotation against 44 seasons of NASA weather, then see if there's a better one.",
     [("On this page", "Start here", [
-        ("tools", "🧭", "Two tools", "Test your rotation, or find the best one"),
-        ("how", "🛰️", "How it works", "From your fields to a tested plan"),
-        ("glance", "📊", "Your farm at a glance", "Today's numbers, in one line"),
-        ("sources", "📚", "Data sources", "Where every number comes from"),
+        ("tools", "tools", "Two tools", "Test your rotation, or find the best one"),
+        ("how", "satellite", "How it works", "From your fields to a tested plan"),
+        ("glance", "chart", "Your farm at a glance", "Today's numbers, in one line"),
+        ("sources", "sources", "Data sources", "Where every number comes from"),
     ]), ui.SETUP_GROUP])
 
 # ---------- The two tools ----------
