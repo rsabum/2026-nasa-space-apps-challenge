@@ -121,7 +121,7 @@
 
   var scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x8fc3ff, 120, 260);
-  var camera = new THREE.PerspectiveCamera(DATA.big ? 40 : 45, 1, 0.5, 600);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.5, 600);
   camera.position.set(62, 48, 70);
   var controls = new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(0, 0, 0);
@@ -132,9 +132,11 @@
   controls.maxDistance = 190;
   controls.enablePan = !!DATA.big;
   controls.enableZoom = !!DATA.big;
-  controls.autoRotate = true;
-  controls.autoRotateSpeed = 0.35;
-  renderer.domElement.addEventListener("pointerdown", function () { controls.autoRotate = false; });
+  // The slow spin is worked out from the clock (frame), so the small panel and full screen
+  // face the same way. Once the farmer drags, this view is theirs.
+  var userMoved = false, CAM_R = Math.hypot(62, 70), CAM_Y = 48, CAM_A0 = Math.atan2(70, 62);
+  renderer.domElement.addEventListener("pointerdown", function () { userMoved = true; });
+  renderer.domElement.addEventListener("wheel", function () { userMoved = true; }, {passive: true});
 
   function resize() {
     var w = view.clientWidth || 300, h = view.clientHeight || 250;
@@ -570,7 +572,7 @@
   }
 
   // ------------------------------------------------------------ day / night
-  var hour = 13, autoTime = false;
+  var hour = 13;
 
   // ------------------------------------------------------------ sky conditions (for looks only)
   // Every so often the "auto sky" picks new weather and a new time of day and eases into it.
@@ -583,8 +585,23 @@
     {name: "Rain", icon: "🌧", cloud: 1, rain: 1, w: 1}
   ];
   var HOURS = [6.4, 8.5, 11, 13, 15.5, 17.2, 18.6, 21.5, 23.5];   // dawn ... night
-  var skyNow = {cloud: 0, rain: 0}, skyGoal = SKIES[0], hourGoal = null;
-  var nextChange = performance.now() + 14000;
+  var skyNow = {cloud: 0, rain: 0};
+  // The schedule comes from the clock, not from chance, so every copy of the farm (the small
+  // panel and full screen) shows the same sky and time at the same moment: a new slot every
+  // 30 s, eased in over the first 7 s.
+  var SLOT = 30000, EASE = 7000;
+  function hash(k, salt) { var x = Math.sin(k * 127.1 + salt * 311.7) * 43758.5453; return x - Math.floor(x); }
+  function skyRaw(k) {
+    var total = SKIES.reduce(function (a, q) { return a + q.w; }, 0), x = hash(k, 1) * total;
+    for (var i = 0; i < SKIES.length; i++) { x -= SKIES[i].w; if (x <= 0) return i; }
+    return 0;
+  }
+  function skyAt(k) { var i = skyRaw(k); return SKIES[i === skyRaw(k - 1) ? (i + 1) % SKIES.length : i]; }
+  function hourRaw(k) { return Math.floor(hash(k, 2) * HOURS.length); }
+  function hourAt(k) {
+    var i = hourRaw(k), p = hourRaw(k - 1);
+    return HOURS[Math.abs(HOURS[i] - HOURS[p]) < 1.5 ? (i + 3) % HOURS.length : i];
+  }
 
   // Clouds: puffy clusters drifting high over the farm.
   var cloudMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 1, flatShading: true,
@@ -600,7 +617,7 @@
     var ca = crand() * Math.PI * 2, cr = 60 + crand() * 100;     // a ring toward the horizon, in view
     cg.position.set(Math.cos(ca) * cr, 24 + crand() * 16, Math.sin(ca) * cr);
     cg.scale.setScalar(0.8 + crand() * 0.7);
-    cg.userData.speed = 1.5 + crand() * 2;
+    cg.userData.speed = 1.5 + crand() * 2; cg.userData.x0 = cg.position.x;
     cg.visible = false; scene.add(cg); clouds.push(cg);
   }
   // Rain: short falling streaks over the farm.
@@ -615,35 +632,20 @@
   var rain = new THREE.LineSegments(rainGeo, rainMat);
   rain.visible = false; rain.frustumCulled = false; scene.add(rain);
 
-  function pickSky() {                              // weighted, and never the same twice in a row
-    var opts = SKIES.filter(function (k) { return k !== skyGoal; });
-    var total = opts.reduce(function (a, k) { return a + k.w; }, 0), x = Math.random() * total;
-    for (var i = 0; i < opts.length; i++) { x -= opts[i].w; if (x <= 0) return opts[i]; }
-    return opts[0];
-  }
+  var skyEased = false;
   function updateSky(now, dt) {
-    if (!autoTime && now > nextChange) {
-      skyGoal = pickSky();
-      var h = HOURS.filter(function (x) { return Math.abs(x - hour) > 1.5; });
-      hourGoal = h[Math.floor(Math.random() * h.length)];
-      nextChange = now + 22000 + Math.random() * 18000;     // every 22-40 s
+    var t = Date.now(), k = Math.floor(t / SLOT), f = Math.min(1, (t - k * SLOT) / EASE);
+    if (f < 1 || !skyEased) {                       // only work while easing (and once at the start)
+      var e = f * f * (3 - 2 * f), from = skyAt(k - 1), to = skyAt(k), h0 = hourAt(k - 1), h1 = hourAt(k);
+      skyNow.cloud = from.cloud + (to.cloud - from.cloud) * e;
+      skyNow.rain = from.rain + (to.rain - from.rain) * e;
+      setHour(h0 + ((h1 - h0 + 24) % 24) * e);      // time only moves forward, like a real day
+      skyEased = f >= 1;
     }
-    var k = Math.min(1, dt * 0.35), moved = false;  // weather fades over a few seconds
-    ["cloud", "rain"].forEach(function (key) {
-      var d = skyGoal[key] - skyNow[key];
-      if (Math.abs(d) > 0.002) { skyNow[key] += d * k; moved = true; }
-    });
-    if (hourGoal !== null) {                        // time only moves forward, like a real day
-      var ahead = (hourGoal - hour + 24) % 24;
-      if (ahead < 0.05) { hourGoal = null; }
-      else { setHour(hour + Math.min(ahead, dt * 1.6 * Math.max(0.25, Math.min(1, ahead / 1.5)))); moved = false; }
-    }
-    if (moved) setHour(hour);
     // Clouds drift; rain falls.
     var c = skyNow.cloud;
     clouds.forEach(function (g, i) {
-      g.position.x += g.userData.speed * dt * (0.6 + c);
-      if (g.position.x > 170) g.position.x = -170;
+      g.position.x = ((g.userData.x0 + g.userData.speed * Date.now() / 1000 + 170) % 340 + 340) % 340 - 170;
       g.visible = c > 0.03 && (i / clouds.length) < 0.25 + c;
     });
     rain.visible = skyNow.rain > 0.02;
@@ -708,9 +710,13 @@
     b.addEventListener("click", onClick); ui.appendChild(b); return b;
   }
   for (var y = 0; y < DATA.years; y++) {
-    (function (yy) { yearBtns.push(chip("Y" + (yy + 1), function () { playing = false; playBtn.classList.remove("on"); pick(yy); })); })(y);
+    (function (yy) { yearBtns.push(chip("Y" + (yy + 1), function () { setPlaying(false, 0, 0); pick(yy); share(); })); })(y);
   }
-  var playBtn = chip("▶", function () { playing = !playing; playBtn.classList.toggle("on", playing); lastSwap = performance.now(); });
+  var playT0 = 0, playY0 = 0;
+  var playBtn = chip("▶", function () {
+    setPlaying(!playing, Date.now(), year); share();
+  });
+  function setPlaying(on, t0, y0) { playing = on; playT0 = t0; playY0 = y0; playBtn.classList.toggle("on", on); }
   playBtn.title = "Play through the rotation";
   function setView(v) {
     mode = v;
@@ -724,13 +730,13 @@
       var vbox = document.createElement("div"); vbox.className = "views"; ui.appendChild(vbox);
       VIEWS.forEach(function (v) {
         var b = document.createElement("button"); b.className = "chip"; b.textContent = v[1]; b.dataset.v = v[0];
-        b.addEventListener("click", function () { setView(v[0]); }); vbox.appendChild(b); viewBtns.push(b);
+        b.addEventListener("click", function () { setView(v[0]); share(); }); vbox.appendChild(b); viewBtns.push(b);
       });
       viewBtns[0].classList.add("on");
     } else {                                         // small panel: one chip that cycles
       cycleView = chip("◐ Crops", function () {
         var i = VIEWS.map(function (x) { return x[0]; }).indexOf(mode);
-        setView(VIEWS[(i + 1) % VIEWS.length][0]);
+        setView(VIEWS[(i + 1) % VIEWS.length][0]); share();
       });
       cycleView.title = "Colour the fields by water stress, profit or soil health";
     }
@@ -742,6 +748,38 @@
     yearBtns.forEach(function (b, i) { b.classList.toggle("on", i === y); });
     plant(y);
   }
+
+  // ------------------------------------------------------------ keep both windows in step
+  // The small panel and full screen are separate pages (two iframes). Year, view and play are
+  // shared through localStorage + BroadcastChannel (same origin), so opening full screen shows
+  // the same farm as the panel behind it, and changes in either show in the other.
+  var SYNC_KEY = "fs3d-state", bc = null, lastSeen = null;
+  try { bc = new BroadcastChannel("fs3d"); } catch (e) {}
+  function share() {
+    var st = {year: year, mode: mode, playing: playing, t0: playT0, y0: playY0, years: DATA.years};
+    lastSeen = JSON.stringify(st);
+    try { localStorage.setItem(SYNC_KEY, lastSeen); } catch (e) {}
+    try { bc && bc.postMessage(st); } catch (e) {}
+  }
+  function adopt(st) {
+    if (!st || st.years !== DATA.years) return;      // a different rotation length: ignore
+    if (st.mode && st.mode !== mode && (st.mode === "crops" || ST)) {
+      mode = st.mode;
+      viewBtns.forEach(function (b) { b.classList.toggle("on", b.dataset.v === mode); });
+      if (cycleView) cycleView.textContent = "◐ " + VIEWS.filter(function (x) { return x[0] === mode; })[0][1];
+    }
+    setPlaying(!!st.playing, st.t0 || 0, st.y0 || 0);
+    pick(playing ? playYear() : Math.min(st.year || 0, DATA.years - 1));
+  }
+  function playYear() { return (playY0 + Math.floor((Date.now() - playT0) / 2600)) % DATA.years; }
+  if (bc) bc.onmessage = function (e) { adopt(e.data); };
+  window.addEventListener("storage", function (e) { if (e.key === SYNC_KEY) { try { lastSeen = e.newValue; adopt(JSON.parse(e.newValue)); } catch (x) {} } });
+  // Fallback for browsers that don't deliver those events between iframes: look every 0.7 s.
+  setInterval(function () {
+    var v = null;
+    try { v = localStorage.getItem(SYNC_KEY); } catch (e) { return; }
+    if (v && v !== lastSeen) { lastSeen = v; try { adopt(JSON.parse(v)); } catch (e) {} }
+  }, 700);
 
   // ------------------------------------------------------------ field info card (hover / tap)
   var card = document.getElementById("card"), ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
@@ -814,8 +852,10 @@
   }
   document.addEventListener("visibilitychange", function () { visible = !document.hidden; });
   resize();
-  setHour(DATA.big ? 16.5 : 13);
-  pick(0);
+  updateSky(performance.now(), 0);
+  var saved = null;
+  try { lastSeen = localStorage.getItem(SYNC_KEY); saved = JSON.parse(lastSeen || "null"); } catch (e) {}
+  if (saved && saved.years === DATA.years) adopt(saved); else pick(0);
   function frame(now) {
     requestAnimationFrame(frame);
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
@@ -825,9 +865,12 @@
     uniforms.uGrow.value = 0.08 + 0.92 * (1 - Math.pow(1 - g, 3));
     var shortTarget = mode === "crops" ? 1 : 0.35;
     uniforms.uShort.value += (shortTarget - uniforms.uShort.value) * Math.min(1, dt * 6);
-    if (playing && now - lastSwap > 2600) { lastSwap = now; pick((year + 1) % DATA.years); }
-    if (autoTime) setHour(hour + dt * 0.9);
+    if (playing) { var py = playYear(); if (py !== year) pick(py); }
     updateSky(now, dt);
+    if (!userMoved) {                               // the clock-driven spin, same in both windows
+      var ang = CAM_A0 + Date.now() / 1000 * 0.037;
+      camera.position.set(controls.target.x + Math.cos(ang) * CAM_R, CAM_Y, controls.target.z + Math.sin(ang) * CAM_R);
+    }
     controls.update();
     renderer.render(scene, camera);
   }
