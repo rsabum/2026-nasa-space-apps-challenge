@@ -52,6 +52,8 @@ Planning docs (claude.ai, shared with the team):
 | `model.py` | Robert's optimizer, "Enumerate, Simulate, Assign": every rotation of the chosen length per field (4 crops × yes/no rye cover after each year: 4,096 at 4 years, 32,768 at 5, built in chunks), filtered by `rules.py`, scored by table lookups into `crop_sim.py`, then a PuLP integer program picks one per field. Gurobi when licensed, else CBC (`FIELD_SHIFT_SOLVER=gurobi\|cbc` forces one) |
 | `crop_sim.py` | Stage 1 crop model: daily soil-water bucket (FAO-56) + FAO-33 yield, with irrigation and rye's spring water draw, precomputed per (soil, crop, rye before, irrigated, year) |
 | `synthetic_data.py` | Synthetic stand-in for Tebit's data (weather 1981–2024 with POWER column names, crops, rotation effects, soils, site). `python synthetic_data.py` writes `data/synthetic/*.csv` + README as the format spec |
+| `real_data.py` | The real-data structure: `data/real/` holds the same 5 files as `data/synthetic/`. `validate()` / `status()` / `load_data()` (derives year/doy and ET0: FAO-56 Penman–Monteith, else Hargreaves). Commands: `python real_data.py check`, `fetch-weather` (NASA POWER 1981–2024; solar radiation is missing before 1984, so those days are estimated from temperature, FAO-56 eq. 50, and marked `rs_estimated`), `templates` |
+| `data/real/` | The real tables, **used as-is since Nov 15, so the app runs on real data by default** (5 of 5 ✓). All five come from the data team: weather = NASA POWER daily (their file, using their column names `precip_mm`, `eto_mm`…, which the loader accepts; matches POWER exactly, ET0 within 0.2% of ours), plus crops, rotation effects, soils, site. Also `nass_yields_fetched.csv` (Champaign County NASS yields 2001–2023, not loaded by the app; for validation). README.md = column/units/source spec. The team's `check/` folder and `templates/` were removed (`python real_data.py templates` recreates the examples). **All or nothing:** the app switches only when all 5 are present and valid |
 | `check_model.py` | `python check_model.py`: 43 checks, incl. MILP = brute force on a 2-field farm for every goal, on both solvers. Keep it passing |
 | `requirements-gurobi.txt` | `gurobipy` for Robert's Mac only; kept out of requirements.txt (unlicensed pip gurobipy is capped at 2,000 variables, so the cloud uses CBC) |
 | `assets/logo.svg`, `assets/icon.png` | Our original logo (classical column with three flutes and a sprout). Nov 15: recoloured to the theme: NASA-blue gradient tile, mint / blue / NASA-red gradient flutes, mint-to-blue sprout, sharper corners. icon.png is rendered from the SVG (`qlmanage -t -s 256`, corners masked with Pillow). |
@@ -98,6 +100,9 @@ The app uses the real `model.py` (`import model` at the top of ui.py). The old `
 
 ## Gotchas
 
+- **The validator rejects two weather-pipeline mistakes** (both happened in the data team's first file): 30+ identical days in a row (e.g. 1981–1983 solar radiation filled with 15.0: POWER has no daily solar data before 1984; estimate it with FAO-56 eq. 50), and a supplied ET0 outside 85–115% of FAO-56 Penman–Monteith from the file's own columns (theirs was 61%). It also accepts the team's column names (`precip_mm`, `eto_mm`, …: `real_data.WEATHER_ALIASES`).
+- **Which data is the app on?** `model._default_data()`: real files from `data/real/` (or `FIELD_SHIFT_DATA_DIR`) once all 5 validate, else synthetic. `FIELD_SHIFT_DATA=synthetic` forces sample data, `=real` insists (error lists what's missing). It's cached on the files' modification times, so new files apply on the next click. The top-bar pill, backtest caption, Data sources note and the assistant all read `model.data_source()`. `check_model.py` always pins itself to synthetic.
+
 - To turn on AI answers: create `.streamlit/secrets.toml` with `ANTHROPIC_API_KEY = "..."` (never commit it). On Streamlit Cloud, paste the same line into the app's Secrets settings.
 - AppTest can't rerun after clicking the assistant's buttons either (same segmented-control limitation); test it by setting `faq_history` + `faq_pending` before a fresh run.
 
@@ -119,7 +124,7 @@ The app uses the real `model.py` (`import model` at the top of ui.py). The old `
 
 Done Nov 15: the farmer enters their own rotation; Robert's real `model.py` is in; the app is three pages; 2–5 year cycles; absolute constraints; drought switch removed.
 
-1. Swap in Tebit's CSVs: a loader returning the same dict as `synthetic_data.load_data()` (format in `data/synthetic/README.md`), passed as `data`.
+1. Real data is in, used as-is for now (Nov 15). The four hand-made tables still lack per-value sources. Next: validate the simulated yield swings against de-trended NASS county yields (`data/real/nass_yields_fetched.csv` covers 2001–2023; extend the pull back to 1981 to include 1988). Base-yield note: soybeans 62.5 bu is a bit below NASS 2019–23 (~67); sorghum has no Champaign County data. In real POWER data the driest May–Sep season is 1988 (231 mm), not 2012 (369 mm; 2012 was mostly heat).
 2. Trade-off chart from `solve_pareto` on the optimizer page.
 3. Show rye cover on the rotation tiles, and carry it over on "Use this rotation" (today it copies crops only).
 4. More goals if wanted (MOTAD, least nitrogen, fewest changes): one entry in model.py's goal map + contract.GOALS / DEFAULT_LIMITS / GOAL_OWN_LIMITS.

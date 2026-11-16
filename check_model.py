@@ -5,14 +5,22 @@ for every goal, the MILP's answer equals a brute-force search over every pair of
 rotations (unpruned), with and without limits, on each available solver.
 """
 import os
+import shutil
+import tempfile
 import time
+from pathlib import Path
 
 import numpy as np
 
-import model
-from contract import (BACKTEST_COLUMNS, CONSTRAINTS, DEFAULT_LIMITS, FARM, GOALS, PLAN_COLUMNS,
-                      WORST_SHARE, baseline_plan)
-from rules import rule_problems
+# These checks are about the model on known (synthetic) numbers, whatever is in data/real/.
+os.environ["FIELD_SHIFT_DATA"] = "synthetic"
+
+import model  # noqa: E402
+import real_data  # noqa: E402
+import synthetic_data  # noqa: E402
+from contract import (BACKTEST_COLUMNS, CONSTRAINTS, DEFAULT_LIMITS, FARM, GOALS,  # noqa: E402
+                      PLAN_COLUMNS, WORST_SHARE, baseline_plan)
+from rules import rule_problems  # noqa: E402
 
 RESULTS = []
 
@@ -234,8 +242,97 @@ for L in (2, 4):
 check("production ranges only for allowed crops",
       set(model.limit_ranges(FARM, None, "average", {**CONSTRAINTS, "allowed_crops": ["corn", "soybeans"]})["production_min"]) <= {"corn", "soybeans"})
 
-# ---------------------------------------------------------------- 10. timing
-print("10. Timing: what one app rerun costs (solve + evaluate + 2 backtests)")
+# ---------------------------------------------------------------- 10. real-data structure
+print("10. Real-data structure (real_data.py): validate, load, switch")
+tmp = Path(tempfile.mkdtemp(prefix="fieldshift_real_"))
+try:
+    syn = synthetic_data.load_data()
+    for table, name in synthetic_data.FILES.items():
+        syn[table].to_csv(tmp / name, index=False)
+    problems, _ = real_data.validate(tmp)
+    check("synthetic tables saved as 'real' files validate cleanly", not any(problems.values()),
+          "; ".join(p for ps in problems.values() for p in ps))
+    loaded = real_data.load_data(tmp)
+    use_solver(solvers()[0])
+    a = model.solve(FARM, None, "max_profit", "average", dict(CONSTRAINTS))
+    b = model.solve(FARM, loaded, "max_profit", "average", dict(CONSTRAINTS))
+    check("loaded through real_data: same plan and numbers",
+          model.table_to_plan(a) == model.table_to_plan(b) and abs(a["profit_usd"].sum() - b["profit_usd"].sum()) <= 2)
+    check("…and the same backtest", model.backtest(baseline_plan(FARM), FARM)["total_profit_usd"]
+          .sub(model.backtest(baseline_plan(FARM), FARM, loaded)["total_profit_usd"]).abs().max() <= 1)
+
+    # The switch: all or nothing, automatic, with an override.
+    os.environ["FIELD_SHIFT_DATA_DIR"] = str(tmp)
+    os.environ["FIELD_SHIFT_DATA"] = "auto"
+    check("auto + all 5 valid files -> real data", model.data_source()["kind"] == "real")
+    os.environ["FIELD_SHIFT_DATA"] = "synthetic"
+    check("FIELD_SHIFT_DATA=synthetic forces the sample data", model.data_source()["kind"] == "synthetic")
+    os.environ["FIELD_SHIFT_DATA"] = "auto"
+    (tmp / synthetic_data.FILES["crops"]).rename(tmp / "crops_away.csv")
+    st = real_data.status(tmp)
+    check("one file missing -> 4 of 5 ready, not complete", len(st["ready"]) == 4 and not st["complete"])
+    check("…and auto stays on the sample data (all or nothing)", model.data_source()["kind"] == "synthetic")
+    os.environ["FIELD_SHIFT_DATA"] = "real"
+    try:
+        model._default_data()
+        check("FIELD_SHIFT_DATA=real with a missing file raises a clear error", False)
+    except real_data.RealDataError as e:
+        check("FIELD_SHIFT_DATA=real with a missing file raises a clear error", "crops.csv is missing" in str(e), str(e)[:80])
+    (tmp / "crops_away.csv").rename(tmp / synthetic_data.FILES["crops"])
+
+    # Clear messages for bad files.
+    syn["crops"][syn["crops"]["crop"] != "sorghum"].to_csv(tmp / synthetic_data.FILES["crops"], index=False)
+    syn["weather"][syn["weather"]["year"] != 2012].to_csv(tmp / synthetic_data.FILES["weather"], index=False)
+    problems, _ = real_data.validate(tmp)
+    check("crops without sorghum -> named in the message", any("sorghum" in p for p in problems["crops"]),
+          problems["crops"][0] if problems["crops"] else "")
+    check("weather without 2012 -> named in the message", any("2012" in p for p in problems["weather"]),
+          problems["weather"][0] if problems["weather"] else "")
+
+    # ET0 is derived when a weather file doesn't have it.
+    syn["crops"].to_csv(tmp / synthetic_data.FILES["crops"], index=False)
+    syn["weather"].drop(columns=["ET0"]).to_csv(tmp / synthetic_data.FILES["weather"], index=False)
+    derived = real_data.load_data(tmp)["weather"]["ET0"].to_numpy()
+    rel = np.abs(derived - syn["weather"]["ET0"].to_numpy()).max() / syn["weather"]["ET0"].max()
+    check("missing ET0 -> recomputed from temperature (Hargreaves)", rel < 0.01, f"max difference {rel:.2%}")
+    pm = float(real_data.et0_penman_monteith(np.array(30.0), np.array(18.0), np.array(70.0), np.array(2.0),
+                                             np.array(22.0), np.array(196), 40.1, 220))
+    check("Penman-Monteith on a typical July day gives 4-7 mm", 4 <= pm <= 7, f"{pm:.2f} mm/day")
+
+    # Problems the data team's first real weather file had: caught with clear messages.
+    w = syn["weather"].copy()
+    lat = float(syn["site"]["lat"].iloc[0])
+    ra = synthetic_data._extraterrestrial_radiation(lat, w["doy"]) / 0.408
+    w["RH2M"] = 70.0 + 10 * np.sin(w["doy"] / 9.0)            # varying, like real data
+    w["WS2M"] = 2.0 + 0.5 * np.cos(w["doy"] / 7.0)
+    w["ALLSKY_SFC_SW_DWN"] = (0.16 * np.sqrt((w["T2M_MAX"] - w["T2M_MIN"]).clip(lower=0)) * ra).round(2)
+    w["ET0"] = real_data.et0_penman_monteith(w["T2M_MAX"], w["T2M_MIN"], w["RH2M"], w["WS2M"],
+                                             w["ALLSKY_SFC_SW_DWN"], w["doy"], lat).round(3)
+    weather_path = tmp / synthetic_data.FILES["weather"]
+    w.to_csv(weather_path, index=False)
+    check("weather with ET0 = FAO-56 Penman-Monteith -> no ET0 warning",
+          not real_data.validate(tmp)[0]["weather"], "; ".join(real_data.validate(tmp)[0]["weather"]))
+    w.assign(ET0=w["ET0"] * 0.6).to_csv(weather_path, index=False)
+    msg = real_data.validate(tmp)[0]["weather"]
+    check("ET0 at 60% of Penman-Monteith -> flagged with the percentage",
+          any("ET0 averages 60%" in m for m in msg), msg[0] if msg else "")
+    flat = w.copy()
+    flat.loc[flat["year"] <= 1983, "ALLSKY_SFC_SW_DWN"] = 15.0
+    flat.to_csv(weather_path, index=False)
+    msg = real_data.validate(tmp)[0]["weather"]
+    check("constant solar radiation 1981-1983 -> flagged as a placeholder",
+          any("constant 15" in m and "1981-1983" in m for m in msg), msg[0] if msg else "")
+    team = w.rename(columns={v: k for k, v in real_data.WEATHER_ALIASES.items()})
+    team.to_csv(weather_path, index=False)
+    check("the data team's column names (precip_mm, eto_mm, ...) are accepted",
+          not real_data.validate(tmp)[0]["weather"] and "PRECTOTCORR" in real_data.load_data(tmp)["weather"])
+finally:
+    os.environ["FIELD_SHIFT_DATA"] = "synthetic"
+    os.environ.pop("FIELD_SHIFT_DATA_DIR", None)
+    shutil.rmtree(tmp, ignore_errors=True)
+
+# ---------------------------------------------------------------- 11. timing
+print("11. Timing: what one app rerun costs (solve + evaluate + 2 backtests)")
 for name in solvers():
     use_solver(name)
     model._candidates_cached.cache_clear()

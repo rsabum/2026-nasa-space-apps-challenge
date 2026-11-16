@@ -1,0 +1,17 @@
+prev_crop,crop,yield_mult,n_credit_lb,notes
+soybeans,corn,1.0,0,Baseline rotated corn; 40 lb soybean N credit already included in $774 UIUC budget
+corn,corn,0.9,-35,Continuous corn penalty (~10% yield drag; +35 lb/ac extra N required relative to budget)
+winter_wheat,corn,1.02,20,Wheat harvest allows summer soil recharge/clover credit (+20 lb N saved vs budget)
+sorghum,corn,0.92,-25,Grass-on-grass residue tie-up (+25 lb/ac extra N required)
+corn,soybeans,1.0,0,Standard Central Illinois corn-soybean rotation baseline
+soybeans,soybeans,0.88,0,Continuous soybean yield drag (~12% due to SCN/SDS disease buildup)
+winter_wheat,soybeans,1.03,0,"Full-season soybeans after wheat (~3% yield bump, lower pathogen pressure)"
+sorghum,soybeans,1.0,0,Added missing pair: grass-to-legume rotation baseline
+corn,winter_wheat,1.0,0,Added missing pair: corn to winter wheat baseline
+soybeans,winter_wheat,1.02,15,Timely seeding after soybean harvest (+15 lb N credit)
+winter_wheat,winter_wheat,0.9,0,Added missing pair: continuous wheat disease/yield penalty
+sorghum,winter_wheat,1.0,0,Added missing pair: sorghum to winter wheat baseline
+corn,sorghum,0.95,-15,Added missing pair: grass-on-grass sorghum after corn
+soybeans,sorghum,1.0,20,"Legume N credit to sorghum (+20 lb N saved, conservative end of 20-40 lb range)"
+winter_wheat,sorghum,0.95,0,Added missing pair: wheat to sorghum sequence
+sorghum,sorghum,0.88,-25,Added missing pair: continuous sorghum yield/N penalty

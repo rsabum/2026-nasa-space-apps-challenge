@@ -66,6 +66,6 @@ with st.container(key="card_test"):
                    f"The driest was {a['driest']}.")
     with chart_col:
         st.plotly_chart(ui.backtest_chart(bt), key="bt_mine")
-        st.caption(ui.BACKTEST_CAPTION)
+        st.caption(ui.backtest_caption())
 
 ui.details_table(a["table"], "See the numbers behind your rotation")

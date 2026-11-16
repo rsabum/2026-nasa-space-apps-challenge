@@ -142,6 +142,11 @@ def make_weather(seed=2026, lat=FARM["lat"], first=FIRST_YEAR, last=LAST_YEAR):
     })
 
 
+# The five tables and their file names. Real data uses the same names (see real_data.py).
+FILES = {"weather": "weather_daily.csv", "crops": "crops.csv",
+         "rotation_effects": "rotation_effects.csv", "soils": "soils.csv", "site": "site.csv"}
+
+
 def load_data(seed=2026):
     """All tables, in the shape model.py expects (Tebit's loader should return the same)."""
     crops = pd.DataFrame(CROPS_TABLE)
@@ -176,15 +181,13 @@ if __name__ == "__main__":
     out = Path(__file__).parent / "data" / "synthetic"
     out.mkdir(parents=True, exist_ok=True)
     d = load_data()
-    names = {"weather": "weather_daily.csv", "crops": "crops.csv",
-             "rotation_effects": "rotation_effects.csv", "soils": "soils.csv", "site": "site.csv"}
-    for key, name in names.items():
+    for key, name in FILES.items():
         d[key].to_csv(out / name, index=False)
     (out / "README.md").write_text(README)
     w = d["weather"]
     season = w[(w["doy"] >= SITE["season_start_doy"]) & (w["doy"] <= SITE["season_end_doy"])]
     by_year = season.groupby("year")["PRECTOTCORR"].sum()
-    print(f"Wrote {len(names)} tables to {out}")
+    print(f"Wrote {len(FILES)} tables to {out}")
     print(f"Growing-season rain (May-Sep): mean {by_year.mean():.0f} mm, "
           f"driest {by_year.idxmin()} ({by_year.min():.0f} mm), wettest {by_year.idxmax()} ({by_year.max():.0f} mm)")
     print(f"Annual rain: mean {w.groupby('year')['PRECTOTCORR'].sum().mean():.0f} mm; "

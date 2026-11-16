@@ -1,0 +1,2 @@
+lat,lon,elevation_m,n_price_usd_per_lb,rye_cost_usd_per_acre,rye_soil_points,rye_spring_draw_mm,irrigation_capacity_mm_per_day,irrigation_cost_usd_per_acre_in,season_start_doy,season_end_doy
+40.1,-88.2,209,0.55,45,5,25,6,5.0,121,273

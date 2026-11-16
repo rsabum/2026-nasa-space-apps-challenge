@@ -282,8 +282,8 @@ def faq_context(farm, mine, rec):
         "your_profitable_seasons": f"{int((bt['total_profit_usd'] > 0).sum())} of {len(bt)}",
         "your_toughest_season": f"{int(worst['year'])} ({money(worst['total_profit_usd'])})",
         "driest_season": mine["driest"],
-        "data_status": ("the optimizer is real, but it runs on synthetic sample weather and crop "
-                        "data until the NASA POWER data is connected"),
+        "data_status": data_note(plain=True),
+        "data_short": ("" if model.data_source()["kind"] == "real" else "Sample numbers for now."),
     }
     if rec:
         rp, rw, rs = totals(rec["table"])
@@ -760,7 +760,7 @@ def page_header(crumb, title, tag, groups, compact=False):
         '<div class="fs-topbar">'
         f'<div class="fs-crumb">Field Shift<span>›</span><b>{crumb}</b></div>'
         f'<div class="fs-status"><span class="fs-live"><i></i>Lat {FARM["lat"]} · Lon {FARM["lon"]}</span>'
-        '<span class="fs-live">Sample data</span></div></div>'
+        f'<span class="fs-live" title="{html.escape(data_note(plain=True))}">{data_label()}</span></div></div>'
         f'<div class="fs-hero{" fs-hero-compact" if compact else ""}">' + directory_html(logo, groups) +
         '<div><div class="fs-hero-sub">NASA <em>climate</em>-powered crop rotation planner</div>'
         f'<div class="fs-hero-title">{title}</div>'
@@ -906,10 +906,35 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
     return fig
 
 
-BACKTEST_CAPTION = ("Press ▶ Replay to watch the seasons play out one by one, or drag the slider "
-                    "to any year. Bottom panel: growing-season rain (May–Sep), dotted line = "
-                    "average, :red[red] = driest quarter of seasons, :blue[blue] = wettest. "
-                    "Sample weather until the NASA POWER data is connected.")
+def backtest_caption():
+    """The caption under every backtest chart; its last sentence says which weather it is."""
+    weather = ("Weather: NASA POWER, from your real data files." if model.data_source()["kind"] == "real"
+               else "Sample weather until the real data is in (see Data sources on Home).")
+    return ("Press ▶ Replay to watch the seasons play out one by one, or drag the slider "
+            "to any year. Bottom panel: growing-season rain (May–Sep), dotted line = "
+            "average, :red[red] = driest quarter of seasons, :blue[blue] = wettest. " + weather)
+
+
+def data_label():
+    """The top-bar pill: which data the numbers come from."""
+    return "Real data" if model.data_source()["kind"] == "real" else "Sample data"
+
+
+def data_note(plain=False):
+    """One or two sentences on which data is in use and, if sample, how far the real data is.
+    `plain=True` drops the formatting (for tooltips and the assistant)."""
+    src = model.data_source()
+    if src["kind"] == "real":
+        return "All numbers come from the real data files in data/real/."
+    if src["mode"] == "synthetic":
+        return "Sample data: FIELD_SHIFT_DATA=synthetic is set, so the real data files are ignored."
+    names = {"weather": "weather", "crops": "crops", "rotation_effects": "rotation effects",
+             "soils": "soils", "site": "site"}
+    marks = ", ".join(f"{names[t]} {'✓' if t in src['ready'] else '✗'}" for t in names)
+    cmd = "python real_data.py check" if plain else "<code>python real_data.py check</code>"
+    return (f"Sample numbers for now: the optimizer is real, but the data is synthetic. Real data: "
+            f"{len(src['ready'])} of 5 tables ready ({marks}); the app switches when all 5 are "
+            f"in data/real/. Run {cmd} to see what's missing.")
 
 
 def details_table(table, title):
@@ -943,8 +968,7 @@ def sources_html():
         f'<div><a href="{url}" target="_blank">{name} ↗</a><div class="fs-src-note">{note}</div></div></div>'
         for icon, name, url, nasa, note in SOURCES)
     return (f'<div id="sources" class="fs-sources"><div class="fs-sources-title">Data sources</div>{rows}'
-            '<div class="fs-src-sample">Sample numbers for now: the optimizer is real, but it runs on '
-            'synthetic weather and crop data until the NASA POWER data is connected.</div></div>')
+            f'<div class="fs-src-sample">{data_note()}</div></div>')
 
 
 def footer():

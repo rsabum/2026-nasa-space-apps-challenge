@@ -66,8 +66,8 @@ Rules:
 answers under about 120 words unless they ask for more.
 - Use only the numbers given in "Current screen" below. Never invent yields, prices or \
 results. If a number isn't there, say the app doesn't show it.
-- The numbers are sample values until the real NASA POWER data and optimizer are connected; \
-mention that if someone treats them as final.
+- "data_status" in Current screen says whether the numbers come from real data files or the \
+synthetic sample data; if it's sample data, mention that when someone treats them as final.
 - You explain and guide; you can't change settings yourself. Tell them which control to use.
 - If asked something unrelated to farming or this app, briefly steer back to what you can help with."""
 
@@ -118,7 +118,7 @@ def offline_answer(question, ctx):
                f"a year** and made money in **{ctx['recommended_profitable_seasons']}** seasons."
                if "recommended_profit_per_year" in ctx else "")
         return (mine + rec + "\n\nWatch any of them season by season with **▶ Replay** in "
-                "**Tested on NASA weather**. *(Sample numbers for now.)*")
+                "**Tested on NASA weather**." + (f" *({ctx['data_short']})*" if ctx.get("data_short") else ""))
     if has("enter", "edit", "change my", "my rotation", "plant", "type in", "input"):
         return ("Open the **Rotation evaluator** page (menu at the top of the left panel). First "
                 "pick your **Rotation length** (2 to 5 years before it repeats), then **click any "
@@ -133,11 +133,11 @@ def offline_answer(question, ctx):
                 "order.\n\nTo plan for drought, pick **Least water** or **Best bad-year profit** "
                 "as your objective on the **Rotation optimizer**, or set a water-shortfall limit.")
     if has("nasa", "data", "source", "power", "satellite", "soil survey", "where"):
-        return ("Weather is **NASA POWER**: monthly rain, temperature, sunlight and soil "
-                "wetness for your farm's location since 1981. Soil comes from USDA Web Soil "
-                "Survey, past crops from CropScape, and county yields from USDA NASS to "
-                "sanity-check the model. Links are under **Data sources** on the Home page.\n\n"
-                "*Sample values are shown until the NASA data is connected.*")
+        return ("Weather is **NASA POWER**: daily rain, temperature, humidity, wind and sunshine "
+                "for your farm's location since 1981. Soil comes from USDA Web Soil Survey, "
+                "prices and county yields from USDA NASS, and costs from farm budgets. Links are "
+                "under **Data sources** on the Home page.\n\n"
+                f"*{ctx['data_status']}*")
     if has("test", "backtest", "1981", "history", "replay", "season", "chart", "graph", "ring"):
         return ("Every rotation is run against each real season from 1981 to 2024. The ring "
                 f"shows how many seasons it made money (yours: **{ctx['your_profitable_seasons']}**). "

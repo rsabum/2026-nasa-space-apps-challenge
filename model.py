@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 import pulp
 
+import real_data
 import synthetic_data
 from contract import (BACKTEST_COLUMNS, GOAL_OWN_LIMITS, GOALS, LIMIT_LABELS, PLAN_COLUMNS,
                       WORST_SHARE, baseline_plan)
@@ -45,12 +46,51 @@ def _synthetic():
     return synthetic_data.load_data()
 
 
+def _data_mode():
+    """FIELD_SHIFT_DATA: "auto" (default: real when complete), "real", or "synthetic"."""
+    mode = os.environ.get("FIELD_SHIFT_DATA", "auto").strip().lower()
+    return mode if mode in ("auto", "real", "synthetic") else "auto"
+
+
+_DATA = {}
+
+
+def _default_data():
+    """The data the app runs on when no `data` is passed. All or nothing: the real tables
+    (real_data.py, data/real/) once all five are present and valid, else the synthetic ones.
+    Cached until a file in the real-data folder changes, so new files apply on the next click."""
+    mode = _data_mode()
+    key = (mode, real_data.signature())
+    if key not in _DATA:
+        if mode == "synthetic":
+            data = _synthetic()
+        elif mode == "real":
+            data = real_data.load_data()            # raises RealDataError listing what's missing
+        else:
+            data = real_data.load_data() if real_data.status()["complete"] else _synthetic()
+        _DATA.clear()
+        _DATA[key] = data
+    return _DATA[key]
+
+
+def data_source():
+    """Which data the app is on, for honest labels: {"kind": "real" | "synthetic", "mode",
+    "ready": [tables], "problems": {table: [..]}, "folder"}."""
+    s = real_data.status()
+    try:
+        kind = _default_data().get("source", "synthetic")
+    except real_data.RealDataError:
+        kind = "missing"
+    return {"kind": kind, "mode": _data_mode(), "ready": s["ready"], "problems": s["problems"],
+            "folder": s["folder"]}
+
+
 _PREPARED = {}
 
 
 def _prep(data):
     """The crop model and lookup arrays for a dataset, built once and reused."""
-    data = _synthetic() if data is None else data
+    data = _default_data() if data is None else data
     if id(data) not in _PREPARED:
         _PREPARED[id(data)] = (data, Prepared(data))   # keep `data` alive so its id stays unique
     return _PREPARED[id(data)][1]
@@ -684,4 +724,4 @@ def table_to_covers(table):
 
 
 __all__ = ["evaluate", "solve", "solve_pareto", "backtest", "table_to_plan", "table_to_covers",
-           "baseline_plan", "pick_solver", "limit_ranges"]
+           "baseline_plan", "pick_solver", "limit_ranges", "data_source"]

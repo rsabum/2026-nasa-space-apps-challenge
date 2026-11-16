@@ -111,6 +111,6 @@ with st.container(key="card_test"):
                    f"{ui.money(best['total_profit_usd'])}. The driest was {r['driest']}.")
     with chart_col:
         st.plotly_chart(ui.backtest_chart(bt, name="Recommended rotation"), key="bt_rec")
-        st.caption(ui.BACKTEST_CAPTION)
+        st.caption(ui.backtest_caption())
 
 ui.details_table(plan_table, "See the numbers behind the plan")
