@@ -13,7 +13,7 @@ the deploy has to come from your account. It takes about five minutes.
    | Field | Value |
    |---|---|
    | Repository | `rsabum/2026-nasa-space-apps-challenge` |
-   | Branch | `robert` (the branch with this merge; or whichever branch you merge it into) |
+   | Branch | `main` |
    | Main file path | `app.py` |
    | App URL | anything short, e.g. `field-shift` |
    | Advanced settings → Python version | **3.11** |

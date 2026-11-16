@@ -32,11 +32,11 @@ Planning docs (claude.ai, shared with the team):
 
 ## Repo and setup
 
-- GitHub: `rsabum/2026-nasa-space-apps-challenge` (private, on Robert's personal account). I work on branch **`claude`**.
+- GitHub: `rsabum/2026-nasa-space-apps-challenge` (private, on Robert's personal account). I work on branch **`claude`**; Robert on **`robert`**. **`main`** holds the merged app and is the one to deploy (as of Nov 15 it matches `robert`).
 - Local: `~/2026-nasa-space-apps-challenge`, virtual environment `.venv`: on my Mac **Python 3.9.6**; on Robert's Mac Python 3.11 plus `pip install -r requirements-gurobi.txt` (his academic Gurobi license, `~/gurobi.lic`, expires 2027-02-01). Keep code Python 3.9-compatible (no `match`, no `X | Y` type hints).
 - Run: `source .venv/bin/activate` then `streamlit run app.py` (opens http://localhost:8501).
 - Save work: `git add .` then `git commit -m "message"` then `git push`.
-- **Deploy is parked.** Streamlit Community Cloud needs GitHub admin rights on the repo and I only have push access. Robert must deploy from his own Streamlit account (main file: `app.py` on branch `claude`, Python 3.11), or the repo moves to a GitHub organization.
+- **Deploy is parked.** Streamlit Community Cloud needs GitHub admin rights on the repo and I only have push access. Robert must deploy from his own Streamlit account (main file: `app.py` on branch **`main`**, Python 3.11; see DEPLOY.md), or the repo moves to a GitHub organization.
 
 ## Files
 
