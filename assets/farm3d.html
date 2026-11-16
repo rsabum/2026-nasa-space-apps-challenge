@@ -583,7 +583,7 @@
     {name: "Rain", icon: "🌧", cloud: 1, rain: 1, w: 1}
   ];
   var HOURS = [6.4, 8.5, 11, 13, 15.5, 17.2, 18.6, 21.5, 23.5];   // dawn ... night
-  var skyNow = {cloud: 0, rain: 0}, skyGoal = SKIES[0], hourGoal = null, autoSky = true, manualUntil = 0;
+  var skyNow = {cloud: 0, rain: 0}, skyGoal = SKIES[0], hourGoal = null;
   var nextChange = performance.now() + 14000;
 
   // Clouds: puffy clusters drifting high over the farm.
@@ -622,12 +622,11 @@
     return opts[0];
   }
   function updateSky(now, dt) {
-    if (autoSky && !autoTime && now > manualUntil && now > nextChange) {
+    if (!autoTime && now > nextChange) {
       skyGoal = pickSky();
       var h = HOURS.filter(function (x) { return Math.abs(x - hour) > 1.5; });
       hourGoal = h[Math.floor(Math.random() * h.length)];
       nextChange = now + 22000 + Math.random() * 18000;     // every 22-40 s
-      skyLabel();
     }
     var k = Math.min(1, dt * 0.35), moved = false;  // weather fades over a few seconds
     ["cloud", "rain"].forEach(function (key) {
@@ -658,15 +657,6 @@
       rainGeo.attributes.position.needsUpdate = true;
     }
   }
-  var skyBtn = null;
-  function skyLabel() {
-    if (!skyBtn) return;
-    var auto = autoSky && performance.now() > manualUntil;
-    skyBtn.textContent = skyGoal.icon + (DATA.big ? " " + skyGoal.name + (auto ? " · auto" : "") : "");
-    skyBtn.title = skyGoal.name + ". Click for the next sky. " + (auto ? "It also changes by itself every so often."
-                                                                       : "Auto changes resume in a minute or two.");
-  }
-  function holdSky() { manualUntil = performance.now() + 90000; hourGoal = null; nextChange = manualUntil; }
   var SKY_DAY = new THREE.Color(0x8fc3ff), SKY_DUSK = new THREE.Color(0xf09a62), SKY_NIGHT = new THREE.Color(0x0b1233);
   function setHour(h) {
     hour = (h + 24) % 24;
