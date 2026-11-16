@@ -911,7 +911,7 @@ def page_header(crumb, title, tag, groups, compact=False):
     back is instant and keeps everything the farmer entered (a plain link would reload)."""
     logo = (ASSETS / "logo.svg").read_text()
     # Background comets, and stars that gently appear and fade in the background (style.css).
-    show_html('<div class="fs-comets" aria-hidden="true"><i></i><i></i><i></i></div>'
+    show_html('<div class="fs-comets" aria-hidden="true">' + ("<span>" + "<i></i>" * 30 + "</span>") * 3 + '</div>'
               '<div class="fs-stars" aria-hidden="true">' + "<i></i>" * 18 + '</div>')
     if crumb == "Home":
         show_html('<div class="fs-topbar">'
@@ -1052,7 +1052,7 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
                                          line=dict(color="#0A0E1F", width=2))), row=1, col=1)
     marker = len(fig.data) - 1
 
-    driest_note = dict(x=driest + 0.6, y=0.995, xref="x", yref="paper", xanchor="left", yanchor="top",
+    driest_note = dict(x=driest, y=1.0, xref="x", yref="paper", xanchor="center", yanchor="bottom", yshift=2,   # just above the chart
                        showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11), **LABEL_BG)
     # Labels for the reference lines, and callouts on the best and toughest seasons of the
     # starring line (these appear in the replay once the line reaches them).
