@@ -1114,3 +1114,11 @@ div.fs-step {cursor: default;}
 .fs-src:hover .fs-src-icon {border-color: var(--border-glow); color: #fff;}
 /* The hidden page-fade helper takes no space. */
 .st-key-fs_fx {display: none !important;}
+
+/* "Jump to" directory icons: line icons in the app's accent, like the page menu and crop icons.
+   Explicit sizes (min/max too): an SVG with no size can collapse to nothing in a flex box. */
+.fs-dir-icon {color: #BFD7FF; transition: color .15s ease, background .15s ease, border-color .15s ease;}
+.fs-dir-svg {width: 18px !important; height: 18px !important; min-width: 18px; min-height: 18px;
+             display: block; flex: none; overflow: visible;}
+.fs-src-icon .fs-dir-svg {width: 19px !important; height: 19px !important; min-width: 19px; min-height: 19px;}
+a.fs-dir-link:hover .fs-dir-icon {color: #fff; background: var(--blue-soft); border-color: var(--border-glow);}

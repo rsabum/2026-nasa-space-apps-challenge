@@ -828,7 +828,7 @@ def anchor(name):
 
 # Line icons for the logo's "Jump to" directory, drawn like the crop icons (24px grid,
 # 1.6 stroke in currentColor, light duotone fill) so they match the rest of the app.
-_DIR = _ICON.replace('class="fs-crop-icon"', 'class="fs-dir-svg"')
+_DIR = _ICON.replace('class="fs-crop-icon"', 'class="fs-dir-svg" width="18" height="18"')   # sized in the markup too
 DIR_SVG = {
     "tools": _DIR.format(   # compass
         f'<circle cx="12" cy="12" r="9" {_DUO}/><path d="M15.6 8.4l-2.1 5.1-5.1 2.1 2.1-5.1z" '
