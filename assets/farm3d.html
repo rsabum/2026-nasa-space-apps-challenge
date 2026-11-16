@@ -425,7 +425,7 @@
 
   // Data views: colour each field by one model measure, red (worse) to green (better).
   var VIEWS = [["crops", "Crops"], ["water", "Water stress"], ["profit", "Profit"], ["soil", "Soil"]];
-  var view = "crops";
+  var mode = "crops";
   function metric(v, r, y) {
     var s = yr(r.f.name, y); if (!s) return null;
     if (v === "profit") return s.profit / r.f.acres;
@@ -508,11 +508,11 @@
         }
       }
       var lab = label(r.f.name + " · " + r.f.acres + " ac",
-                      view === "crops" ? "Year " + (year + 1) + " · " + DATA.labels[crop] : metricText(view, r, year));
+                      mode === "crops" ? "Year " + (year + 1) + " · " + DATA.labels[crop] : metricText(mode, r, year));
       lab.position.set((r.x0 + r.x1) / 2, 6.5, (r.z0 + r.z1) / 2);
       scene.add(lab); labels.push(lab);
-      sheets[fi].material.color.copy(view === "crops" ? WHITE : shade(view, r, year));
-      sheets[fi].visible = view !== "crops" && !!ST;
+      sheets[fi].material.color.copy(mode === "crops" ? WHITE : shade(mode, r, year));
+      sheets[fi].visible = mode !== "crops" && !!ST;
     });
     var dummy = new THREE.Object3D(), tint = new THREE.Color();
     Object.keys(byCrop).forEach(function (crop) {
@@ -555,8 +555,8 @@
           money(ST.farm.avg) + "/yr · profitable " + ST.farm.profitable + " of " + ST.farm.seasons + " seasons</span>";
       }
     }
-    if (view !== "crops" && ST) {
-      html += '<em class="whole"></em><span class="key">' + KEYS[view][0] + ' <i class="ramp"></i> ' + KEYS[view][1] + "</span>";
+    if (mode !== "crops" && ST) {
+      html += '<em class="whole"></em><span class="key">' + KEYS[mode][0] + ' <i class="ramp"></i> ' + KEYS[mode][1] + "</span>";
     } else if (ST && Object.keys(ST.fields).some(function (n) { return stressLook(n, year) > 0.15; })) {
       html += '<em class="whole"></em><span class="key" title="From the model: water the crop needed minus what rain and soil supplied">Yellowed, shorter plants = water stress</span>';
     }
@@ -611,7 +611,7 @@
   var playBtn = chip("▶", function () { playing = !playing; playBtn.classList.toggle("on", playing); lastSwap = performance.now(); });
   playBtn.title = "Play through the rotation";
   function setView(v) {
-    view = v;
+    mode = v;
     viewBtns.forEach(function (b) { b.classList.toggle("on", b.dataset.v === v); });
     if (cycleView) cycleView.textContent = "◐ " + VIEWS.filter(function (x) { return x[0] === v; })[0][1];
     plant(year);
@@ -627,7 +627,7 @@
       viewBtns[0].classList.add("on");
     } else {                                         // small panel: one chip that cycles
       cycleView = chip("◐ Crops", function () {
-        var i = VIEWS.map(function (x) { return x[0]; }).indexOf(view);
+        var i = VIEWS.map(function (x) { return x[0]; }).indexOf(mode);
         setView(VIEWS[(i + 1) % VIEWS.length][0]);
       });
       cycleView.title = "Colour the fields by water stress, profit or soil health";
@@ -729,7 +729,7 @@
     uniforms.uTime.value = now / 1000;
     var g = Math.min(1, (now - growStart) / 1300);
     uniforms.uGrow.value = 0.08 + 0.92 * (1 - Math.pow(1 - g, 3));
-    var shortTarget = view === "crops" ? 1 : 0.35;
+    var shortTarget = mode === "crops" ? 1 : 0.35;
     uniforms.uShort.value += (shortTarget - uniforms.uShort.value) * Math.min(1, dt * 6);
     if (playing && now - lastSwap > 2600) { lastSwap = now; pick((year + 1) % DATA.years); }
     if (autoTime) setHour(hour + dt * 0.9);
