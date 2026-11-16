@@ -74,6 +74,12 @@
   .card .rot em small {font-weight: 600; opacity: .8; margin-left: 3px;}
   .card .extra {display: none;}
   .big .card .extra {display: block;}
+  /* Small panel: tighter chips so the summary covers less of the farm (the water-stress note
+     lives in the caption under the panel and in full screen). */
+  body:not(.big) .summary {gap: 4px; top: 6px; left: 6px; right: 6px;}
+  body:not(.big) .summary b {font-size: 10px; padding: 2px 6px;}
+  body:not(.big) .summary span {font-size: 9px; padding: 1px 6px;}
+  body:not(.big) .summary .note-stress {display: none;}
   .msg {position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
         color: #A9B0CF; font-size: 12px; padding: 16px;}
 </style></head>
@@ -558,7 +564,7 @@
     if (mode !== "crops" && ST) {
       html += '<em class="whole"></em><span class="key">' + KEYS[mode][0] + ' <i class="ramp"></i> ' + KEYS[mode][1] + "</span>";
     } else if (ST && Object.keys(ST.fields).some(function (n) { return stressLook(n, year) > 0.15; })) {
-      html += '<em class="whole"></em><span class="key" title="From the model: water the crop needed minus what rain and soil supplied">Yellowed, shorter plants = water stress</span>';
+      html += '<em class="whole note-stress"></em><span class="key note-stress" title="From the model: water the crop needed minus what rain and soil supplied">Yellowed, shorter plants = water stress</span>';
     }
     document.getElementById("summary").innerHTML = html;
   }

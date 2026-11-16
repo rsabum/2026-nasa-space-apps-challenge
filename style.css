@@ -56,7 +56,7 @@
 }
 [data-testid="stHeader"] {background: transparent;}
 
-.block-container {padding-top: 2.6rem; padding-bottom: 3rem; max-width: 1220px;}
+.block-container {padding-top: 2.6rem; padding-bottom: 7rem; max-width: 1220px;}   /* room below for the assistant bubble */
 h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--text);}
 [data-testid="stCaptionContainer"] {color: var(--text-3);}
 
@@ -1001,3 +1001,30 @@ div.fs-step {cursor: default;}
 @media (prefers-reduced-motion: reduce) {
     [data-testid="stSidebarNavLink"]::after {animation: none !important;}
 }
+
+/* ---------- Layout tidy-up (Nov 15) ----------
+   Side-by-side cards and metric tiles are the same height, with the tool cards' buttons
+   lined up along the bottom; one divider (ours) between the page menu and "Your fields". */
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval),
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) {align-items: stretch;}
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {height: 100%;}
+/* Streamlit 1.50 puts a stLayoutWrapper between the column and the keyed container. */
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_eval),
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_opt),
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-m_"]) {flex: 1 1 auto; display: flex; flex-direction: column;}
+.st-key-card_tool_eval, .st-key-card_tool_opt {flex: 1 1 auto; height: 100%;}
+.st-key-card_tool_eval > :last-child, .st-key-card_tool_opt > :last-child {margin-top: auto;}
+[class*="st-key-m_"] {flex: 1 1 auto; height: 100%;}
+[class*="st-key-m_"] > [data-testid="stElementContainer"] {flex: 1 1 auto;}
+[class*="st-key-m_"] [data-testid="stMetric"] {height: 100%; box-sizing: border-box;}
+[data-testid="stSidebarNavSeparator"] {display: none !important;}
+/* Top bar on the tool pages: Home button, crumb and status pills on one centred line. */
+.st-key-fs_topnav [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {justify-content: center; height: 100%;}
+.st-key-fs_topnav [data-testid="stElementContainer"] {margin: 0 !important;}
+.st-key-fs_topnav .fs-crumb {line-height: 1; display: flex; align-items: center; min-height: 40px;}
+/* "Where next?": the two buttons side by side, evenly spaced, not stretched across columns. */
+.st-key-fs_endnav [data-testid="stHorizontalBlock"] {justify-content: flex-start; gap: 12px; flex-wrap: wrap;}
+.st-key-fs_endnav [data-testid="stColumn"] {flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;}
+.st-key-fs_endnav [data-testid="stColumn"]:empty,
+.st-key-fs_endnav [data-testid="stColumn"]:last-child:not(:has([data-testid="stPageLink-NavLink"])) {display: none;}

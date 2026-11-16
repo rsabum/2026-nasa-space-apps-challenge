@@ -60,10 +60,10 @@ with st.container(key="card_test"):
         worst = bt.loc[bt["total_profit_usd"].idxmin()]
         best = bt.loc[bt["total_profit_usd"].idxmax()]
         avg = bt["total_profit_usd"].mean()
-        st.caption(f"Each season is run on that year's actual weather. Average season: "
+        st.caption(ui.md_text(f"Each season is run on that year's actual weather. Average season: "
                    f"{ui.money(avg)}. Toughest: {int(worst['year'])} at {ui.money(worst['total_profit_usd'])}. "
                    f"Best: {int(best['year'])} at {ui.money(best['total_profit_usd'])}. "
-                   f"The driest was {a['driest']}.")
+                   f"The driest was {a['driest']}."))
     with chart_col:
         st.plotly_chart(ui.backtest_chart(bt), key="bt_mine")
         st.caption(ui.BACKTEST_CAPTION)

@@ -115,6 +115,10 @@ The app uses the real `model.py` (`import model` at the top of ui.py). The old `
 - Keep files at the top level of the repo, never inside `.venv/`.
 - `style.css` targets some Streamlit internals (`data-testid` names and `st-key-<key>` classes from `st.container(key=...)`). If a Streamlit upgrade breaks the look, check those selectors first.
 
+- **Dollar signs in st.caption / st.markdown / help text:** two `$` in one string are read as a maths formula and the text comes out garbled. Wrap such text in `ui.md_text(...)` (escapes them). HTML via `show_html` is unaffected.
+- **Equal-height columns:** Streamlit 1.50 puts a `stLayoutWrapper` between `stColumn > stVerticalBlock` and a keyed container; stretch that too (see "Layout tidy-up" at the bottom of style.css).
+- **Screenshots of the running app work** with headless Chrome plus `--use-angle=swiftshader --enable-unsafe-swiftshader --virtual-time-budget=40000 --screenshot=… --window-size=1440,2600 http://localhost:8501/evaluate` (retry if the first one after a restart comes back blank).
+
 ## What's next
 
 Done Nov 15: the farmer enters their own rotation; Robert's real `model.py` is in; the app is three pages; 2–5 year cycles; absolute constraints; drought switch removed.

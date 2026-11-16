@@ -551,7 +551,7 @@ def rotation_picker(farm, plan):
     cycle. Click a tile to open a small menu of crops; pick one to plant it there.
     Tiles and choices are coloured by cell_css() through their container keys."""
     years = len(next(iter(plan.values())))
-    widths = [1.1] + [1] * years
+    widths = [0.72] + [1] * years          # a slim field-name column, wide crop tiles
     head = st.columns(widths)
     head[0].markdown('<div class="rp-head">Field</div>', unsafe_allow_html=True)
     for t in range(years):
@@ -871,7 +871,7 @@ def page_header(crumb, title, tag, groups, compact=False):
                   + _status_html() + '</div>')
     else:
         with st.container(key="fs_topnav"):
-            back, where, status = st.columns([1, 2.6, 2.4], vertical_alignment="center", gap="small")
+            back, where, status = st.columns([0.8, 2.8, 2.4], vertical_alignment="center", gap="small")
             back.page_link(HOME_PAGE, label="Home", icon=":material/arrow_back:",
                            help="Back to the home page. Your fields, rotation and settings stay as they are.")
             with where:
@@ -899,6 +899,12 @@ def page_end_nav(current):
         home_col, other_col, _ = st.columns([1, 1.3, 1.2], gap="small")
         home_col.page_link(HOME_PAGE, label="Back to Home", icon=":material/home:")
         other_col.page_link(page, label=f"Open the {other.lower()}", icon=icon)
+
+
+def md_text(text):
+    """Text for st.caption / st.markdown with its dollar signs escaped: Streamlit reads
+    anything between two $ signs as a maths formula ("$46,397 ... $8,208" came out garbled)."""
+    return text.replace("$", "\\$")
 
 
 def money(v):
@@ -934,6 +940,10 @@ def ring_html(n, total, label):
             f'<div class="fs-stat-num">{n}<small> / {total}</small></div>'
             f'<div class="fs-stat-pct">{pct:.0f}% OF SEASONS</div></div></div>'
             f'<div class="fs-stat-label">{label}</div></div>')
+
+
+# A dark backing for chart labels, so they stay readable where they cross a line.
+LABEL_BG = dict(bgcolor="rgba(10,14,31,0.78)", borderpad=2)
 
 
 def backtest_chart(mine, rec=None, name="Your rotation"):
@@ -995,15 +1005,16 @@ def backtest_chart(mine, rec=None, name="Your rotation"):
     marker = len(fig.data) - 1
 
     driest_note = dict(x=driest + 0.6, y=0.995, xref="x", yref="paper", xanchor="left", yanchor="top",
-                       showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11))
+                       showarrow=False, text=f"Driest: {driest}", font=dict(color=DRY, size=11), **LABEL_BG)
     # Labels for the reference lines, and callouts on the best and toughest seasons of the
     # starring line (these appear in the replay once the line reaches them).
-    line_notes = [dict(x=1, xref="paper", xanchor="right", y=avg, yref="y", yanchor="bottom",
+    line_notes = [dict(x=0, xref="paper", xanchor="left", y=avg, yref="y", yanchor="bottom",
                        showarrow=False, text=f"average {money(avg)}",
-                       font=dict(color="rgba(191,215,255,0.75)", size=10))]
+                       font=dict(color="rgba(191,215,255,0.85)", size=10), **LABEL_BG)]
     if floor < 0 < top:
         line_notes.append(dict(x=0, xref="paper", xanchor="left", y=0, yref="y", yanchor="bottom",
-                               showarrow=False, text="break-even", font=dict(color="rgba(252,61,33,0.8)", size=10)))
+                               showarrow=False, text="break-even", font=dict(color="rgba(252,61,33,0.85)", size=10),
+                               **LABEL_BG))
     i_best = max(range(len(years)), key=lambda i: star_ys[i])
     i_worst = min(range(len(years)), key=lambda i: star_ys[i])
 
