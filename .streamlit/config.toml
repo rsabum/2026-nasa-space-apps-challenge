@@ -1,0 +1,14 @@
+[theme]
+base = "dark"
+primaryColor = "#BFD7FF"              # ice blue-white accent: sliders, checkboxes, the suggested plan
+backgroundColor = "#0A0E1F"           # page: deep-space navy (style.css adds stars + grid on top)
+secondaryBackgroundColor = "#1A2148"  # inputs, dropdowns, the rotation editor
+textColor = "#E6E9F5"                 # soft off-white
+borderColor = "#262F5E"
+font = "Inter, sans-serif"            # Inter itself is loaded at the top of style.css
+baseRadius = "1rem"                   # rounded corners on every built-in widget
+buttonRadius = "full"                 # pill-shaped buttons
+
+[theme.sidebar]
+backgroundColor = "#0E1430"
+secondaryBackgroundColor = "#1A2148"

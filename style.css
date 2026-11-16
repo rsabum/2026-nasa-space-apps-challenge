@@ -1,0 +1,1124 @@
+/* Field Shift: "mission control" theme. Deep-space navy, glassy indigo panels,
+   NASA blue + NASA red accents, ice blue-white for the recommendation.
+   Colours for Streamlit's own widgets live in .streamlit/config.toml,
+   which also names Inter as the font. The font files load here. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+/* ---------- Palette: change colours here, once ---------- */
+:root {
+    --bg: #0A0E1F;           /* page: deep-space navy */
+    --bg-2: #0E1430;         /* sidebar */
+    --card: #121838;         /* panels */
+    --raised: #1A2148;       /* boxes inside panels */
+    --border: #262F5E;
+    --border-glow: rgba(79, 139, 255, .28);
+    --text: #E6E9F5;         /* soft off-white: easier on the eyes than pure white */
+    --text-2: #A9B0CF;       /* secondary text */
+    --text-3: #7D86AD;       /* labels, captions */
+    --nasa-blue: #0B3D91;    /* the real NASA blue, for deep fills */
+    --blue: #4F8BFF;         /* NASA blue, brightened so it reads on dark */
+    --blue-soft: rgba(79, 139, 255, .14);
+    --red: #FC3D21;          /* NASA red: "hot" highlights, the driest season */
+    --red-soft: rgba(252, 61, 33, .14);
+    --accent: #BFD7FF;       /* ice blue-white: the recommendation */
+    --accent-soft: rgba(191, 215, 255, .13);
+    --warm: #F0A972;
+    --warm-soft: rgba(240, 169, 114, .13);
+    --on-crop: #141830;      /* text on the pastel crop colours */
+    --mono: 'JetBrains Mono', ui-monospace, monospace;   /* numbers and labels: the "instrument" look */
+    --r-card: 18px;          /* sharper than before: crisp, modern */
+    --r-box: 12px;
+    --r-tag: 6px;            /* small squared-off labels */
+    /* Gradients: reused everywhere so the page reads as one system. */
+    --grad-brand: linear-gradient(135deg, #4F8BFF 0%, #BFD7FF 100%);
+    --grad-hot: linear-gradient(135deg, #FF8A4C 0%, #FC3D21 100%);
+    --grad-text: linear-gradient(90deg, #FFFFFF 0%, #C9D7FF 100%);
+    --grad-edge: linear-gradient(135deg, rgba(79, 139, 255, .7) 0%, rgba(38, 47, 94, .55) 35%,
+                                 rgba(38, 47, 94, .55) 65%, rgba(191, 215, 255, .45) 100%);
+    --grad-panel: linear-gradient(160deg, rgba(30, 39, 86, .88) 0%, rgba(18, 24, 56, .88) 55%, rgba(13, 18, 44, .88) 100%);   /* a little see-through, so the rocket shows faintly behind */
+    --shadow: 0 1px 0 rgba(255, 255, 255, .05) inset, 0 16px 40px rgba(2, 5, 20, .55);
+}
+
+/* ---------- Page backdrop: a faint star field and a blueprint grid ---------- */
+[data-testid="stApp"] {
+    background:
+        radial-gradient(1200px 600px at 85% -10%, rgba(11, 61, 145, .45), transparent 60%),
+        radial-gradient(900px 500px at -10% 30%, rgba(252, 61, 33, .07), transparent 60%),
+        radial-gradient(1px 1px at 12% 18%, rgba(255, 255, 255, .5), transparent 50%),
+        radial-gradient(1px 1px at 38% 8%, rgba(255, 255, 255, .35), transparent 50%),
+        radial-gradient(1px 1px at 66% 22%, rgba(255, 255, 255, .4), transparent 50%),
+        radial-gradient(1px 1px at 88% 44%, rgba(255, 255, 255, .3), transparent 50%),
+        radial-gradient(1px 1px at 22% 62%, rgba(255, 255, 255, .25), transparent 50%),
+        linear-gradient(rgba(79, 139, 255, .035) 1px, transparent 1px) 0 0 / 48px 48px,
+        linear-gradient(90deg, rgba(79, 139, 255, .035) 1px, transparent 1px) 0 0 / 48px 48px,
+        var(--bg);
+    background-attachment: fixed;
+}
+[data-testid="stHeader"] {background: transparent;}
+
+.block-container {padding-top: 2.6rem; padding-bottom: 7rem; max-width: 1220px;}   /* room below for the assistant bubble */
+h1, h2, h3 {font-weight: 750 !important; letter-spacing: -0.025em; color: var(--text);}
+[data-testid="stCaptionContainer"] {color: var(--text-3);}
+
+/* ---------- Top bar (breadcrumb + live-data status) ---------- */
+.fs-topbar {display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+            background: rgba(18, 24, 56, .7); border: 1px solid var(--border); border-radius: 999px;
+            padding: 8px 10px 8px 20px; margin-bottom: 26px; backdrop-filter: blur(8px);}
+.fs-crumb {font-size: .82rem; color: var(--text-3); font-weight: 500;}
+.fs-crumb b {color: var(--text); font-weight: 600;}
+.fs-crumb span {margin: 0 8px; opacity: .6;}
+.fs-status {display: flex; gap: 8px; align-items: center; flex-wrap: wrap;}
+.fs-live {display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .72rem;
+          letter-spacing: .06em; text-transform: uppercase; color: var(--text-2);
+          background: var(--raised); border: 1px solid var(--border); border-radius: 999px; padding: 6px 12px;}
+.fs-live i {width: 7px; height: 7px; border-radius: 999px; background: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-soft), 0 0 10px var(--accent); animation: fs-pulse 2.4s ease-in-out infinite;}
+@keyframes fs-pulse {50% {opacity: .45;}}
+
+/* ---------- Hero ---------- */
+.fs-hero {display: flex; align-items: center; gap: 20px; padding: 0 0 22px 0;}
+.fs-hero summary > svg {width: 68px; height: 68px; flex: none; border-radius: 13px;
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .35);}
+.fs-hero-title {font-weight: 800; font-size: 2.7rem; line-height: 1.12; letter-spacing: -0.04em;
+                background: linear-gradient(90deg, #FFFFFF 0%, #B9CCFF 55%, #E4EEFF 100%);
+                -webkit-background-clip: text; background-clip: text; color: transparent;}
+.fs-hero-tag {color: var(--text-2); margin-top: 8px; font-size: 1rem;}
+.fs-hero-sub {font-family: var(--mono); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase;
+              font-weight: 700; color: var(--blue); margin-bottom: 6px;}
+.fs-hero-sub em {font-style: normal; color: var(--red);}
+.fs-hero-badges {margin-left: auto; align-self: center; display: flex; gap: 8px; flex-wrap: wrap;
+                 justify-content: flex-end;}
+.fs-badge {white-space: nowrap; font-size: .78rem; font-weight: 600; color: var(--text-2);
+           background: var(--raised); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px;}
+.fs-badge-data {color: #CFE0FF; background: linear-gradient(90deg, rgba(11, 61, 145, .7), rgba(79, 139, 255, .25));
+                border-color: var(--border-glow);}
+
+/* The four-step story strip, drawn as a connected "mission timeline". */
+.fs-flow {display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 24px 0; position: relative;}
+.fs-step {position: relative; display: flex; align-items: center; gap: 10px; font-size: .86rem; font-weight: 600;
+          color: var(--text); border: 1px solid transparent; border-radius: var(--r-box);
+          background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+          padding: 12px 14px; overflow: hidden;}
+.fs-step::after {content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+                 background: linear-gradient(90deg, var(--blue), transparent);}
+a.fs-step:nth-of-type(4)::after {background: linear-gradient(90deg, var(--accent), transparent);}
+.fs-step span {display: inline-flex; align-items: center; justify-content: center; flex: none; width: 26px; height: 26px;
+               border-radius: var(--r-tag); background: linear-gradient(135deg, #1A55C4, #0B3D91); color: #FFFFFF;
+               box-shadow: 0 0 12px rgba(79, 139, 255, .45);
+               font-family: var(--mono); font-size: .74rem; font-weight: 700;}
+a.fs-step:nth-of-type(4) span {background: var(--grad-brand); color: var(--bg); box-shadow: 0 0 12px rgba(191, 215, 255, .5);}
+.fs-arrow {display: none;}
+@media (max-width: 760px) {.fs-flow {grid-template-columns: 1fr 1fr;}}
+
+/* ---------- Section panels ---------- */
+/* Any container with a key starting "card_" is a panel (st.container(key="card_...")). */
+[class*="st-key-card_"] {
+    position: relative;
+    /* Two backgrounds: the panel fill inside, and a blue-to-ice gradient showing through
+       the transparent border. That's how CSS draws a gradient border with rounded corners. */
+    background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+    border: 1px solid transparent; border-radius: var(--r-card);
+    padding: 26px 28px 22px 28px; box-shadow: var(--shadow);}
+/* Section titles inside panels: white fading to pale NASA blue. */
+[class*="st-key-card_"] h3 {
+    background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
+/* A thin glowing line along the top edge of each panel. */
+[class*="st-key-card_"]::before {
+    content: ""; position: absolute; top: -1px; left: 28px; right: 28px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--blue), transparent); opacity: .8;}
+.st-key-card_plan::before {background: linear-gradient(90deg, transparent, var(--accent), transparent);}
+
+.fs-eyebrow {display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: .7rem;
+             letter-spacing: .1em; text-transform: uppercase; font-weight: 700; color: var(--blue);
+             background: var(--blue-soft); border: 1px solid var(--border-glow);
+             border-radius: var(--r-tag); padding: 5px 12px 5px 10px; margin-bottom: 2px;}
+.fs-eyebrow::before {content: ""; width: 3px; height: 12px; border-radius: 2px; background: var(--grad-brand);}
+.st-key-card_plan .fs-eyebrow {color: var(--accent); background: var(--accent-soft); border-color: rgba(191, 215, 255, .35);}
+
+
+/* The typical/dry switch: a glowing pill. */
+[data-testid="stButtonGroup"] button {border-radius: 999px !important; font-weight: 600;}
+[data-testid="stBaseButton-segmented_controlActive"] {
+    background: linear-gradient(90deg, var(--nasa-blue), var(--blue)) !important; color: #FFFFFF !important;
+    border-color: transparent !important; box-shadow: 0 0 18px rgba(79, 139, 255, .45);}
+
+/* ---------- "Why this plan" box ---------- */
+.fs-why {margin: 6px 0 6px 0; padding: 16px 20px; border-radius: var(--r-box); background: rgba(10, 14, 31, .55);
+         border: 1px solid var(--border); border-left: 3px solid var(--accent);
+         font-size: .95rem; line-height: 1.65; color: var(--text-2);}
+.fs-why b {color: var(--text);}
+.fs-why-title {font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase;
+               color: var(--accent); font-weight: 700; margin-bottom: 6px;}
+
+/* ---------- Rotation grid ---------- */
+.rg {display: grid; gap: 10px; margin: 10px 0 16px 0;}
+.rg-year {text-align: center; font-family: var(--mono); font-size: .7rem; letter-spacing: .1em;
+          text-transform: uppercase; font-weight: 500; color: var(--text-3); padding-bottom: 2px;}
+.rg-field {align-self: center; font-weight: 700; font-size: 1.02rem; color: var(--text);}
+.rg-cell {position: relative; overflow: hidden;
+          border-radius: var(--r-box); padding: 14px 8px 12px 8px; color: var(--on-crop);
+          display: flex; flex-direction: column; align-items: center; gap: 2px;
+          box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 6px 16px rgba(2, 5, 20, .35);
+          transition: transform .18s ease, box-shadow .18s ease;}
+.rg-cell:hover {transform: translateY(-3px);
+                box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 12px 28px rgba(2, 5, 20, .6);}
+/* A glassy sheen across each crop tile (light top-left, slight shade bottom-right). */
+.rg-cell::before {content: ""; position: absolute; inset: 0; pointer-events: none;
+                  background: linear-gradient(150deg, rgba(255, 255, 255, .38) 0%, rgba(255, 255, 255, 0) 45%,
+                                              rgba(10, 14, 31, 0) 60%, rgba(10, 14, 31, .16) 100%);}
+.rg-icon, .rg-name {position: relative;}
+.rg-icon {font-size: 1.45rem; line-height: 1.2;}
+.rg-name {font-weight: 650; font-size: .92rem;}
+
+/* ---------- Metric cards ---------- */
+[data-testid="stMetric"] {background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+                          border: 1px solid transparent; border-radius: var(--r-box);
+                          padding: 18px 22px 16px 22px; box-shadow: var(--shadow); position: relative; overflow: hidden;}
+[data-testid="stMetricLabel"] p {font-family: var(--mono); font-size: .72rem !important; letter-spacing: .06em;
+                                 text-transform: uppercase; color: var(--text-3);}
+[data-testid="stMetricValue"] {font-weight: 800; letter-spacing: -0.03em;}
+[data-testid="stMetricValue"] > div {background: var(--grad-text); -webkit-background-clip: text;
+                                     background-clip: text; color: transparent;}
+/* A glowing crop-coloured bar along the top of each card. */
+[data-testid="stMetric"]::before {content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;}
+.st-key-m_profit [data-testid="stMetric"]::before {background: linear-gradient(90deg, #F5C94C, transparent);}   /* corn gold: the cash crop */
+.st-key-m_water  [data-testid="stMetric"]::before {background: linear-gradient(90deg, var(--blue), transparent);}
+.st-key-m_soil   [data-testid="stMetric"]::before {background: linear-gradient(90deg, #6FD49B, transparent);}   /* soybean green: builds soil */
+
+/* ---------- Backtest headline: a ring gauge ---------- */
+.fs-stat {border: 1px solid var(--border); border-radius: var(--r-box); padding: 22px 16px 18px; text-align: center;
+          background: rgba(10, 14, 31, .55); margin-top: 8px;}
+.fs-ring {--pct: 50; position: relative; width: 168px; height: 168px; margin: 0 auto; border-radius: 50%;
+          /* The filled arc runs NASA blue -> ice white; the rest of the track stays faint. */
+          background:
+              conic-gradient(transparent calc(var(--pct) * 1%), rgba(79, 139, 255, .16) 0),
+              conic-gradient(#4F8BFF 0%, #BFD7FF calc(var(--pct) * 1%), transparent 0);
+          box-shadow: 0 0 34px rgba(191, 215, 255, .22);}
+/* Inner disc (makes it a ring) plus a thin second orbit, like the reference's double ring. */
+.fs-ring::before {content: ""; position: absolute; inset: 12px; border-radius: 50%; background: #0D1230;
+                  box-shadow: 0 0 0 1px var(--border) inset;}
+.fs-ring::after {content: ""; position: absolute; inset: 22px; border-radius: 50%;
+                 border: 1px dashed rgba(79, 139, 255, .35);}
+.fs-ring-inner {position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+                justify-content: center; z-index: 1;}
+.fs-stat-num {font-weight: 800; font-size: 2.9rem; line-height: 1; letter-spacing: -0.04em;
+              background: var(--grad-text); -webkit-background-clip: text; background-clip: text; color: transparent;}
+.fs-stat-num small {font-size: 1.1rem; color: var(--text-3); font-weight: 600;}
+.fs-stat-pct {font-family: var(--mono); font-size: .74rem; color: var(--accent); margin-top: 6px; letter-spacing: .06em;}
+.fs-stat-label {margin-top: 14px; font-size: .88rem; color: var(--text-2); line-height: 1.45;}
+
+/* ---------- Built-in widgets: rounder, softer ---------- */
+[data-testid="stAlertContainer"], [data-testid="stAlert"] {border-radius: var(--r-box);}
+:is([data-baseweb="tag"], [data-tag]) {border-radius: 999px !important;}
+[data-baseweb="select"] > div {border-radius: 14px;}
+[data-testid="stDataFrame"] {border-radius: 14px; overflow: hidden;}
+[data-testid="stExpander"] details {border: 1px solid var(--border); border-radius: var(--r-box); background: var(--card);}
+[data-testid="stPopoverBody"] {border-radius: var(--r-box) !important; border: 1px solid var(--border);
+                               background: var(--card) !important;}
+[data-testid="stPopoverButton"] {border-color: var(--border); background: var(--raised);}
+[data-testid="stPopoverButton"]:hover {border-color: var(--blue); color: var(--text);}
+/* Primary button: ice blue with a soft glow. */
+[data-testid="stBaseButton-primary"] {color: var(--bg) !important; font-weight: 700; padding: 0 22px;
+                                      background: var(--grad-brand) !important; border: none !important;
+                                      box-shadow: 0 0 22px rgba(191, 215, 255, .35);}
+[data-testid="stBaseButton-primary"]:hover {box-shadow: 0 0 30px rgba(191, 215, 255, .55);}
+
+/* ---------- Sidebar: a control panel ---------- */
+[data-testid="stSidebar"] {border-right: 1px solid var(--border);
+                           background: linear-gradient(180deg, #10163A 0%, var(--bg-2) 100%);}
+[data-testid="stSidebar"][aria-expanded="true"] {min-width: 330px; max-width: 330px;}
+[data-testid="stSidebar"] h2 {font-family: var(--mono); font-size: .74rem !important; font-weight: 700 !important;
+                              letter-spacing: .12em; text-transform: uppercase; color: var(--text-3);
+                              padding-top: 1rem; margin-top: .5rem; border-top: none;
+                              /* A gradient divider line above each sidebar section. */
+                              background: linear-gradient(90deg, var(--blue), rgba(191, 215, 255, .4), transparent)
+                                          top / 100% 1px no-repeat;}
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] > div:first-child h2 {background: none;}
+[data-testid="stSidebar"] [data-testid="stSlider"] [role="slider"] {box-shadow: 0 0 12px rgba(191, 215, 255, .6);}
+
+/* ---------- Field map (sidebar) ---------- */
+.fm-sum {font-size: .78rem; color: var(--text-2); margin: -4px 0 10px 0;}
+.fm-sum b {color: var(--text);}
+.fm {display: flex; flex-direction: column; gap: 6px; background: rgba(10, 14, 31, .6); border: 1px solid var(--border);
+     border-radius: 20px; padding: 6px; box-shadow: 0 0 0 1px rgba(79, 139, 255, .06) inset;}
+.fm-row {display: flex; gap: 6px; flex-basis: 0; min-height: 60px;}
+/* One plot. The faint diagonal lines are the furrows; --furrow sets their direction. */
+.fm-plot {flex-basis: 0; min-width: 72px; border-radius: 14px; color: var(--on-crop);
+          padding: 9px 10px 8px 11px; display: flex; flex-direction: column; justify-content: space-between;
+          overflow: hidden;
+          background-image: repeating-linear-gradient(var(--furrow, 115deg),
+              rgba(255, 255, 255, .22) 0 2px, transparent 2px 11px);
+          transition: transform .15s ease, box-shadow .15s ease;}
+.fm-plot:hover {transform: translateY(-2px); box-shadow: 0 8px 20px rgba(2, 5, 20, .6);}
+.fm-name {font-weight: 700; font-size: 1rem; line-height: 1.15;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.fm-line {display: flex; justify-content: space-between; align-items: flex-end; gap: 4px;}
+.fm-acres {font-weight: 800; font-size: 1.6rem; line-height: 1; letter-spacing: -0.03em; white-space: nowrap;}
+.fm-acres small {font-size: .76rem; font-weight: 600; letter-spacing: 0;}
+.fm-icon {font-size: 1.1rem; line-height: 1;}
+.fm-soil {font-size: .74rem; line-height: 1.2; margin-top: 3px; opacity: .75;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;}
+.fm-small {padding: 7px 9px 7px 10px;}
+.fm-small .fm-name {font-size: .9rem;}
+.fm-small .fm-icon {font-size: .95rem;}
+.fm-small .fm-acres {font-size: 1.05rem;}
+.fm-small .fm-soil {display: none;}
+.fm-empty {border-style: dashed; text-align: center; color: var(--text-3); font-size: .9rem; padding: 28px 12px;}
+.fm-edit-title {font-weight: 700; font-size: 1.1rem; color: var(--text); margin-bottom: 2px;}
+
+/* The recommendation is the star: ice-blue border and a soft glow. */
+.st-key-card_plan {background: var(--grad-panel) padding-box,
+                               linear-gradient(135deg, #BFD7FF 0%, rgba(191, 215, 255, .25) 45%, #4F8BFF 100%) border-box;
+                   box-shadow: 0 0 0 1px rgba(191, 215, 255, .12), 0 20px 56px rgba(191, 215, 255, .12), var(--shadow);}
+
+/* ---------- Result chips under the recommendation ---------- */
+.fs-chips {display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 12px 0;}
+.fs-chip {font-size: .84rem; font-weight: 600; border-radius: 999px; padding: 6px 12px;
+          border: 1px solid var(--border); background: var(--raised); color: var(--text-2);}
+.fs-chip-good {color: #CFE0FF; background: rgba(207, 224, 255, .10); border-color: rgba(207, 224, 255, .3);}
+.fs-chip-bad {color: #FF8A78; background: var(--red-soft); border-color: rgba(252, 61, 33, .35);}
+.fs-stress-low {color: #CFE0FF;}
+.fs-stress-moderate {color: #F3D36B; background: rgba(243, 211, 107, .10); border-color: rgba(243, 211, 107, .3);}
+.fs-stress-high {color: #FF8A78; background: var(--red-soft); border-color: rgba(252, 61, 33, .35);}
+
+/* ---------- Data sources ---------- */
+.fs-sources {margin-top: 28px; background: var(--grad-panel) padding-box, var(--grad-edge) border-box;
+             border: 1px solid transparent; border-radius: var(--r-card); padding: 22px 26px;}
+.fs-sources-title {font-family: var(--mono); font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+                   font-weight: 700; color: var(--blue); margin-bottom: 12px;}
+.fs-src {display: flex; gap: 12px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border);}
+.fs-src:first-of-type {border-top: none;}
+.fs-src-icon {font-size: 1.2rem; line-height: 1.3;}
+.fs-src a {color: var(--text) !important; font-weight: 700; text-decoration: none;}
+.fs-src a:hover {color: var(--blue) !important;}
+.fs-src-nasa a {color: #B9CCFF !important;}
+.fs-src-note {color: var(--text-2); font-size: .88rem; line-height: 1.45; margin-top: 2px;}
+.fs-src-sample {margin-top: 10px; font-size: .8rem; color: var(--text-3);}
+
+/* ---------- Footer ---------- */
+.fs-footer {text-align: center; color: var(--text-3); font-size: .8rem; margin-top: 18px; font-family: var(--mono);
+            letter-spacing: .04em;}
+
+/* ---------- Logo: idle float ----------
+   The whole logo drifts up and down slowly while its glow breathes,
+   and the two sprout leaves sway a little, out of step with each other. */
+.fs-hero summary > svg {animation: fs-float 6s ease-in-out infinite;}
+@keyframes fs-float {
+    0%, 100% {transform: translateY(0) rotate(0deg);
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 26px rgba(79, 139, 255, .30), 0 14px 22px rgba(2, 5, 20, .45);}
+    50%      {transform: translateY(-7px) rotate(-1.5deg);
+              box-shadow: 0 0 0 1px var(--border-glow), 0 0 40px rgba(79, 139, 255, .50), 0 24px 30px rgba(2, 5, 20, .30);}
+}
+.fs-hero summary > svg path {transform-box: fill-box; animation: fs-sway 4s ease-in-out infinite;}
+.fs-hero summary > svg path:first-of-type {transform-origin: right bottom;}
+.fs-hero summary > svg path:last-of-type  {transform-origin: left bottom; animation-delay: -2s;}
+@keyframes fs-sway {50% {transform: rotate(-6deg);}}
+/* Respect people who turn animations off in their system settings. */
+@media (prefers-reduced-motion: reduce) {
+    .fs-hero summary > svg, .fs-hero summary > svg path, .fs-live i {animation: none;}
+}
+
+/* ---------- Logo directory (click the logo) ---------- */
+/* Jumps glide instead of snapping, and land with room for the label above each title. */
+html, [data-testid="stMain"], [data-testid="stAppViewContainer"], [data-testid="stSidebarContent"] {scroll-behavior: smooth;}
+.fs-anchor, #sources, h2[id], h3[id] {scroll-margin-top: 96px;}
+.fs-anchor {height: 0; margin: 0;}
+
+.fs-dir {position: relative; flex: none;}
+/* Lift the whole header above the cards below while the panel is open. */
+[data-testid="stElementContainer"]:has(.fs-dir[open]) {position: relative; z-index: 1000;}
+.fs-dir summary {list-style: none; cursor: pointer; position: relative; display: block; border-radius: 13px;
+                 outline: none;}
+.fs-dir summary::-webkit-details-marker {display: none;}
+.fs-dir summary:focus-visible svg {box-shadow: 0 0 0 2px var(--accent), 0 0 30px rgba(79, 139, 255, .5);}
+.fs-dir summary:hover svg {filter: brightness(1.15);}
+/* The small menu badge on the logo's corner, so people know it can be clicked. */
+.fs-dir-hint {position: absolute; right: -6px; bottom: -6px; width: 24px; height: 24px; border-radius: 7px;
+              display: flex; align-items: center; justify-content: center; font-size: .78rem; color: var(--bg);
+              background: var(--grad-brand); box-shadow: 0 0 0 2px var(--bg), 0 0 14px rgba(191, 215, 255, .55);
+              transition: transform .2s ease;}
+.fs-dir[open] .fs-dir-hint {transform: rotate(90deg);}
+
+.fs-dir-panel {position: absolute; top: calc(100% + 16px); left: 0; z-index: 1000;
+               width: min(760px, calc(100vw - 48px)); padding: 16px;
+               display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+               border: 1px solid transparent; border-radius: var(--r-card);
+               background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) padding-box,
+                           var(--grad-edge) border-box;
+               box-shadow: 0 30px 70px rgba(2, 5, 20, .75), 0 0 40px rgba(79, 139, 255, .18);
+               backdrop-filter: blur(14px); animation: fs-drop .22s ease-out;}
+@keyframes fs-drop {from {opacity: 0; transform: translateY(-8px);}}
+.fs-dir-top {grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: baseline;
+             font-weight: 750; font-size: 1.05rem; color: var(--text); padding: 2px 6px 6px;}
+.fs-dir-top span {font-family: var(--mono); font-size: .66rem; font-weight: 500; letter-spacing: .06em;
+                  text-transform: uppercase; color: var(--text-3);}
+.fs-dir-group {background: rgba(10, 14, 31, .5); border: 1px solid var(--border); border-radius: var(--r-box);
+               padding: 10px 8px 8px;}
+.fs-dir-head {font-family: var(--mono); font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+              text-transform: uppercase; color: var(--blue); padding: 0 8px 8px; display: flex;
+              flex-direction: column; gap: 2px;}
+.fs-dir-head span {color: var(--text-3); font-weight: 500; letter-spacing: .04em; text-transform: none;
+                   font-family: Inter, sans-serif; font-size: .74rem;}
+a.fs-dir-link {display: flex; gap: 10px; align-items: flex-start; padding: 9px 8px; border-radius: 10px;
+               text-decoration: none !important; color: var(--text) !important;
+               border: 1px solid transparent; transition: background .15s ease, border-color .15s ease, transform .15s ease;}
+a.fs-dir-link:hover {background: var(--blue-soft); border-color: var(--border-glow); transform: translateX(3px);}
+.fs-dir-icon {flex: none; width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center;
+              justify-content: center; font-size: 1rem; background: var(--raised); border: 1px solid var(--border);}
+a.fs-dir-link b {display: block; font-size: .88rem; font-weight: 650; line-height: 1.25;}
+a.fs-dir-link small {display: block; font-size: .74rem; color: var(--text-3); line-height: 1.35; margin-top: 1px;}
+@media (max-width: 760px) {.fs-dir-panel {grid-template-columns: 1fr;}}
+
+/* ---------- Clickable 1-4 steps ---------- */
+a.fs-step {text-decoration: none !important; color: var(--text) !important; cursor: pointer;
+           transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;}
+a.fs-step:hover {transform: translateY(-3px); filter: brightness(1.12);
+                 box-shadow: 0 12px 26px rgba(2, 5, 20, .55), 0 0 18px rgba(79, 139, 255, .25);}
+a.fs-step i {margin-left: auto; font-style: normal; color: var(--text-3); transition: transform .18s ease, color .18s ease;}
+a.fs-step:hover i {color: var(--accent); transform: translateY(2px);}
+
+/* ---------- Custom crop icons ---------- */
+.fs-crop-icon {display: block;}
+.rg-icon .fs-crop-icon {width: 30px; height: 30px; margin: 0 auto 2px;}
+.fm-icon .fs-crop-icon {width: 20px; height: 20px;}
+.fm-small .fm-icon .fs-crop-icon {width: 16px; height: 16px;}
+.rg-cell:hover .fs-crop-icon {animation: fs-wiggle .6s ease-in-out;}
+@keyframes fs-wiggle {30% {transform: rotate(-8deg);} 65% {transform: rotate(6deg);}}
+
+/* ---------- Backtest chart: draws itself in ----------
+   The profit lines trace left to right, the fill fades in, and the rain bars grow
+   up in a wave that follows the lines. */
+.st-key-card_test .scatterlayer .js-line {stroke-dasharray: 5000; stroke-dashoffset: 5000;
+                                          animation: fs-draw 2.4s cubic-bezier(.4, 0, .2, 1) forwards;}
+@keyframes fs-draw {to {stroke-dashoffset: 0;}}
+.st-key-card_test .scatterlayer .js-fill {animation: fs-fade 1.2s ease-out 1.2s both;}
+@keyframes fs-fade {from {opacity: 0;}}
+.st-key-card_test .barlayer .point path {transform-box: fill-box; transform-origin: 50% 100%;
+                                         animation: fs-grow .55s cubic-bezier(.3, 1.4, .5, 1) both;}
+@keyframes fs-grow {from {transform: scaleY(0);}}
+.st-key-card_test .barlayer .point:nth-child(1) path {animation-delay: 0.04s;}
+.st-key-card_test .barlayer .point:nth-child(2) path {animation-delay: 0.09s;}
+.st-key-card_test .barlayer .point:nth-child(3) path {animation-delay: 0.14s;}
+.st-key-card_test .barlayer .point:nth-child(4) path {animation-delay: 0.18s;}
+.st-key-card_test .barlayer .point:nth-child(5) path {animation-delay: 0.23s;}
+.st-key-card_test .barlayer .point:nth-child(6) path {animation-delay: 0.27s;}
+.st-key-card_test .barlayer .point:nth-child(7) path {animation-delay: 0.32s;}
+.st-key-card_test .barlayer .point:nth-child(8) path {animation-delay: 0.36s;}
+.st-key-card_test .barlayer .point:nth-child(9) path {animation-delay: 0.41s;}
+.st-key-card_test .barlayer .point:nth-child(10) path {animation-delay: 0.45s;}
+.st-key-card_test .barlayer .point:nth-child(11) path {animation-delay: 0.49s;}
+.st-key-card_test .barlayer .point:nth-child(12) path {animation-delay: 0.54s;}
+.st-key-card_test .barlayer .point:nth-child(13) path {animation-delay: 0.58s;}
+.st-key-card_test .barlayer .point:nth-child(14) path {animation-delay: 0.63s;}
+.st-key-card_test .barlayer .point:nth-child(15) path {animation-delay: 0.68s;}
+.st-key-card_test .barlayer .point:nth-child(16) path {animation-delay: 0.72s;}
+.st-key-card_test .barlayer .point:nth-child(17) path {animation-delay: 0.77s;}
+.st-key-card_test .barlayer .point:nth-child(18) path {animation-delay: 0.81s;}
+.st-key-card_test .barlayer .point:nth-child(19) path {animation-delay: 0.85s;}
+.st-key-card_test .barlayer .point:nth-child(20) path {animation-delay: 0.90s;}
+.st-key-card_test .barlayer .point:nth-child(21) path {animation-delay: 0.94s;}
+.st-key-card_test .barlayer .point:nth-child(22) path {animation-delay: 0.99s;}
+.st-key-card_test .barlayer .point:nth-child(23) path {animation-delay: 1.03s;}
+.st-key-card_test .barlayer .point:nth-child(24) path {animation-delay: 1.08s;}
+.st-key-card_test .barlayer .point:nth-child(25) path {animation-delay: 1.12s;}
+.st-key-card_test .barlayer .point:nth-child(26) path {animation-delay: 1.17s;}
+.st-key-card_test .barlayer .point:nth-child(27) path {animation-delay: 1.22s;}
+.st-key-card_test .barlayer .point:nth-child(28) path {animation-delay: 1.26s;}
+.st-key-card_test .barlayer .point:nth-child(29) path {animation-delay: 1.30s;}
+.st-key-card_test .barlayer .point:nth-child(30) path {animation-delay: 1.35s;}
+.st-key-card_test .barlayer .point:nth-child(31) path {animation-delay: 1.40s;}
+.st-key-card_test .barlayer .point:nth-child(32) path {animation-delay: 1.44s;}
+.st-key-card_test .barlayer .point:nth-child(33) path {animation-delay: 1.49s;}
+.st-key-card_test .barlayer .point:nth-child(34) path {animation-delay: 1.53s;}
+.st-key-card_test .barlayer .point:nth-child(35) path {animation-delay: 1.57s;}
+.st-key-card_test .barlayer .point:nth-child(36) path {animation-delay: 1.62s;}
+.st-key-card_test .barlayer .point:nth-child(37) path {animation-delay: 1.67s;}
+.st-key-card_test .barlayer .point:nth-child(38) path {animation-delay: 1.71s;}
+.st-key-card_test .barlayer .point:nth-child(39) path {animation-delay: 1.75s;}
+.st-key-card_test .barlayer .point:nth-child(40) path {animation-delay: 1.80s;}
+.st-key-card_test .barlayer .point:nth-child(41) path {animation-delay: 1.84s;}
+.st-key-card_test .barlayer .point:nth-child(42) path {animation-delay: 1.89s;}
+.st-key-card_test .barlayer .point:nth-child(43) path {animation-delay: 1.94s;}
+.st-key-card_test .barlayer .point:nth-child(44) path {animation-delay: 1.98s;}
+.st-key-card_test .barlayer .point:nth-child(45) path {animation-delay: 2.02s;}
+.st-key-card_test .barlayer .point:nth-child(46) path {animation-delay: 2.07s;}
+.st-key-card_test .barlayer .point:nth-child(47) path {animation-delay: 2.12s;}
+.st-key-card_test .barlayer .point:nth-child(48) path {animation-delay: 2.16s;}
+.st-key-card_test .barlayer .point:nth-child(49) path {animation-delay: 2.21s;}
+.st-key-card_test .barlayer .point:nth-child(50) path {animation-delay: 2.25s;}
+/* Replay controls (drawn by Plotly as SVG). */
+.st-key-card_test .updatemenu-button {cursor: pointer;}
+.st-key-card_test .updatemenu-button:hover rect {fill: #26306A !important;}
+@media (prefers-reduced-motion: reduce) {
+    .st-key-card_test .scatterlayer .js-line, .st-key-card_test .scatterlayer .js-fill,
+    .st-key-card_test .barlayer .point path, .rg-cell:hover .fs-crop-icon {animation: none; stroke-dasharray: none;}
+}
+
+
+/* ---------- Satellite: a pencil sketch flying behind everything ----------
+   Drawn on the app's own background layer (::before with z-index -1 inside an isolated
+   app), so it passes behind every card and the sidebar. One flight of ~10 s, then it
+   stays off screen until the 25 s loop starts again. */
+[data-testid="stApp"] {isolation: isolate;}
+[data-testid="stApp"]::before {content: ""; position: fixed; left: 0; top: 0; z-index: -1;
+    width: 750px; height: 438px;   /* same scale as the rocket, satellite is wide */ pointer-events: none; opacity: .4;
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 240 140%22 fill=%22none%22 stroke=%22%23BFD7FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cdefs%3E%3Cfilter id=%22p%22 x=%22-10%25%22 y=%22-10%25%22 width=%22120%25%22 height=%22120%25%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%22.9%22 numOctaves=%222%22 seed=%223%22 result=%22n%22/%3E%3CfeDisplacementMap in=%22SourceGraphic%22 in2=%22n%22 scale=%222.2%22/%3E%3C/filter%3E%3C/defs%3E%3Cg filter=%22url(%23p)%22%3E%3Cg stroke-width=%222%22%3E%3Crect x=%22100%22 y=%2246%22 width=%2240%22 height=%2250%22 rx=%223%22/%3E%3Cpath d=%22M90 71h10M140 71h10%22/%3E%3Crect x=%2218%22 y=%2256%22 width=%2272%22 height=%2230%22 rx=%222%22/%3E%3Crect x=%22150%22 y=%2256%22 width=%2272%22 height=%2230%22 rx=%222%22/%3E%3Cpath d=%22M104 46c3-14 29-14 32 0%22/%3E%3Cpath d=%22M120 40V25%22/%3E%3Ccircle cx=%22120%22 cy=%2222%22 r=%223%22/%3E%3Cpath d=%22M120 96v13M113 112h14%22/%3E%3C/g%3E%3Cg stroke-width=%221.1%22 stroke-opacity=%22.6%22%3E%3Cpath d=%22M101.5 44.8h39.2l.6 51.5M98.8 97.2l.4-50%22/%3E%3Cpath d=%22M36 56v30M54 56v30M72 56v30M18 71h72M168 56v30M186 56v30M204 56v30M150 71h72%22/%3E%3Cpath d=%22M19.5 54.8l71.5.4M149 87.2l74-.3%22/%3E%3Cpath d=%22M100 62h40M100 80h40%22/%3E%3Cpath d=%22M104 70l6-6M104 78l8-8M104 86l8-8M106 92l6-6%22/%3E%3Cpath d=%22M128 14a10 10 0 0 1 10 10M131 7a17 17 0 0 1 17 17M134 0a24 24 0 0 1 24 24%22 stroke-dasharray=%223 3%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat;
+    animation: fs-rocket 25s linear infinite;}
+@keyframes fs-rocket {
+    /* Starts and ends further off screen now that the rocket is bigger. */
+    0%   {transform: translate(0vw, 110vh) rotate(38deg);}
+    20%  {transform: translate(45vw, 25vh) rotate(42deg);}
+    40%  {transform: translate(110vw, -95vh) rotate(36deg);}
+    100% {transform: translate(110vw, -95vh) rotate(36deg);}
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stApp"]::before {animation: none; display: none;}
+}
+
+
+/* =====================================================================
+   Motion pass: small, purposeful animations. All switch off under
+   prefers-reduced-motion (bottom of this block).
+   ===================================================================== */
+
+/* Registered custom properties, so the browser can animate them smoothly. */
+@property --pct   {syntax: "<number>"; inherits: false; initial-value: 0;}
+@property --angle {syntax: "<angle>";  inherits: false; initial-value: 0deg;}
+
+/* 1. Header: top bar, hero and steps fade in one after another. */
+.fs-topbar {animation: fs-in-down .6s ease-out both;}
+.fs-hero   {animation: fs-in-down .6s ease-out .1s both;}
+.fs-flow   {animation: fs-in-down .6s ease-out .2s both;}
+@keyframes fs-in-down {from {opacity: 0; transform: translateY(-10px);}}
+
+/* 2. Hero title: the gradient slowly drifts. */
+.fs-hero-title {background-size: 200% 100%; animation: fs-drift 9s ease-in-out infinite alternate;}
+@keyframes fs-drift {to {background-position: 100% 0;}}
+
+/* 3. Steps: a light runs along the bottom edges, 1 -> 2 -> 3 -> 4, on a loop. */
+.fs-step::before {content: ""; position: absolute; bottom: 0; left: 0; width: 45%; height: 2px; z-index: 1;
+                  background: linear-gradient(90deg, transparent, #FFFFFF, transparent);
+                  transform: translateX(-110%); animation: fs-sweep 4s ease-in-out infinite;}
+a.fs-step:nth-of-type(2)::before {animation-delay: .45s;}
+a.fs-step:nth-of-type(3)::before {animation-delay: .9s;}
+a.fs-step:nth-of-type(4)::before {animation-delay: 1.35s;}
+@keyframes fs-sweep {0% {transform: translateX(-110%);} 30%, 100% {transform: translateX(240%);}}
+
+/* 4. Cards slide up as they scroll into view (browsers that support scroll-driven
+      animations; others just show them). */
+@supports (animation-timeline: view()) {
+    .st-key-card_mine, .st-key-card_plan, .st-key-card_test,
+    [data-testid="stMetric"], .fs-sources, [data-testid="stExpander"] {
+        animation: fs-reveal linear both; animation-timeline: view(); animation-range: entry 0% entry 35%;}
+}
+@keyframes fs-reveal {from {opacity: 0; transform: translateY(36px) scale(.985);}}
+
+/* 5. Rotation tiles pop in one by one, like seeds coming up. They replay whenever
+      the rotation changes, so you can see it update. */
+.rg > .rg-cell {animation: fs-sprout .45s cubic-bezier(.3, 1.5, .5, 1) both;}
+@keyframes fs-sprout {from {opacity: 0; transform: translateY(10px) scale(.85);}}
+.rg > .rg-cell:nth-child(6) {animation-delay: 0.03s;}
+.rg > .rg-cell:nth-child(7) {animation-delay: 0.06s;}
+.rg > .rg-cell:nth-child(8) {animation-delay: 0.09s;}
+.rg > .rg-cell:nth-child(9) {animation-delay: 0.12s;}
+.rg > .rg-cell:nth-child(10) {animation-delay: 0.15s;}
+.rg > .rg-cell:nth-child(11) {animation-delay: 0.18s;}
+.rg > .rg-cell:nth-child(12) {animation-delay: 0.21s;}
+.rg > .rg-cell:nth-child(13) {animation-delay: 0.24s;}
+.rg > .rg-cell:nth-child(14) {animation-delay: 0.27s;}
+.rg > .rg-cell:nth-child(15) {animation-delay: 0.30s;}
+.rg > .rg-cell:nth-child(16) {animation-delay: 0.33s;}
+.rg > .rg-cell:nth-child(17) {animation-delay: 0.36s;}
+.rg > .rg-cell:nth-child(18) {animation-delay: 0.39s;}
+.rg > .rg-cell:nth-child(19) {animation-delay: 0.42s;}
+.rg > .rg-cell:nth-child(20) {animation-delay: 0.45s;}
+.rg > .rg-cell:nth-child(21) {animation-delay: 0.48s;}
+.rg > .rg-cell:nth-child(22) {animation-delay: 0.51s;}
+.rg > .rg-cell:nth-child(23) {animation-delay: 0.54s;}
+.rg > .rg-cell:nth-child(24) {animation-delay: 0.57s;}
+.rg > .rg-cell:nth-child(25) {animation-delay: 0.60s;}
+.rg > .rg-cell:nth-child(26) {animation-delay: 0.63s;}
+.rg > .rg-cell:nth-child(27) {animation-delay: 0.66s;}
+.rg > .rg-cell:nth-child(28) {animation-delay: 0.69s;}
+.rg > .rg-cell:nth-child(29) {animation-delay: 0.72s;}
+.rg > .rg-cell:nth-child(30) {animation-delay: 0.75s;}
+.rg > .rg-cell:nth-child(31) {animation-delay: 0.78s;}
+.rg > .rg-cell:nth-child(32) {animation-delay: 0.81s;}
+.rg > .rg-cell:nth-child(33) {animation-delay: 0.84s;}
+.rg > .rg-cell:nth-child(34) {animation-delay: 0.87s;}
+.rg > .rg-cell:nth-child(35) {animation-delay: 0.90s;}
+.rg > .rg-cell:nth-child(36) {animation-delay: 0.93s;}
+.rg > .rg-cell:nth-child(37) {animation-delay: 0.96s;}
+.rg > .rg-cell:nth-child(38) {animation-delay: 0.99s;}
+.rg > .rg-cell:nth-child(39) {animation-delay: 1.02s;}
+.rg > .rg-cell:nth-child(40) {animation-delay: 1.05s;}
+.rg > .rg-cell:nth-child(41) {animation-delay: 1.08s;}
+.rg > .rg-cell:nth-child(42) {animation-delay: 1.11s;}
+.rg > .rg-cell:nth-child(43) {animation-delay: 1.14s;}
+.rg > .rg-cell:nth-child(44) {animation-delay: 1.17s;}
+.rg > .rg-cell:nth-child(45) {animation-delay: 1.20s;}
+
+/* 6. Recommended plan: a glowing border slowly circles the card. */
+.st-key-card_plan {background: var(--grad-panel) padding-box,
+    conic-gradient(from var(--angle), #4F8BFF, rgba(191, 215, 255, .25) 25%, #BFD7FF 50%,
+                   rgba(79, 139, 255, .25) 75%, #4F8BFF) border-box;
+    animation: fs-orbit 8s linear infinite;}
+@supports (animation-timeline: view()) {
+    .st-key-card_plan {animation: fs-orbit 8s linear infinite, fs-reveal linear both;
+                       animation-timeline: auto, view(); animation-range: normal, entry 0% entry 35%;}
+}
+@keyframes fs-orbit {to {--angle: 360deg;}}
+
+/* 7. Result chips slide in one after another. */
+.fs-chip {animation: fs-chip-in .4s ease-out both;}
+@keyframes fs-chip-in {from {opacity: 0; transform: translateX(-8px);}}
+.fs-chip:nth-child(1) {animation-delay: 0.37s;}
+.fs-chip:nth-child(2) {animation-delay: 0.49s;}
+.fs-chip:nth-child(3) {animation-delay: 0.61s;}
+.fs-chip:nth-child(4) {animation-delay: 0.73s;}
+.fs-chip:nth-child(5) {animation-delay: 0.85s;}
+.fs-chip:nth-child(6) {animation-delay: 0.97s;}
+
+/* 8. Ring gauge fills from 0 up to the real win rate. */
+.fs-ring {animation: fs-fill 1.8s cubic-bezier(.3, .8, .3, 1) .3s both;}
+@keyframes fs-fill {from {--pct: 0;}}
+
+/* 9. "Apply recommendation": a shimmer passes over it every few seconds. */
+[data-testid="stBaseButton-primary"] {position: relative; overflow: hidden;}
+[data-testid="stBaseButton-primary"]::after {content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 40%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .55), transparent);
+    transform: translateX(-120%); animation: fs-shine 4.5s ease-in-out 1s infinite; pointer-events: none;}
+@keyframes fs-shine {0% {transform: translateX(-120%);} 25%, 100% {transform: translateX(300%);}}
+
+/* 10. Field map: the furrows drift slowly, like a pass of the planter. */
+.fm-plot {animation: fs-furrow 14s linear infinite;}
+@keyframes fs-furrow {to {background-position: 66px 0;}}
+
+@media (prefers-reduced-motion: reduce) {
+    .fs-topbar, .fs-hero, .fs-flow, .fs-hero-title, .fs-step::before, .st-key-card_mine,
+    .st-key-card_plan, .st-key-card_test, [data-testid="stMetric"], .fs-sources,
+    [data-testid="stExpander"], .rg > .rg-cell, .fs-chip, .fs-ring,
+    [data-testid="stBaseButton-primary"]::after, .fm-plot {animation: none !important;}
+}
+
+
+/* ---------- Trace through the grid ----------
+   Faint routes along the 48px background grid, drawn once as a still image. The
+   moving comets on them are small elements (.fs-comets, near the end of this file). */
+[data-testid="stApp"]::after {content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%221920%22 height=%221152%22 viewBox=%220 0 1920 1152%22 fill=%22none%22 stroke=%22%236FA0FF%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22 stroke-opacity=%22.12%22%3E%3Cpath d=%22M0.5 816.5 L192.5 816.5 L192.5 672.5 L432.5 672.5 L432.5 768.5 L672.5 768.5 L672.5 528.5 L912.5 528.5 L912.5 624.5 L1152.5 624.5 L1152.5 384.5 L1392.5 384.5 L1392.5 480.5 L1632.5 480.5 L1632.5 240.5 L1920.5 240.5%22/%3E%3Cpath d=%22M288.5 1152.5 L288.5 1008.5 L576.5 1008.5 L576.5 1104.5 L816.5 1104.5 L816.5 912.5 L1104.5 912.5 L1104.5 960.5 L1344.5 960.5 L1344.5 720.5 L1584.5 720.5 L1584.5 816.5 L1920.5 816.5%22/%3E%3Cpath d=%22M1920.5 1056.5 L1680.5 1056.5 L1680.5 912.5 L1440.5 912.5 L1440.5 1152.5 L1056.5 1152.5 L1056.5 1008.5 L768.5 1008.5 L768.5 624.5 L480.5 624.5 L480.5 384.5 L0.5 384.5%22/%3E%3C/svg%3E") 0 0 / 1920px 1152px no-repeat; opacity: .55;}
+
+/* ---------- Sliders: smoother feel ---------- */
+[data-testid="stSlider"] [role="slider"] {transition: transform .15s ease, box-shadow .15s ease;}
+[data-testid="stSlider"] [role="slider"]:hover {transform: scale(1.18);}
+[data-testid="stSlider"] [role="slider"]:active {transform: scale(1.3); box-shadow: 0 0 0 6px rgba(191, 215, 255, .18), 0 0 16px rgba(191, 215, 255, .7);}
+
+/* ---------- Crops you'd grow ---------- */
+/* Each tag: its crop colour and icon (set per crop by crop_tag_css() in app.py), dark text. */
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]) {color: var(--on-crop) !important; font-weight: 650;
+    padding-left: 6px !important; box-shadow: 0 1px 0 rgba(255, 255, 255, .4) inset, 0 3px 8px rgba(2, 5, 20, .35);
+    animation: fs-tag-in .45s cubic-bezier(.3, 1.6, .5, 1) both;
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]) span {color: var(--on-crop) !important;}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag])::before {content: ""; flex: none; width: 15px; height: 15px; margin-right: 5px;
+    background: currentColor; -webkit-mask-size: contain; mask-size: contain;
+    -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;}
+@keyframes fs-tag-in {from {opacity: 0; transform: scale(.4) translateY(6px);}}
+/* Hover: lift and glow, icon wiggles. Click: press in. */
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):hover {transform: translateY(-2px) scale(1.04); filter: brightness(1.06);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset, 0 8px 18px rgba(2, 5, 20, .5), 0 0 14px rgba(191, 215, 255, .45);}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):hover::before {animation: fs-wiggle .6s ease-in-out;}
+.st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]):active {transform: scale(.94);}
+/* The little x: turns NASA red and spins when you aim at it. */
+.st-key-allowed_crops :is([data-baseweb="tag"] [role="presentation"], [data-tag] button) {transition: transform .25s ease, color .2s ease;}
+.st-key-allowed_crops :is([data-baseweb="tag"] [role="presentation"], [data-tag] button):hover {transform: rotate(90deg) scale(1.2); color: var(--red);}
+/* The box itself glows while you're choosing. */
+.st-key-allowed_crops [data-baseweb="select"] > div {transition: box-shadow .2s ease, border-color .2s ease;}
+.st-key-allowed_crops [data-baseweb="select"] > div:focus-within {border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(79, 139, 255, .2), 0 0 18px rgba(79, 139, 255, .25);}
+/* Dropdown list: options slide in and nudge right on hover, with a gradient edge. */
+[data-baseweb="popover"] [role="option"] {animation: fs-chip-in .3s ease-out both; border-radius: 10px;
+    transition: transform .15s ease, background .15s ease; box-shadow: inset 0 0 0 0 transparent;}
+[data-baseweb="popover"] [role="option"]:nth-child(2) {animation-delay: .05s;}
+[data-baseweb="popover"] [role="option"]:nth-child(3) {animation-delay: .1s;}
+[data-baseweb="popover"] [role="option"]:nth-child(4) {animation-delay: .15s;}
+[data-baseweb="popover"] [role="option"]:hover {transform: translateX(4px); background: var(--blue-soft) !important;
+    box-shadow: inset 3px 0 0 var(--accent);}
+
+/* ---------- Assistant: floating bubble, bottom right ---------- */
+.st-key-faq {position: fixed; right: 26px; bottom: 26px; z-index: 990; width: auto !important;}
+.st-key-faq [data-testid="stPopoverButton"] {height: 52px; padding: 0 20px 0 16px; border: none !important;
+    background: var(--grad-brand) !important; color: var(--bg) !important; font-weight: 750;
+    box-shadow: 0 10px 30px rgba(2, 5, 20, .6), 0 0 24px rgba(79, 139, 255, .45);
+    transition: transform .2s ease, box-shadow .2s ease; animation: fs-faq-float 5s ease-in-out infinite;}
+.st-key-faq [data-testid="stPopoverButton"] p {color: var(--bg) !important; font-weight: 750;}
+.st-key-faq [data-testid="stPopoverButton"]:hover {transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 14px 34px rgba(2, 5, 20, .6), 0 0 34px rgba(191, 215, 255, .6);}
+/* A soft ring pulses out from the bubble every few seconds. */
+.st-key-faq [data-testid="stPopoverButton"]::after {content: ""; position: absolute; inset: 0; border-radius: 999px;
+    box-shadow: 0 0 0 0 rgba(191, 215, 255, .55); animation: fs-faq-ping 3.2s ease-out infinite; pointer-events: none;}
+@keyframes fs-faq-ping {0% {box-shadow: 0 0 0 0 rgba(191, 215, 255, .55);} 70%, 100% {box-shadow: 0 0 0 16px rgba(191, 215, 255, 0);}}
+@keyframes fs-faq-float {50% {transform: translateY(-4px);}}
+
+/* The chat panel. */
+[data-testid="stPopoverBody"]:has(.fs-faq-head) {width: 410px !important; max-width: calc(100vw - 32px);
+    background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) padding-box,
+                var(--grad-edge) border-box !important;
+    border: 1px solid transparent !important; box-shadow: 0 30px 70px rgba(2, 5, 20, .75), 0 0 40px rgba(79, 139, 255, .2);
+    animation: fs-drop .25s ease-out;}
+.fs-faq-head {display: flex; align-items: center; gap: 12px; padding-bottom: 4px;}
+.fs-faq-orb {flex: none; width: 38px; height: 38px; border-radius: 50%;
+    background: conic-gradient(from var(--angle), #4F8BFF, #BFD7FF, #0B3D91, #4F8BFF);
+    box-shadow: 0 0 18px rgba(79, 139, 255, .55); animation: fs-orbit 4s linear infinite; position: relative;}
+.fs-faq-orb::after {content: ""; position: absolute; inset: 6px; border-radius: 50%; background: #121A40;
+    box-shadow: inset 0 0 8px rgba(191, 215, 255, .5);}
+.fs-faq-title {font-weight: 750; font-size: 1rem; color: var(--text);}
+.fs-faq-sub {font-size: .76rem; color: var(--text-3); line-height: 1.35;}
+.fs-faq-mode {margin-left: auto; align-self: flex-start; white-space: nowrap; font-family: var(--mono); font-size: .62rem;
+    letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); border: 1px solid var(--border);
+    border-radius: var(--r-tag); padding: 3px 7px;}
+.fs-faq-ai {color: var(--accent); border-color: rgba(191, 215, 255, .4); background: var(--accent-soft);}
+.st-key-faq_log {border-radius: var(--r-box); background: rgba(10, 14, 31, .45); border: 1px solid var(--border) !important;}
+.st-key-faq_log [data-testid="stChatMessage"] {background: transparent; padding: 6px 4px; animation: fs-msg-in .35s ease-out both;}
+@keyframes fs-msg-in {from {opacity: 0; transform: translateY(8px);}}
+.st-key-faq_log [data-testid="stChatMessage"] p, .st-key-faq_log [data-testid="stChatMessage"] li {font-size: .88rem; line-height: 1.5;}
+.st-key-faq_log a {color: var(--accent) !important;}
+.st-key-faq_chips button {width: 100%; min-height: 0; padding: 6px 10px; border-radius: 10px !important;
+    background: var(--raised) !important; border: 1px solid var(--border) !important; text-align: left;
+    transition: transform .15s ease, border-color .15s ease, background .15s ease;}
+.st-key-faq_chips button p {font-size: .76rem !important; line-height: 1.3;}
+.st-key-faq_chips button:hover {transform: translateY(-2px); border-color: var(--blue) !important; background: var(--blue-soft) !important;}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stApp"]::after {display: none;}
+    .st-key-allowed_crops :is([data-baseweb="tag"], [data-tag]), [data-baseweb="popover"] [role="option"],
+    .st-key-faq [data-testid="stPopoverButton"], .st-key-faq [data-testid="stPopoverButton"]::after,
+    .fs-faq-orb, .st-key-faq_log [data-testid="stChatMessage"] {animation: none !important;}
+}
+
+
+/* ---------- Crop colours, used where they mean something ----------
+   corn #F5C94C, soybeans #6FD49B, winter wheat #E9A866, sorghum #E0879A
+   (CROP_COLORS in app.py drives the tiles, field map, tags and crop-mix chart). */
+/* The four steps: one crop colour each. */
+a.fs-step span {background: var(--sc) !important; color: var(--on-crop) !important;
+                box-shadow: 0 0 12px color-mix(in srgb, var(--sc) 55%, transparent) !important;}
+a.fs-step::after {background: linear-gradient(90deg, var(--sc), transparent) !important;}
+a.fs-step:nth-of-type(1) {--sc: #F5C94C;}
+a.fs-step:nth-of-type(2) {--sc: #6FD49B;}
+a.fs-step:nth-of-type(3) {--sc: #E9A866;}
+a.fs-step:nth-of-type(4) {--sc: #E0879A;}
+/* Crop key under the rotation title. */
+.fs-crop-key {display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px;}
+.fs-crop-key span {display: inline-flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600;
+                   color: var(--c); padding: 4px 10px 4px 6px; border-radius: 999px;
+                   background: color-mix(in srgb, var(--c) 12%, transparent);
+                   border: 1px solid color-mix(in srgb, var(--c) 35%, transparent);}
+.fs-crop-key .fs-crop-icon {width: 16px; height: 16px;}
+/* Crop names in sentences ("Why this plan"). */
+.fs-crop-word {font-weight: 650; white-space: nowrap;}
+.fs-crop-word i {display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 4px 1px 0;
+                 vertical-align: middle;}
+.fs-mix-title {margin: 18px 0 0;}
+/* Rotation tiles glow in their own crop colour on hover. */
+.rg-cell:hover {box-shadow: 0 1px 0 rgba(255, 255, 255, .35) inset, 0 12px 28px rgba(2, 5, 20, .6),
+                0 0 24px color-mix(in srgb, var(--cc, #FFFFFF) 55%, transparent);}
+
+/* Fix: the logo's directory opened underneath the 1-4 step cards. The fade-in animations
+   put the hero and the steps in separate layers, with the steps on top; lift the hero
+   (and its menu) above them. */
+.fs-hero {position: relative; z-index: 30;}
+.fs-flow {position: relative; z-index: 1;}
+
+/* ---------- Multi-page additions ---------- */
+/* Tool pages get a smaller hero than Home. */
+.fs-hero-compact {padding-bottom: 16px;}
+.fs-hero-compact .fs-hero-title {font-size: 2rem;}
+.fs-hero-compact svg {width: 56px; height: 56px;}
+/* The "How it works" steps on Home are plain tiles, not links. */
+div.fs-step {cursor: default;}
+/* Page links (st.page_link) as pill buttons inside the panels. */
+[class*="st-key-card_"] [data-testid="stPageLink"] a {
+    display: inline-flex; margin-top: 6px; padding: 8px 18px; border-radius: 999px;
+    background: var(--accent-soft); border: 1px solid rgba(191, 215, 255, .35); font-weight: 650;}
+[class*="st-key-card_"] [data-testid="stPageLink"] a:hover {background: var(--blue-soft); border-color: var(--border-glow);}
+/* Gaps between the stacked panels. */
+[class*="st-key-card_"] {margin-bottom: 6px;}
+
+/* Crop tags: Streamlit 1.5x marks them [data-baseweb="tag"], newer versions <span data-tag>.
+   Every tag selector matches both, so the colours work on either version. */
+.st-key-allowed_crops [data-tag] {display: inline-flex; align-items: center;}
+
+/* ---------- Rotation picker (evaluator): click a tile, pick a crop ---------- */
+/* Colours and icons per crop come from ui.cell_css(); this is the shape. */
+.rp-head {font-family: var(--mono); font-size: .68rem; font-weight: 700; letter-spacing: .12em;
+          text-transform: uppercase; color: var(--text-3); text-align: center; padding-bottom: 2px;}
+.rp-head:first-child {text-align: left;}
+.rp-field b {display: block; font-size: .95rem; color: var(--text);}
+.rp-field small {color: var(--text-3); font-size: .75rem;}
+[class*="st-key-cell-"] button {width: 100%; min-height: 58px; border-radius: var(--r-box) !important;
+    font-weight: 700; justify-content: center; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .45),
+    0 6px 16px rgba(0, 0, 0, .25); transition: transform .15s ease, filter .15s ease;}
+[class*="st-key-cell-"] button:hover {transform: translateY(-2px); filter: brightness(1.06);}
+[class*="st-key-cell-"] button p {color: var(--on-crop) !important; font-weight: 700;}
+/* Streamlit's little "open" arrow on the popover button: dark like the text. */
+[class*="st-key-cell-"] button svg, [class*="st-key-cell-"] button [data-testid="stIconMaterial"] {color: var(--on-crop) !important;}
+/* Crop choices inside the menu. */
+[class*="st-key-pick-"] button {justify-content: flex-start; border-radius: var(--r-tag) !important; font-weight: 650;}
+[class*="st-key-pick-"] button p {color: var(--on-crop) !important;}
+.rp-cycle {font-family: var(--mono); font-size: .7rem; letter-spacing: .04em; color: var(--text-3); margin: 6px 0 4px;}
+
+/* ---------- Going back to Home from the tool pages ---------- */
+/* Top bar on the tool pages: same pill bar as the home page, built from real Streamlit
+   elements so the Home button is a page link (instant, keeps your inputs). */
+.st-key-fs_topnav {background: rgba(18, 24, 56, .7); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 12px 6px 6px !important; margin-bottom: 26px; backdrop-filter: blur(8px);
+    animation: fs-in-down .6s ease-out both;}
+.st-key-fs_topnav [data-testid="stHorizontalBlock"] {gap: 12px; align-items: center;}
+.st-key-fs_topnav .fs-status {justify-content: flex-end;}
+.st-key-fs_topnav [data-testid="stMarkdownContainer"] p {margin: 0;}
+
+/* The Home button: a glowing pill; the arrow nudges left on hover. */
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] {background: var(--grad-brand) !important;
+    border-radius: 999px !important; padding: 6px 16px 6px 12px !important; width: fit-content;
+    box-shadow: 0 0 18px rgba(79, 139, 255, .35); transition: transform .18s ease, box-shadow .18s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] p,
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] span {color: var(--bg) !important; font-weight: 750 !important;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-1px);
+    box-shadow: 0 0 28px rgba(191, 215, 255, .6);}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"] [data-testid="stIconMaterial"] {transition: transform .2s ease;}
+.st-key-fs_topnav [data-testid="stPageLink-NavLink"]:hover [data-testid="stIconMaterial"] {transform: translateX(-4px);}
+
+/* "Where next?" card at the bottom of each tool page. */
+.st-key-fs_endnav {margin-top: 26px; padding: 20px 24px 16px !important; border: 1px solid transparent;
+    border-radius: var(--r-card); background: var(--grad-panel) padding-box, var(--grad-edge) border-box;}
+.fs-endnav-title {font-weight: 750; font-size: 1.1rem; color: var(--text);}
+.fs-endnav-sub {font-size: .85rem; color: var(--text-3); margin-bottom: 6px;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] {border: 1px solid var(--border); border-radius: 12px !important;
+    background: var(--raised); padding: 10px 14px !important; transition: transform .18s ease, border-color .18s ease, background .18s ease;}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"]:hover {transform: translateY(-2px); border-color: var(--blue);
+    background: var(--blue-soft);}
+.st-key-fs_endnav [data-testid="stPageLink-NavLink"] p {font-weight: 650 !important;}
+
+/* A soft fade-up every time a page opens, so switching feels like a transition. */
+.block-container {animation: fs-page-in .45s ease-out both;}
+@keyframes fs-page-in {from {opacity: 0; transform: translateY(8px);}}
+
+@media (prefers-reduced-motion: reduce) {
+    .st-key-fs_topnav, .block-container {animation: none !important;}
+}
+
+/* ---------- Crop picker animations (Rotation evaluator tiles) ----------
+   Tiles are popovers keyed "cell-<crop>-<field>-<year>"; their menus hold one button per
+   crop keyed "pick-<crop>-…" ("-sel" on the current crop). --cc is the crop's colour. */
+
+/* 1. Opening the menu: it fades down from the tile, then the choices fade down in turn. */
+[data-testid="stPopoverBody"]:has([class*="st-key-pick-"]) {
+    animation: fs-menu-open .3s ease-out both;}
+@keyframes fs-menu-open {from {opacity: 0; transform: translateY(-6px);}}
+[class*="st-key-pick-"] {animation: fs-choice-in .35s ease-out both;}
+/* Crops always appear in this order, so time each by name: a reliable stagger. */
+[class*="st-key-pick-soybeans-"] {animation-delay: .04s;}
+[class*="st-key-pick-winter_wheat-"] {animation-delay: .08s;}
+[class*="st-key-pick-sorghum-"] {animation-delay: .12s;}
+@keyframes fs-choice-in {from {opacity: 0; transform: translateY(-4px);}}
+
+/* 2. In the menu: hover nudges the crop with a soft glow in its own colour;
+      a click presses it in; the current crop has a soft pulsing ring. */
+[class*="st-key-pick-"] button {transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;}
+[class*="st-key-pick-"] button:hover {transform: translateX(2px); filter: brightness(1.04);
+    box-shadow: 0 6px 16px rgba(2, 5, 20, .45), 0 0 18px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+[class*="st-key-pick-"] button:active {transform: scale(.98);}
+[class*="st-key-pick-"][class*="-sel"] button {animation: fs-sel-ring 3s ease-in-out infinite;}
+@keyframes fs-sel-ring {
+    0%, 100% {box-shadow: 0 0 0 0 color-mix(in srgb, var(--cc, #BFD7FF) 0%, transparent);}
+    50%      {box-shadow: 0 0 0 3px color-mix(in srgb, var(--cc, #BFD7FF) 28%, transparent);}
+}
+
+/* 3. The tiles: a changed tile fades down into place with its new crop (its key includes the crop, so
+      only the tile you changed is new and animates). Hover lifts with a matching glow. */
+[class*="st-key-cell-"] button {transition: transform .18s ease, box-shadow .18s ease;
+    animation: fs-tile-fade .45s ease-out both;}
+@keyframes fs-tile-fade {from {opacity: 0; transform: translateY(-6px);}}
+[class*="st-key-cell-"] button:hover {transform: translateY(-2px);
+    box-shadow: 0 10px 22px rgba(2, 5, 20, .5), 0 0 20px color-mix(in srgb, var(--cc, #BFD7FF) 55%, transparent);}
+[class*="st-key-cell-"] button[aria-expanded="true"] {transform: translateY(-1px);
+    box-shadow: 0 0 0 2px var(--cc, #BFD7FF), 0 0 22px color-mix(in srgb, var(--cc, #BFD7FF) 60%, transparent);}
+
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stPopoverBody"]:has([class*="st-key-pick-"]), [class*="st-key-pick-"],
+    [class*="st-key-pick-"] button, [class*="st-key-cell-"] button {animation: none !important;}
+}
+
+/* ---------- Calmer entrance for the rotation cards ----------
+   "What you plan to plant" had three animations at once (page fade-up, the card sliding
+   up and growing as it scrolled in, every tile fading down), which felt jerky. Now: one
+   slow opacity fade for the card, no movement, and a gentle opacity fade for its tiles.
+   A tile you change still fades in on its own (its key changes, so it's a new element). */
+.st-key-card_mine, .st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto !important; animation-range: normal !important;}
+.st-key-card_plan {animation: fs-orbit 8s linear infinite, fs-soft-in 1s ease-out both !important;
+    animation-timeline: auto, auto !important;}
+@keyframes fs-soft-in {from {opacity: 0;}}
+[class*="st-key-cell-"] button {animation: fs-soft-in .7s ease-out both !important;}
+/* The recommended plan's tiles: the same soft fade, no bouncy pop. */
+.rg > .rg-cell {animation: fs-soft-in .8s ease-out both !important;}
+@media (prefers-reduced-motion: reduce) {
+    .st-key-card_mine, .st-key-card_plan, [class*="st-key-cell-"] button, .rg > .rg-cell {animation: none !important;}
+}
+
+/* ---------- Clean entrances: fade only, no movement ----------
+   Everything that used to slide, grow, bounce or draw in now just fades in where it
+   belongs. These redefine the earlier keyframes of the same name (the later one wins). */
+@keyframes fs-drop       {from {opacity: 0;}}
+@keyframes fs-in-down    {from {opacity: 0;}}
+@keyframes fs-reveal     {from {opacity: 0;}}
+@keyframes fs-sprout     {from {opacity: 0;}}
+@keyframes fs-chip-in    {from {opacity: 0;}}
+@keyframes fs-tag-in     {from {opacity: 0;}}
+@keyframes fs-msg-in     {from {opacity: 0;}}
+@keyframes fs-page-in    {from {opacity: 0;}}
+@keyframes fs-menu-open  {from {opacity: 0;}}
+@keyframes fs-choice-in  {from {opacity: 0;}}
+@keyframes fs-tile-fade  {from {opacity: 0;}}
+@keyframes fs-grow       {from {opacity: 0;}}
+
+/* Charts: the lines no longer draw themselves left to right, and the rain bars no longer
+   grow in a wave; the whole chart fades in once, cleanly. */
+.st-key-card_test .scatterlayer .js-line {stroke-dasharray: none !important; stroke-dashoffset: 0 !important;
+    animation: none !important;}
+.st-key-card_test .scatterlayer .js-fill, .st-key-card_test .barlayer .point path {animation: none !important;}
+[data-testid="stPlotlyChart"] {animation: fs-soft-in .6s ease-out both;}
+
+
+/* =====================================================================
+   Smoothness pass: keep the look, stop the browser repainting big areas every frame.
+   Only transform and opacity animate continuously (the GPU moves those for free).
+   ===================================================================== */
+
+/* Background: no fixed attachment (the app's scrolling happens inside it anyway). */
+[data-testid="stApp"] {background-attachment: scroll !important;}
+
+/* Comets: three small glowing streaks gliding along the background routes (CSS motion
+   path), instead of re-drawing a full-screen animated image every frame. The head leads,
+   the gradient tail trails behind, and offset-rotate turns them at each corner. */
+.fs-comets {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+/* Comets along the grid routes: straight runs, square corners. Each is a round glowing head
+   and a trail of 16 short line pieces on the same route, each 0.05 s behind the one ahead.
+   The pieces overlap a little, so the trail is one continuous streak; each lies along the
+   stretch it's on and turns at the instant it reaches a corner, so the trail bends round
+   corners on the line. Transform keyframes (one or two stops per corner) + opacity only:
+   the compositor runs them, no main-thread work per frame. */
+.fs-comets span {position: absolute; inset: 0;}
+.fs-comets i {position: absolute; left: 0; top: 0; width: var(--len); height: var(--h);
+    margin: calc(var(--h) / -2) 0 0 calc(var(--len) / -2); border-radius: 2px;
+    background: rgba(191, 215, 255, var(--a)); opacity: 0; will-change: transform, opacity;
+    animation-name: var(--route), fs-comet-fade; animation-duration: var(--dur);
+    animation-timing-function: linear; animation-iteration-count: infinite;
+    animation-delay: calc(var(--delay) + var(--k) * 0.05s);}
+.fs-comets i:first-child {width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: #FFFFFF;
+    box-shadow: 0 0 8px 2px rgba(191, 215, 255, .9), 0 0 18px 4px rgba(79, 139, 255, .45); z-index: 1;}
+@keyframes fs-comet-fade {0% {opacity: 0;} 5% {opacity: .85;} 93% {opacity: .85;} 100% {opacity: 0;}}
+@keyframes fs-r1 {0% {transform: translate(0.5px, 816.5px) rotate(0deg);} 6.250% {transform: translate(192.5px, 816.5px) rotate(0deg);} 6.254% {transform: translate(192.5px, 816.5px) rotate(90deg);} 10.938% {transform: translate(192.5px, 672.5px) rotate(90deg);} 10.941% {transform: translate(192.5px, 672.5px) rotate(0deg);} 18.750% {transform: translate(432.5px, 672.5px) rotate(0deg);} 18.754% {transform: translate(432.5px, 672.5px) rotate(90deg);} 21.875% {transform: translate(432.5px, 768.5px) rotate(90deg);} 21.879% {transform: translate(432.5px, 768.5px) rotate(0deg);} 29.688% {transform: translate(672.5px, 768.5px) rotate(0deg);} 29.692% {transform: translate(672.5px, 768.5px) rotate(90deg);} 37.500% {transform: translate(672.5px, 528.5px) rotate(90deg);} 37.504% {transform: translate(672.5px, 528.5px) rotate(0deg);} 45.312% {transform: translate(912.5px, 528.5px) rotate(0deg);} 45.316% {transform: translate(912.5px, 528.5px) rotate(90deg);} 48.438% {transform: translate(912.5px, 624.5px) rotate(90deg);} 48.441% {transform: translate(912.5px, 624.5px) rotate(0deg);} 56.250% {transform: translate(1152.5px, 624.5px) rotate(0deg);} 56.254% {transform: translate(1152.5px, 624.5px) rotate(90deg);} 64.062% {transform: translate(1152.5px, 384.5px) rotate(90deg);} 64.067% {transform: translate(1152.5px, 384.5px) rotate(0deg);} 71.875% {transform: translate(1392.5px, 384.5px) rotate(0deg);} 71.879% {transform: translate(1392.5px, 384.5px) rotate(90deg);} 75.000% {transform: translate(1392.5px, 480.5px) rotate(90deg);} 75.004% {transform: translate(1392.5px, 480.5px) rotate(0deg);} 82.812% {transform: translate(1632.5px, 480.5px) rotate(0deg);} 82.817% {transform: translate(1632.5px, 480.5px) rotate(90deg);} 90.625% {transform: translate(1632.5px, 240.5px) rotate(90deg);} 90.629% {transform: translate(1632.5px, 240.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 240.5px) rotate(0deg);}}
+.fs-comets span:nth-child(1) i {--route: fs-r1; --dur: 18s; --delay: 0s; --len: 10.7px;}
+@keyframes fs-r2 {0% {transform: translate(288.5px, 1152.5px) rotate(90deg);} 5.882% {transform: translate(288.5px, 1008.5px) rotate(90deg);} 5.886% {transform: translate(288.5px, 1008.5px) rotate(0deg);} 17.647% {transform: translate(576.5px, 1008.5px) rotate(0deg);} 17.651% {transform: translate(576.5px, 1008.5px) rotate(90deg);} 21.569% {transform: translate(576.5px, 1104.5px) rotate(90deg);} 21.573% {transform: translate(576.5px, 1104.5px) rotate(0deg);} 31.373% {transform: translate(816.5px, 1104.5px) rotate(0deg);} 31.377% {transform: translate(816.5px, 1104.5px) rotate(90deg);} 39.216% {transform: translate(816.5px, 912.5px) rotate(90deg);} 39.220% {transform: translate(816.5px, 912.5px) rotate(0deg);} 50.980% {transform: translate(1104.5px, 912.5px) rotate(0deg);} 50.984% {transform: translate(1104.5px, 912.5px) rotate(90deg);} 52.941% {transform: translate(1104.5px, 960.5px) rotate(90deg);} 52.945% {transform: translate(1104.5px, 960.5px) rotate(0deg);} 62.745% {transform: translate(1344.5px, 960.5px) rotate(0deg);} 62.749% {transform: translate(1344.5px, 960.5px) rotate(90deg);} 72.549% {transform: translate(1344.5px, 720.5px) rotate(90deg);} 72.553% {transform: translate(1344.5px, 720.5px) rotate(0deg);} 82.353% {transform: translate(1584.5px, 720.5px) rotate(0deg);} 82.357% {transform: translate(1584.5px, 720.5px) rotate(90deg);} 86.275% {transform: translate(1584.5px, 816.5px) rotate(90deg);} 86.279% {transform: translate(1584.5px, 816.5px) rotate(0deg);} 100% {transform: translate(1920.5px, 816.5px) rotate(0deg);}}
+.fs-comets span:nth-child(2) i {--route: fs-r2; --dur: 22s; --delay: -8s; --len: 7.0px;}
+@keyframes fs-r3 {0% {transform: translate(1920.5px, 1056.5px) rotate(0deg);} 7.812% {transform: translate(1680.5px, 1056.5px) rotate(0deg);} 7.816% {transform: translate(1680.5px, 1056.5px) rotate(90deg);} 12.500% {transform: translate(1680.5px, 912.5px) rotate(90deg);} 12.504% {transform: translate(1680.5px, 912.5px) rotate(0deg);} 20.312% {transform: translate(1440.5px, 912.5px) rotate(0deg);} 20.317% {transform: translate(1440.5px, 912.5px) rotate(90deg);} 28.125% {transform: translate(1440.5px, 1152.5px) rotate(90deg);} 28.129% {transform: translate(1440.5px, 1152.5px) rotate(0deg);} 40.625% {transform: translate(1056.5px, 1152.5px) rotate(0deg);} 40.629% {transform: translate(1056.5px, 1152.5px) rotate(90deg);} 45.312% {transform: translate(1056.5px, 1008.5px) rotate(90deg);} 45.316% {transform: translate(1056.5px, 1008.5px) rotate(0deg);} 54.688% {transform: translate(768.5px, 1008.5px) rotate(0deg);} 54.691% {transform: translate(768.5px, 1008.5px) rotate(90deg);} 67.188% {transform: translate(768.5px, 624.5px) rotate(90deg);} 67.192% {transform: translate(768.5px, 624.5px) rotate(0deg);} 76.562% {transform: translate(480.5px, 624.5px) rotate(0deg);} 76.567% {transform: translate(480.5px, 624.5px) rotate(90deg);} 84.375% {transform: translate(480.5px, 384.5px) rotate(90deg);} 84.379% {transform: translate(480.5px, 384.5px) rotate(0deg);} 100% {transform: translate(0.5px, 384.5px) rotate(0deg);}}
+.fs-comets span:nth-child(3) i {--route: fs-r3; --dur: 25s; --delay: -15s; --len: 7.7px;}
+.fs-comets i:nth-child(1) {--k: 0; --h: 2.60px; --a: 0.880;}
+.fs-comets i:nth-child(2) {--k: 1; --h: 2.50px; --a: 0.812;}
+.fs-comets i:nth-child(3) {--k: 2; --h: 2.40px; --a: 0.745;}
+.fs-comets i:nth-child(4) {--k: 3; --h: 2.30px; --a: 0.679;}
+.fs-comets i:nth-child(5) {--k: 4; --h: 2.20px; --a: 0.615;}
+.fs-comets i:nth-child(6) {--k: 5; --h: 2.10px; --a: 0.552;}
+.fs-comets i:nth-child(7) {--k: 6; --h: 2.00px; --a: 0.491;}
+.fs-comets i:nth-child(8) {--k: 7; --h: 1.90px; --a: 0.432;}
+.fs-comets i:nth-child(9) {--k: 8; --h: 1.80px; --a: 0.375;}
+.fs-comets i:nth-child(10) {--k: 9; --h: 1.70px; --a: 0.320;}
+.fs-comets i:nth-child(11) {--k: 10; --h: 1.60px; --a: 0.267;}
+.fs-comets i:nth-child(12) {--k: 11; --h: 1.50px; --a: 0.217;}
+.fs-comets i:nth-child(13) {--k: 12; --h: 1.40px; --a: 0.170;}
+.fs-comets i:nth-child(14) {--k: 13; --h: 1.30px; --a: 0.126;}
+.fs-comets i:nth-child(15) {--k: 14; --h: 1.20px; --a: 0.087;}
+.fs-comets i:nth-child(16) {--k: 15; --h: 1.10px; --a: 0.053;}
+.fs-comets i:nth-child(17) {--k: 16; --h: 1.00px; --a: 0.030;}
+
+
+/* Satellite: drawn once into its own layer, then only moved. */
+[data-testid="stApp"]::before {will-change: transform;}
+
+/* Top bars: no live blur behind them (it was recomputed every frame as things moved behind). */
+.fs-topbar, .st-key-fs_topnav {backdrop-filter: none !important; background: rgba(18, 24, 56, .92) !important;}
+.fs-dir-panel {backdrop-filter: none !important;}
+
+/* Recommended plan: a still gradient border instead of one that orbits (it repainted the
+   whole card every frame). Same colours. */
+.st-key-card_plan {animation: fs-soft-in 1s ease-out both !important;
+    background: var(--grad-panel) padding-box,
+                linear-gradient(135deg, #4F8BFF, rgba(191, 215, 255, .35) 45%, #BFD7FF) border-box !important;}
+
+/* Logo: float by moving only (its glow stays put); no more animated shadows. */
+@keyframes fs-float {0%, 100% {transform: translateY(0) rotate(0deg);} 50% {transform: translateY(-7px) rotate(-1.5deg);}}
+.fs-hero summary > svg {will-change: transform;
+    box-shadow: 0 0 0 1px var(--border-glow), 0 0 32px rgba(79, 139, 255, .38), 0 18px 26px rgba(2, 5, 20, .4);}
+
+/* Title and field map: still (their gradients were repainted continuously). */
+.fs-hero-title, .fm-plot {animation: none !important;}
+
+/* Assistant button: the pulse ring grows and fades (transform + opacity), not a shadow. */
+.st-key-faq [data-testid="stPopoverButton"] {will-change: transform;}
+.st-key-faq [data-testid="stPopoverButton"]::after {box-shadow: none !important;
+    border: 2px solid rgba(191, 215, 255, .55); animation: fs-ping-ring 3.2s ease-out infinite !important;}
+@keyframes fs-ping-ring {0% {transform: scale(1); opacity: .8;} 70%, 100% {transform: scale(1.25); opacity: 0;}}
+
+/* Current crop in the picker: a steady ring (no pulsing shadow). */
+[class*="st-key-pick-"][class*="-sel"] button {animation: none !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cc, #BFD7FF) 45%, transparent) !important;}
+
+/* Moving pseudo-elements get their own layer. */
+.fs-step::before, [data-testid="stBaseButton-primary"]::after {will-change: transform;}
+
+@media (prefers-reduced-motion: reduce) {.fs-comets {display: none;}}
+
+/* ---------- Your rotation in 3D (left panel) ---------- */
+.st-key-rot3d [data-testid="stPlotlyChart"] {background: rgba(10, 14, 31, .6); border: 1px solid var(--border);
+    border-radius: 18px; overflow: hidden;}
+.st-key-rot3d [data-testid="stBaseButton-secondary"] {border-radius: 999px !important;}
+/* The full-screen window: our dark panel look. */
+[data-testid="stDialog"] [role="dialog"] {background: linear-gradient(160deg, rgba(30, 39, 86, .98), rgba(13, 18, 44, .98)) !important;
+    border: 1px solid var(--border-glow) !important; border-radius: var(--r-card) !important;}
+
+/* 3D farm in the left panel: rounded frame for the iframe. */
+.st-key-rot3d iframe {border-radius: 16px; border: 1px solid var(--border) !important; background: #0A0E1F;}
+[data-testid="stDialog"] iframe {border-radius: 18px;}
+
+/* ---------- Page menu (top of the left panel): bigger, sleek, animated ----------
+   Home · Rotation evaluator · Rotation optimizer. Pill links with an icon; hover slides in a
+   soft highlight; the open page has a gradient pill with a glowing edge bar; a click presses
+   the link in and sends a ripple of light across it. */
+[data-testid="stSidebarNavItems"] {gap: 6px; padding: 4px 2px 10px !important; display: flex; flex-direction: column;}
+[data-testid="stSidebarNavLink"] {position: relative; overflow: hidden; min-height: 46px !important;
+    padding: 10px 14px !important; border-radius: 14px !important; border: 1px solid transparent;
+    background: rgba(26, 33, 72, .55) !important;
+    transition: transform .18s ease, background .25s ease, border-color .25s ease, box-shadow .25s ease;}
+[data-testid="stSidebarNavLink"] span {font-size: 1rem !important; font-weight: 650 !important; color: var(--text-2) !important;
+    transition: color .2s ease;}
+[data-testid="stSidebarNavLink"] [data-testid="stIconMaterial"] {font-size: 1.3rem !important; color: var(--text-3) !important;
+    transition: color .2s ease, transform .25s ease;}
+[data-testid="stSidebarNavLink"]:hover {transform: translateX(3px); border-color: var(--border-glow);
+    background: rgba(79, 139, 255, .14) !important;}
+[data-testid="stSidebarNavLink"]:hover span {color: var(--text) !important;}
+[data-testid="stSidebarNavLink"]:hover [data-testid="stIconMaterial"] {color: var(--accent) !important; transform: scale(1.12);}
+/* The open page. */
+[data-testid="stSidebarNavLink"][aria-current="page"] {
+    background: linear-gradient(90deg, rgba(79, 139, 255, .32), rgba(191, 215, 255, .10)) !important;
+    border-color: rgba(191, 215, 255, .45); box-shadow: 0 0 22px rgba(79, 139, 255, .25);}
+[data-testid="stSidebarNavLink"][aria-current="page"] span {color: var(--text) !important;}
+[data-testid="stSidebarNavLink"][aria-current="page"] [data-testid="stIconMaterial"] {color: var(--accent) !important;}
+[data-testid="stSidebarNavLink"][aria-current="page"]::before {content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+    width: 3px; border-radius: 0 3px 3px 0; background: var(--grad-brand); box-shadow: 0 0 10px rgba(191, 215, 255, .8);}
+/* Click: press in, and a sweep of light runs across. */
+[data-testid="stSidebarNavLink"]:active {transform: scale(.97);}
+[data-testid="stSidebarNavLink"]::after {content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 45%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .28), transparent);
+    transform: translateX(-130%); pointer-events: none; will-change: transform;}
+[data-testid="stSidebarNavLink"]:active::after, [data-testid="stSidebarNavLink"][aria-current="page"]::after {
+    animation: fs-nav-sweep .7s ease-out;}
+@keyframes fs-nav-sweep {to {transform: translateX(320%);}}
+[data-testid="stSidebarNavSeparator"] {border-color: var(--border) !important; margin: 6px 4px !important;}
+@media (prefers-reduced-motion: reduce) {
+    [data-testid="stSidebarNavLink"]::after {animation: none !important;}
+}
+
+/* ---------- Layout tidy-up (Nov 15) ----------
+   Side-by-side cards and metric tiles are the same height, with the tool cards' buttons
+   lined up along the bottom; one divider (ours) between the page menu and "Your fields". */
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval),
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) {align-items: stretch;}
+[data-testid="stHorizontalBlock"]:has(.st-key-card_tool_eval) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"],
+[data-testid="stHorizontalBlock"]:has([class*="st-key-m_"]) > [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {height: 100%;}
+/* Streamlit 1.50 puts a stLayoutWrapper between the column and the keyed container. */
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_eval),
+[data-testid="stLayoutWrapper"]:has(> .st-key-card_tool_opt),
+[data-testid="stLayoutWrapper"]:has(> [class*="st-key-m_"]) {flex: 1 1 auto; display: flex; flex-direction: column;}
+.st-key-card_tool_eval, .st-key-card_tool_opt {flex: 1 1 auto; height: 100%;}
+.st-key-card_tool_eval > :last-child, .st-key-card_tool_opt > :last-child {margin-top: auto;}
+[class*="st-key-m_"] {flex: 1 1 auto; height: 100%;}
+[class*="st-key-m_"] > [data-testid="stElementContainer"] {flex: 1 1 auto;}
+[class*="st-key-m_"] [data-testid="stMetric"] {height: 100%; box-sizing: border-box;}
+[data-testid="stSidebarNavSeparator"] {display: none !important;}
+/* Top bar on the tool pages: Home button, crumb and status pills on one centred line. */
+.st-key-fs_topnav [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {justify-content: center; height: 100%;}
+.st-key-fs_topnav [data-testid="stElementContainer"] {margin: 0 !important;}
+.st-key-fs_topnav .fs-crumb {line-height: 1; display: flex; align-items: center; min-height: 40px;}
+/* "Where next?": the two buttons side by side, evenly spaced, not stretched across columns. */
+.st-key-fs_endnav [data-testid="stHorizontalBlock"] {justify-content: flex-start; gap: 12px; flex-wrap: wrap;}
+.st-key-fs_endnav [data-testid="stColumn"] {flex: 0 0 auto !important; width: auto !important; min-width: 0 !important;}
+.st-key-fs_endnav [data-testid="stColumn"]:empty,
+.st-key-fs_endnav [data-testid="stColumn"]:last-child:not(:has([data-testid="stPageLink-NavLink"])) {display: none;}
+
+/* ---------- Background stars that gently appear (Nov 15) ----------
+   18 small stars behind everything (fixed, z-index -1, like the comets). Each fades in, glows
+   for a moment and fades out on its own cycle (9-19 s), so now and then a star appears
+   somewhere. Opacity/transform only; positions are fixed so pages match. */
+.fs-stars {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+.fs-stars i {position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c), 0 0 14px 3px rgba(79, 139, 255, .35); opacity: 0;
+  will-change: opacity, transform; animation: fs-star-appear 12s ease-in-out infinite;}
+.fs-stars i::before, .fs-stars i::after {content: ""; position: absolute; left: 50%; top: 50%;   /* a soft 4-point glint */
+  background: linear-gradient(90deg, transparent, var(--c), transparent); opacity: .7;
+  width: calc(var(--s) * 6); height: 1px; transform: translate(-50%, -50%);}
+.fs-stars i::after {transform: translate(-50%, -50%) rotate(90deg);}
+@keyframes fs-star-appear {
+  0%, 58%, 100% {opacity: 0; transform: scale(.4);}
+  70%           {opacity: .95; transform: scale(1);}
+  78%           {opacity: .75; transform: scale(.85);}
+  90%           {opacity: 0; transform: scale(.5);}
+}
+.fs-stars i:nth-child(1) {left: 93.7%; top: 5.1%; --s: 2px; --c: #E6E9F5; animation-duration: 10.6s; animation-delay: -10.4s;}
+.fs-stars i:nth-child(2) {left: 8.2%; top: 78.0%; --s: 2px; --c: #BFD7FF; animation-duration: 17.6s; animation-delay: -17.6s;}
+.fs-stars i:nth-child(3) {left: 14.0%; top: 46.9%; --s: 2.5px; --c: #BFD7FF; animation-duration: 11.8s; animation-delay: -3.1s;}
+.fs-stars i:nth-child(4) {left: 90.9%; top: 23.0%; --s: 2.5px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -3.8s;}
+.fs-stars i:nth-child(5) {left: 24.8%; top: 45.9%; --s: 3px; --c: #BFD7FF; animation-duration: 13.9s; animation-delay: -6.4s;}
+.fs-stars i:nth-child(6) {left: 44.3%; top: 33.0%; --s: 3px; --c: #E6E9F5; animation-duration: 13.1s; animation-delay: -11.3s;}
+.fs-stars i:nth-child(7) {left: 49.1%; top: 90.9%; --s: 2px; --c: #E6E9F5; animation-duration: 11.0s; animation-delay: -5.9s;}
+.fs-stars i:nth-child(8) {left: 29.9%; top: 49.5%; --s: 2px; --c: #E6E9F5; animation-duration: 17.9s; animation-delay: -7.1s;}
+.fs-stars i:nth-child(9) {left: 47.1%; top: 81.3%; --s: 3.5px; --c: #BFD7FF; animation-duration: 12.0s; animation-delay: -11.0s;}
+.fs-stars i:nth-child(10) {left: 19.8%; top: 91.2%; --s: 2.5px; --c: #BFD7FF; animation-duration: 9.8s; animation-delay: -3.0s;}
+.fs-stars i:nth-child(11) {left: 80.5%; top: 33.3%; --s: 3px; --c: #E6E9F5; animation-duration: 12.4s; animation-delay: -5.5s;}
+.fs-stars i:nth-child(12) {left: 74.2%; top: 81.1%; --s: 2.5px; --c: #F5E6C4; animation-duration: 13.7s; animation-delay: -1.6s;}
+.fs-stars i:nth-child(13) {left: 39.6%; top: 5.4%; --s: 2.5px; --c: #BFD7FF; animation-duration: 18.3s; animation-delay: -13.5s;}
+.fs-stars i:nth-child(14) {left: 9.0%; top: 45.5%; --s: 2px; --c: #F5E6C4; animation-duration: 18.4s; animation-delay: -2.9s;}
+.fs-stars i:nth-child(15) {left: 56.1%; top: 84.3%; --s: 3px; --c: #E6E9F5; animation-duration: 9.4s; animation-delay: -0.6s;}
+.fs-stars i:nth-child(16) {left: 56.5%; top: 46.5%; --s: 3.5px; --c: #E6E9F5; animation-duration: 13.5s; animation-delay: -9.7s;}
+.fs-stars i:nth-child(17) {left: 60.4%; top: 9.2%; --s: 3px; --c: #BFD7FF; animation-duration: 13.3s; animation-delay: -0.7s;}
+.fs-stars i:nth-child(18) {left: 59.0%; top: 32.7%; --s: 2px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -15.2s;}
+@media (prefers-reduced-motion: reduce) {.fs-stars {display: none;}}
+
+/* ---------- Smoothness pass 2 (Nov 15) ----------
+   The last continuous repaints: the assistant's orb animated a gradient angle (repaint
+   every frame); now the gradient is still and the orb turns (compositor only, same look).
+   The logo's leaves swayed as SVG shapes (repaint every frame); the logo still floats. */
+.fs-faq-orb {background: conic-gradient(#4F8BFF, #BFD7FF, #0B3D91, #4F8BFF) !important;
+             animation: fs-spin 4s linear infinite !important; will-change: transform;}
+.fs-faq-orb::after {animation: fs-spin 4s linear infinite reverse;}   /* keeps the inner disc still */
+@keyframes fs-spin {to {transform: rotate(360deg);}}
+.fs-hero summary > svg path {animation: none !important;}
+
+/* Data sources: line icons on small tiles, like the crop icons and the "Jump to" menu. */
+.fs-src-icon {flex: none; width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center;
+              justify-content: center; background: var(--raised); border: 1px solid var(--border);
+              color: #BFD7FF; font-size: 1rem; line-height: 1; margin-top: 1px;}
+.fs-src-nasa .fs-src-icon {background: rgba(11, 61, 145, .45); border-color: rgba(79, 139, 255, .55); color: #DCE8FF;}
+.fs-src-icon .fs-dir-svg {width: 19px; height: 19px;}
+.fs-src:hover .fs-src-icon {border-color: var(--border-glow); color: #fff;}
+/* The hidden page-fade helper takes no space. */
+.st-key-fs_fx {display: none !important;}
+
+/* "Jump to" directory icons: line icons in the app's accent, like the page menu and crop icons.
+   Explicit sizes (min/max too): an SVG with no size can collapse to nothing in a flex box. */
+.fs-dir-icon {color: #BFD7FF; transition: color .15s ease, background .15s ease, border-color .15s ease;}
+.fs-dir-svg {width: 18px !important; height: 18px !important; min-width: 18px; min-height: 18px;
+             display: block; flex: none; overflow: visible;}
+.fs-src-icon .fs-dir-svg {width: 19px !important; height: 19px !important; min-width: 19px; min-height: 19px;}
+a.fs-dir-link:hover .fs-dir-icon {color: #fff; background: var(--blue-soft); border-color: var(--border-glow);}

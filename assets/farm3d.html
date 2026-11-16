@@ -1,0 +1,1008 @@
+<!doctype html>
+<!-- Field Shift: the farmer's rotation as a 3D farm (owner: Claude-Thomas).
+     ui.farm_3d_html() fills in __DATA__ (fields, plan, compact/big) and Streamlit shows it
+     in an iframe. Three.js r128 from jsdelivr. One field block per field, laid out like the
+     field map; the selected year's crop is planted in rows (instanced meshes: one draw call
+     per crop type, so thousands of plants stay smooth). Day/night: the sun crosses the sky,
+     shadows follow, the sky goes blue -> sunset -> stars, the barn windows light up. -->
+<html><head><meta charset="utf-8">
+<style>
+  html, body {margin: 0; height: 100%; overflow: hidden; background: #0A0E1F;
+              font-family: Inter, -apple-system, system-ui, sans-serif;}
+  #view {position: absolute; inset: 0;}
+  .ui {position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; flex-wrap: wrap;
+       align-items: center; pointer-events: none;}
+  .ui > * {pointer-events: auto;}
+  .chip {border: 1px solid rgba(143, 180, 255, .35); background: rgba(10, 14, 31, .72); color: #E6E9F5;
+         border-radius: 999px; padding: 4px 9px; font-size: 11px; font-weight: 650; cursor: pointer;
+         transition: background .2s ease, border-color .2s ease;}
+  .chip:hover {border-color: #BFD7FF;}
+  .chip.on {background: #BFD7FF; color: #0A0E1F; border-color: #BFD7FF;}
+  .spacer {flex: 1;}
+  .time {display: none; align-items: center; gap: 6px; color: #A9B0CF; font-size: 11px;}
+  .big .time {display: flex;}
+  .big .chip {font-size: 13px; padding: 6px 12px;}
+  input[type=range] {accent-color: #BFD7FF; width: 140px;}
+  .tag {position: absolute; top: 8px; left: 10px; color: #E6E9F5; font-size: 11px; font-weight: 650;
+        background: rgba(10, 14, 31, .6); border: 1px solid rgba(143, 180, 255, .25); border-radius: 8px;
+        padding: 3px 8px; pointer-events: none; transition: opacity .3s;}
+  .big .tag {font-size: 14px; padding: 6px 12px;}
+  .summary {position: absolute; top: 8px; left: 10px; right: 10px; display: flex; flex-wrap: wrap; gap: 6px;
+             align-items: center; pointer-events: none;}
+  .summary b {color: #E6E9F5; font-size: 11px; font-weight: 750; background: rgba(10, 14, 31, .72);
+              border: 1px solid rgba(143, 180, 255, .3); border-radius: 8px; padding: 3px 8px;}
+  .summary span {display: inline-flex; align-items: center; gap: 4px; color: #E6E9F5; font-size: 10px;
+                 font-weight: 600; background: rgba(10, 14, 31, .62); border-radius: 999px; padding: 2px 7px;}
+  .summary i {width: 8px; height: 8px; border-radius: 50%; display: inline-block;}
+  .big .summary b {font-size: 14px; padding: 6px 12px;}
+  .big .summary span {font-size: 12px; padding: 4px 10px;}
+  .card {position: absolute; top: 40px; right: 10px; width: 210px; background: rgba(10, 14, 31, .9);
+         border: 1px solid rgba(191, 215, 255, .35); border-radius: 12px; padding: 10px 12px; color: #E6E9F5;
+         font-size: 11px; line-height: 1.45; opacity: 0; transform: translateY(-4px);
+         transition: opacity .2s ease, transform .2s ease; pointer-events: none;}
+  .card.show {opacity: 1; transform: none;}
+  .card h4 {margin: 0 0 4px; font-size: 13px;}
+  .card .k {color: #7D86AD;}
+  .card .rot {margin-top: 6px; display: flex; flex-wrap: wrap; gap: 3px; align-items: center;}
+  .card .rot em {font-style: normal; font-size: 10px; font-weight: 650; padding: 2px 6px; border-radius: 6px;
+                 color: #141830; opacity: .55;}
+  .card .rot em.now {opacity: 1; outline: 2px solid #E6E9F5;}
+  .card .note {margin-top: 6px; color: #7D86AD; font-size: 9.5px;}
+  .big .card {width: 260px; font-size: 13px; top: 56px;}
+  .big .card h4 {font-size: 16px;}
+  .big .card .rot em {font-size: 12px;}
+  .foot {position: absolute; right: 10px; bottom: 44px; color: #7D86AD; font-size: 10px; pointer-events: none;
+         display: none;}
+  .big .foot {display: block;}
+  /* Farm numbers for the shown year, the colour key of a data view, and the view switch. */
+  .summary .stat {color: #BFD7FF; background: rgba(10, 14, 31, .62); font-weight: 650;}
+  .summary .stat.bad {color: #FFB4A8;}
+  .summary .key {gap: 5px;}
+  .summary .ramp {width: 46px; height: 7px; border-radius: 4px; display: inline-block;
+                  background: linear-gradient(90deg, #E0645A, #E9C46A, #5DD68A);}
+  .summary .whole {flex-basis: 100%; height: 0;}
+  .big .summary .ramp {width: 70px; height: 9px;}
+  .views {display: inline-flex; border: 1px solid rgba(143, 180, 255, .35); border-radius: 999px;
+          background: rgba(10, 14, 31, .72); padding: 2px; gap: 2px;}
+  .views .chip {border: 0; background: transparent; padding: 3px 8px;}
+  .views .chip.on {background: #BFD7FF; color: #0A0E1F;}
+  .big .views .chip {padding: 5px 11px;}
+  .card .nums {margin-top: 5px; display: grid; grid-template-columns: auto 1fr; gap: 1px 8px;}
+  .card .nums b {font-weight: 700;}
+  .card .good {color: #8FE3B0;} .card .warn {color: #FFB4A8;}
+  .card .sec {margin-top: 6px; padding-top: 5px; border-top: 1px solid rgba(143, 180, 255, .18);}
+  .card .rot em small {font-weight: 600; opacity: .8; margin-left: 3px;}
+  .card .extra {display: none;}
+  .big .card .extra {display: block;}
+  /* Small panel: tighter chips so the summary covers less of the farm (the water-stress note
+     lives in the caption under the panel and in full screen). */
+  body:not(.big) .summary {gap: 4px; top: 6px; left: 6px; right: 6px;}
+  body:not(.big) .summary b {font-size: 10px; padding: 2px 6px;}
+  body:not(.big) .summary span {font-size: 9px; padding: 1px 6px;}
+  body:not(.big) .summary .note-stress {display: none;}
+  /* Grow / shrink button (top right). */
+  .expand {position: absolute; top: 8px; right: 10px; z-index: 5; width: 30px; height: 30px; padding: 0;
+           display: flex; align-items: center; justify-content: center; font-size: 15px; line-height: 1;}
+  .big .expand {width: auto; padding: 6px 12px; font-size: 13px;}
+  .summary {right: 48px !important;}
+  .views {display: none !important;}
+  .big .views {display: inline-flex !important;}
+  .big .cyc {display: none;}
+  .msg {position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center;
+        color: #A9B0CF; font-size: 12px; padding: 16px;}
+</style></head>
+<body>
+<div id="view"></div>
+<div class="summary" id="summary"></div>
+<div class="card" id="card"></div>
+<div class="foot">Illustration: plants show the crop, not real planting density. Yellowed, shorter plants show water stress from the model. Hover a field for its numbers. Sky, weather and time of day change by themselves, for looks only.</div>
+<div class="ui" id="ui"></div>
+<div class="msg" id="msg">Loading 3D farm…</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/BufferGeometryUtils.js"></script>
+<script>
+(function () {
+  "use strict";
+  var DATA = __DATA__;
+  var msg = document.getElementById("msg");
+  if (typeof THREE === "undefined" || !THREE.OrbitControls || !THREE.BufferGeometryUtils) {
+    msg.textContent = "The 3D farm needs an internet connection to load.";
+    return;
+  }
+  var probe = document.createElement("canvas");
+  if (!(probe.getContext("webgl") || probe.getContext("experimental-webgl"))) {
+    msg.textContent = "This browser can't show 3D (WebGL is off).";
+    return;
+  }
+  msg.style.display = "none";
+  var big = false;                                  // grown to full screen? (setBig)
+
+  // ------------------------------------------------------------ renderer, scene, camera
+  var view = document.getElementById("view");
+  var renderer = new THREE.WebGLRenderer({antialias: true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25));   // small panel: lighter (setBig raises it)
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  view.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x8fc3ff, 120, 260);
+  var camera = new THREE.PerspectiveCamera(45, 1, 0.5, 600);
+  camera.position.set(62, 48, 70);
+  var controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.set(0, 0, 0);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI / 2.15;
+  controls.minDistance = 25;
+  controls.maxDistance = 190;
+  controls.enablePan = false;                       // zoom and pan only when grown (setBig)
+  controls.enableZoom = false;
+  // The slow spin is worked out from the clock (frame), so the small panel and full screen
+  // face the same way. Once the farmer drags, this view is theirs.
+  var userMoved = false, CAM_R = Math.hypot(62, 70), CAM_Y = 48, CAM_A0 = Math.atan2(70, 62);
+  renderer.domElement.addEventListener("pointerdown", function () { userMoved = true; });
+  renderer.domElement.addEventListener("wheel", function () { userMoved = true; }, {passive: true});
+
+  function resize() {
+    var w = view.clientWidth || 300, h = view.clientHeight || 250;
+    renderer.setSize(w, h, false);
+    renderer.domElement.style.width = w + "px";
+    renderer.domElement.style.height = h + "px";
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize", resize);
+
+  // ------------------------------------------------------------ lights and sky
+  var hemi = new THREE.HemisphereLight(0xbfdcff, 0x3b2a1a, 0.6);
+  scene.add(hemi);
+  var sun = new THREE.DirectionalLight(0xfff1d6, 1.2);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  var sc = sun.shadow.camera;
+  sc.left = -55; sc.right = 55; sc.top = 55; sc.bottom = -55; sc.near = 10; sc.far = 300;
+  sun.shadow.bias = -0.0008;
+  scene.add(sun); scene.add(sun.target);
+  var moon = new THREE.DirectionalLight(0x9db8ff, 0.0);
+  scene.add(moon);
+
+  var sunDisc = new THREE.Mesh(new THREE.SphereGeometry(5, 16, 12), new THREE.MeshBasicMaterial({color: 0xffe9a8, fog: false}));
+  var moonDisc = new THREE.Mesh(new THREE.SphereGeometry(3.4, 16, 12), new THREE.MeshBasicMaterial({color: 0xdfe8ff, fog: false}));
+  scene.add(sunDisc); scene.add(moonDisc);
+
+  var starGeo = new THREE.BufferGeometry(), starPos = [];
+  for (var s = 0; s < 900; s++) {
+    var th = Math.random() * Math.PI * 2, ph = Math.random() * Math.PI * 0.45;
+    starPos.push(250 * Math.cos(th) * Math.sin(ph), 250 * Math.cos(ph), 250 * Math.sin(th) * Math.sin(ph));
+  }
+  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
+  var starMat = new THREE.PointsMaterial({color: 0xffffff, size: 1.3, sizeAttenuation: false, transparent: true, opacity: 0, fog: false});
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // ------------------------------------------------------------ helpers
+  function rng(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+  function colorize(geo, hex) {
+    var c = new THREE.Color(hex), n = geo.attributes.position.count, arr = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
+    geo.setAttribute("color", new THREE.BufferAttribute(arr, 3));
+    if (geo.index) geo = geo.toNonIndexed();
+    return geo;
+  }
+  function part(geo, hex, x, y, z, rx, ry, rz, sx, sy, sz) {
+    geo.scale(sx || 1, sy || 1, sz || 1);
+    geo.rotateX(rx || 0); geo.rotateY(ry || 0); geo.rotateZ(rz || 0);
+    geo.translate(x || 0, y || 0, z || 0);
+    return colorize(geo, hex);
+  }
+  function merge(parts) {
+    parts = parts.map(function (g) { g.deleteAttribute("uv"); return g.index ? g.toNonIndexed() : g; });
+    var m = THREE.BufferGeometryUtils.mergeBufferGeometries(parts);
+    m.computeVertexNormals();
+    return m;
+  }
+  function canvasTexture(draw, size) {
+    var c = document.createElement("canvas"); c.width = c.height = size || 256;
+    draw(c.getContext("2d"), c.width);
+    var t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.encoding = THREE.sRGBEncoding;
+    return t;
+  }
+
+  // ------------------------------------------------------------ crop models (one plant each)
+  // Natural colours, not the UI's pastel tile colours. y=0 is the soil.
+  function cornGeo() {
+    var g = [part(new THREE.CylinderGeometry(0.05, 0.08, 2.6, 5), 0x4f7f2a, 0, 1.3, 0)];
+    for (var i = 0; i < 4; i++) {
+      g.push(part(new THREE.PlaneGeometry(0.16, 1.1, 1, 2), i % 2 ? 0x5d9433 : 0x4a8a2c,
+                  0.3 * Math.cos(i * 1.7), 0.7 + i * 0.42, 0.3 * Math.sin(i * 1.7), 0.9, i * 1.7, 0.55));
+    }
+    g.push(part(new THREE.ConeGeometry(0.12, 0.45, 5), 0xe6cf7a, 0, 2.8, 0));
+    g.push(part(new THREE.CylinderGeometry(0.09, 0.07, 0.42, 6), 0xd8c25a, 0.12, 1.45, 0, 0, 0, -0.35));
+    return merge(g);
+  }
+  function soyGeo() {
+    var g = [];
+    for (var i = 0; i < 4; i++) {
+      g.push(part(new THREE.IcosahedronGeometry(0.36, 0), i % 2 ? 0x3f7d2c : 0x4c8f34,
+                  0.22 * Math.cos(i * 1.6), 0.38 + 0.12 * (i % 2), 0.22 * Math.sin(i * 1.6), 0, i, 0, 1, 0.75, 1));
+    }
+    g.push(part(new THREE.CylinderGeometry(0.03, 0.04, 0.4, 4), 0x5a7a2a, 0, 0.2, 0));
+    return merge(g);
+  }
+  function wheatGeo() {
+    var g = [];
+    for (var i = 0; i < 3; i++) {
+      var a = i * 2.1, ox = 0.12 * Math.cos(a), oz = 0.12 * Math.sin(a), h = 1.15 + 0.12 * i;
+      g.push(part(new THREE.CylinderGeometry(0.018, 0.025, h, 4), 0xcaa64a, ox, h / 2, oz));
+      g.push(part(new THREE.CylinderGeometry(0.05, 0.035, 0.32, 5), 0xe0b95c, ox, h + 0.14, oz));
+    }
+    return merge(g);
+  }
+  function sorghumGeo() {
+    var g = [part(new THREE.CylinderGeometry(0.045, 0.07, 1.8, 5), 0x5d8a33, 0, 0.9, 0)];
+    for (var i = 0; i < 3; i++) {
+      g.push(part(new THREE.PlaneGeometry(0.15, 0.9, 1, 2), 0x5f9638,
+                  0.25 * Math.cos(i * 2.2), 0.55 + i * 0.35, 0.25 * Math.sin(i * 2.2), 0.95, i * 2.2, 0.5));
+    }
+    g.push(part(new THREE.SphereGeometry(0.2, 6, 5), 0x8b3a2a, 0, 2.0, 0, 0, 0, 0, 1, 1.5, 1));
+    return merge(g);
+  }
+  // Row spacing (between rows, along a row) in world units, before thinning for big fields.
+  var CROPS = {
+    corn: {geo: cornGeo(), row: 1.5, step: 1.1, scale: 1.0},
+    soybeans: {geo: soyGeo(), row: 1.2, step: 1.0, scale: 1.0},
+    winter_wheat: {geo: wheatGeo(), row: 0.9, step: 0.75, scale: 1.0},
+    sorghum: {geo: sorghumGeo(), row: 1.35, step: 1.05, scale: 1.0}
+  };
+
+  // Wind sway and grow-in, added to the standard material's vertex shader.
+  // uShort lowers the plants in the data views so the field colours show between them.
+  var uniforms = {uTime: {value: 0}, uGrow: {value: 1}, uShort: {value: 1}};
+  function cropMaterial() {
+    var m = new THREE.MeshStandardMaterial({vertexColors: true, roughness: 0.85, metalness: 0, side: THREE.DoubleSide});
+    m.onBeforeCompile = function (shader) {
+      shader.uniforms.uTime = uniforms.uTime;
+      shader.uniforms.uGrow = uniforms.uGrow;
+      shader.uniforms.uShort = uniforms.uShort;
+      shader.vertexShader = "uniform float uTime;\nuniform float uGrow;\nuniform float uShort;\n" + shader.vertexShader.replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\n" +
+        "float hgt = max(position.y, 0.0);\n" +
+        "vec4 base = instanceMatrix * vec4(0.0, 0.0, 0.0, 1.0);\n" +
+        "float sway = sin(uTime * 1.7 + base.x * 0.32 + base.z * 0.21) * 0.055 * hgt;\n" +
+        "transformed.x += sway; transformed.z += sway * 0.45;\n" +
+        "transformed.y *= uGrow * uShort; transformed.xz *= 0.6 + 0.4 * uGrow;");
+    };
+    return m;
+  }
+  var cropMat = cropMaterial();
+
+  // ------------------------------------------------------------ the farm layout
+  var W = 64;                                   // farm footprint (world units), square
+  var GAP = 2.4;                                // grass strip between fields
+  var fields = DATA.fields, total = fields.reduce(function (a, f) { return a + f.acres; }, 0) || 1;
+  var rects = [], y0 = -W / 2;
+  for (var r = 0; r < fields.length; r += 2) {
+    var row = fields.slice(r, r + 2), rowAcres = row.reduce(function (a, f) { return a + f.acres; }, 0);
+    var depth = W * rowAcres / total, x0 = -W / 2;
+    row.forEach(function (f) {
+      var width = W * f.acres / rowAcres;
+      rects.push({f: f, x0: x0 + GAP / 2, x1: x0 + width - GAP / 2, z0: y0 + GAP / 2, z1: y0 + depth - GAP / 2});
+      x0 += width;
+    });
+    y0 += depth;
+  }
+
+  // Ground: grass all round, then soil under each field (furrow texture along the rows).
+  var grassTex = canvasTexture(function (c, n) {
+    c.fillStyle = "#3d6b2a"; c.fillRect(0, 0, n, n);
+    for (var i = 0; i < 2600; i++) {
+      c.fillStyle = ["#355f24", "#477a30", "#2f5420", "#52853a"][i % 4];
+      c.fillRect(Math.random() * n, Math.random() * n, 2, 2);
+    }
+  });
+  grassTex.repeat.set(30, 30);
+  var ground = new THREE.Mesh(new THREE.PlaneGeometry(420, 420),
+                              new THREE.MeshStandardMaterial({map: grassTex, roughness: 1}));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true;
+  scene.add(ground);
+
+  var soilTex = canvasTexture(function (c, n) {
+    c.fillStyle = "#5a3e26"; c.fillRect(0, 0, n, n);
+    for (var y = 0; y < n; y += 16) {
+      c.fillStyle = "#4a321e"; c.fillRect(0, y, n, 6);
+      c.fillStyle = "#6b4a2e"; c.fillRect(0, y + 8, n, 3);
+    }
+    for (var i = 0; i < 1500; i++) {
+      c.fillStyle = i % 2 ? "rgba(30,18,8,.35)" : "rgba(120,90,60,.25)";
+      c.fillRect(Math.random() * n, Math.random() * n, 2, 2);
+    }
+  });
+  var soilMat = new THREE.MeshStandardMaterial({map: soilTex, roughness: 1});
+  var soilBlocks = [], hoverRect = null;
+  rects.forEach(function (r) {
+    var w = r.x1 - r.x0, d = r.z1 - r.z0;
+    var tex = soilTex.clone(); tex.needsUpdate = true; tex.repeat.set(w / 6, d / 6);
+    var m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.25, d), soilMat.clone());
+    m.material.map = tex;
+    m.position.set((r.x0 + r.x1) / 2, 0.06, (r.z0 + r.z1) / 2);
+    m.receiveShadow = true;
+    m.userData.rect = r;
+    soilBlocks.push(m);
+    scene.add(m);
+  });
+
+  // Field name labels (sprites that always face the camera).
+  function label(text, sub) {
+    var c = document.createElement("canvas"); c.width = 512; c.height = 160;
+    var g = c.getContext("2d");
+    g.fillStyle = "rgba(10,14,31,0.72)";
+    g.beginPath(); if (g.roundRect) g.roundRect(8, 8, 496, 144, 36); else g.rect(8, 8, 496, 144); g.fill();
+    g.fillStyle = "#E6E9F5"; g.font = "700 50px Inter, system-ui, sans-serif"; g.textAlign = "center";
+    g.fillText(text, 256, 78);
+    var fs = 40; g.font = "600 40px Inter, system-ui, sans-serif";
+    while (fs > 22 && g.measureText(sub).width > 470) { fs -= 2; g.font = "600 " + fs + "px Inter, system-ui, sans-serif"; }
+    g.fillStyle = "#BFD7FF"; g.fillText(sub, 256, 128);
+    var t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+    var sp = new THREE.Sprite(new THREE.SpriteMaterial({map: t, depthTest: false, transparent: true}));
+    sp.scale.set(10, 3.1, 1);
+    sp.renderOrder = 10;
+    return sp;
+  }
+
+  // ------------------------------------------------------------ barn, silo, trees
+  var night = [];
+  (function buildings() {
+    var bx = W / 2 + 14, bz = -W / 2 + 10;
+    var red = new THREE.MeshStandardMaterial({color: 0x8e2b22, roughness: 0.8});
+    var white = new THREE.MeshStandardMaterial({color: 0xe8e2d6, roughness: 0.7});
+    var roofM = new THREE.MeshStandardMaterial({color: 0x3b3f4a, roughness: 0.6});
+    // Built in its own frame (gable ends at z = ±6.5), then turned so the front gable,
+    // with the big door, faces the fields (-x).
+    var barnG = new THREE.Group();
+    function add(mesh, x, y, z, rz) {
+      mesh.position.set(x, y, z); if (rz) mesh.rotation.z = rz;
+      mesh.castShadow = mesh.receiveShadow = true; barnG.add(mesh); return mesh;
+    }
+    var HW = 4.5, WALL = 6, PEAK = 9.2, HL = 6.5;          // half width, wall height, ridge, half length
+    var prof = new THREE.Shape();                            // closed house profile: walls + gable
+    prof.moveTo(-HW, 0); prof.lineTo(HW, 0); prof.lineTo(HW, WALL); prof.lineTo(0, PEAK); prof.lineTo(-HW, WALL); prof.closePath();
+    var body = new THREE.ExtrudeGeometry(prof, {depth: HL * 2, bevelEnabled: false});
+    body.translate(0, 0, -HL);
+    add(new THREE.Mesh(body, red), 0, 0, 0);
+    var run = Math.hypot(HW, PEAK - WALL), pitch = Math.atan2(PEAK - WALL, HW);
+    [-1, 1].forEach(function (s) {                           // two roof panels, overhanging every edge
+      var panel = new THREE.Mesh(new THREE.BoxGeometry(run + 0.9, 0.28, HL * 2 + 1.0), roofM);
+      add(panel, s * (HW / 2 + 0.3 * Math.cos(pitch) + 0.14 * Math.sin(pitch)),
+          (WALL + PEAK) / 2 + 0.14 * Math.cos(pitch) - 0.3 * Math.sin(pitch), 0, -s * pitch);
+    });
+    add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, HL * 2 + 1.0), roofM), 0, PEAK + 0.2, 0);   // ridge cap
+    var front = -HL - 0.06;
+    add(new THREE.Mesh(new THREE.BoxGeometry(3.8, 4.2, 0.12), new THREE.MeshStandardMaterial({color: 0x6e2019, roughness: 0.85})), 0, 2.1, front);
+    var trim = function (w, h, x, y, rz) { add(new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.16), white), x, y, front - 0.04, rz); };
+    trim(4.2, 0.22, 0, 4.25); trim(0.22, 4.3, -2.0, 2.15); trim(0.22, 4.3, 2.0, 2.15);   // door frame
+    var diag = Math.atan2(4.0, 3.6);
+    trim(Math.hypot(3.6, 4.0), 0.18, 0, 2.1, diag); trim(Math.hypot(3.6, 4.0), 0.18, 0, 2.1, -diag);   // the X
+    [[-HW, WALL], [HW, WALL]].forEach(function (p) { trim(0.22, WALL, p[0] * 0.98, WALL / 2); });     // corner boards
+    var winMat = new THREE.MeshStandardMaterial({color: 0x22262f, emissive: 0xffc46b, emissiveIntensity: 0});
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.3, 0.12), winMat), 0, 6.9, front);           // hayloft window
+    trim(1.9, 0.16, 0, 7.6); trim(1.9, 0.16, 0, 6.2);
+    for (var i = -1; i <= 1; i += 2) {                       // side windows
+      for (var k = -1; k <= 1; k += 2) {
+        var w = add(new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.1, 1.4), winMat), k * (HW + 0.06), 3.9, i * 3.2);
+        w.castShadow = false;
+      }
+    }
+    barnG.rotation.y = Math.PI / 2;
+    barnG.position.set(bx, 0, bz);
+    scene.add(barnG);
+    night.push(winMat);
+    var silo = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.4, 13, 16), white);
+    silo.position.set(bx + 1, 6.5, bz + 10.5); silo.castShadow = true; scene.add(silo);
+    var dome = new THREE.Mesh(new THREE.SphereGeometry(2.45, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), roofM);
+    dome.position.set(bx + 1, 13, bz + 10.5); dome.castShadow = true; scene.add(dome);
+    var glow = new THREE.PointLight(0xffc46b, 0, 30);
+    glow.position.set(bx - 9, 5, bz); scene.add(glow);
+    night.push(glow);
+  })();
+  (function trees() {
+    var rand = rng(7), trunk = new THREE.MeshStandardMaterial({color: 0x5b4030, roughness: 1});
+    var leafA = new THREE.MeshStandardMaterial({color: 0x2f5e2a, roughness: 0.9, flatShading: true});
+    var leafB = new THREE.MeshStandardMaterial({color: 0x3c6e2c, roughness: 0.9, flatShading: true});
+    for (var i = 0; i < 46; i++) {
+      var a = rand() * Math.PI * 2, rad = W * 0.82 + rand() * 30;
+      var x = Math.cos(a) * rad, z = Math.sin(a) * rad;
+      if (x > W / 2 + 4 && x < W / 2 + 26 && z < -W / 2 + 26 && z > -W / 2 - 6) continue;   // keep the barn clear
+      var s = 0.8 + rand() * 0.9, t = new THREE.Group();
+      var tr = new THREE.Mesh(new THREE.CylinderGeometry(0.35 * s, 0.5 * s, 3 * s, 6), trunk);
+      tr.position.y = 1.5 * s; tr.castShadow = true; t.add(tr);
+      var cr = new THREE.Mesh(new THREE.IcosahedronGeometry(2.6 * s, 0), rand() > 0.5 ? leafA : leafB);
+      cr.position.y = 4.4 * s; cr.castShadow = true; t.add(cr);
+      t.position.set(x, 0, z); scene.add(t);
+    }
+  })();
+
+  // ------------------------------------------------------------ the model's numbers
+  // DATA.stats comes from ui._farm_3d_stats (null if the model couldn't run: crops only then).
+  var ST = DATA.stats;
+  function money(v) {
+    var a = Math.abs(v), s = v < 0 ? "−$" : "$";
+    return a >= 1000 ? s + (a / 1000).toFixed(a >= 10000 ? 0 : 1) + "k" : s + Math.round(a);
+  }
+  function signed(v, d) { return (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(d); }
+  function yr(name, y) { return ST && ST.fields[name] ? ST.fields[name].years[y] : null; }
+  function shortShare(name, y) { var s = yr(name, y); return s && s.need_in > 0 ? s.short_in / s.need_in : 0; }
+  // How strongly to draw water stress: none below 3% of need short, full at 25%.
+  function stressLook(name, y) { return Math.min(1, Math.max(0, (shortShare(name, y) - 0.03) / 0.22)); }
+
+  // Data views: colour each field by one model measure, red (worse) to green (better).
+  var VIEWS = [["crops", "Crops"], ["water", "Water stress"], ["profit", "Profit"], ["soil", "Soil"]];
+  var mode = "crops";
+  function metric(v, r, y) {
+    var s = yr(r.f.name, y); if (!s) return null;
+    if (v === "profit") return s.profit / r.f.acres;
+    if (v === "water") return s.need_in > 0 ? s.short_in / s.need_in : 0;
+    if (v === "soil") return s.soil;
+    return null;
+  }
+  var span = {};
+  ["water", "profit", "soil"].forEach(function (v) {
+    var lo = Infinity, hi = -Infinity;
+    rects.forEach(function (r) { for (var y = 0; y < DATA.years; y++) { var m = metric(v, r, y); if (m !== null) { lo = Math.min(lo, m); hi = Math.max(hi, m); } } });
+    span[v] = [lo, hi];
+  });
+  var RAMP = [new THREE.Color(0xE0645A), new THREE.Color(0xE9C46A), new THREE.Color(0x5DD68A)];
+  function shade(v, r, y) {
+    var m = metric(v, r, y), lo = span[v][0], hi = span[v][1];
+    var t = hi > lo ? (m - lo) / (hi - lo) : 0.5;
+    if (v === "water") t = 1 - t;                         // less shortfall is better
+    return t < 0.5 ? RAMP[0].clone().lerp(RAMP[1], t * 2) : RAMP[1].clone().lerp(RAMP[2], (t - 0.5) * 2);
+  }
+  function metricText(v, r, y) {
+    var s = yr(r.f.name, y); if (!s) return "";
+    if (v === "profit") return money(s.profit / r.f.acres) + "/ac · " + money(s.profit);
+    if (v === "water") return "Short " + s.short_in.toFixed(1) + " in · " + Math.round(100 * s.short_in / (s.need_in || 1)) + "% of need";
+    if (v === "soil") return signed(s.soil, 2) + " soil pts/ac";
+    return "";
+  }
+  var KEYS = {water: ["most stress", "least"], profit: ["lowest $/ac", "highest"], soil: ["least gain", "most"]};
+
+  // Coloured sheets over each field for the data views (hidden in the Crops view).
+  var sheets = rects.map(function (r) {
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(r.x1 - r.x0, r.z1 - r.z0),
+                           new THREE.MeshBasicMaterial({transparent: true, opacity: 0.6, depthWrite: false}));
+    m.rotation.x = -Math.PI / 2; m.position.set((r.x0 + r.x1) / 2, 0.24, (r.z0 + r.z1) / 2);
+    m.visible = false; m.renderOrder = 2; scene.add(m);
+    return m;
+  });
+
+  // Irrigated fields get a center pivot (a physical fact the model uses: irrigation water).
+  rects.forEach(function (r) {
+    if (!r.f.irrigated) return;
+    var steel = new THREE.MeshStandardMaterial({color: 0xb8c0cc, metalness: 0.5, roughness: 0.4});
+    var cx = (r.x0 + r.x1) / 2, cz = (r.z0 + r.z1) / 2, len = Math.min(r.x1 - r.x0, r.z1 - r.z0) / 2 - 0.8;
+    var arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, len, 6), steel);
+    arm.rotation.z = Math.PI / 2; arm.position.set(cx + len / 2, 3.2, cz); arm.castShadow = true; scene.add(arm);
+    for (var k = 0; k <= 3; k++) {
+      var tw = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.2, 3.2, 4), steel);
+      tw.position.set(cx + len * k / 3, 1.6, cz); tw.castShadow = true; scene.add(tw);
+    }
+  });
+
+  // ------------------------------------------------------------ plant the chosen year
+  var planted = [], labels = [];
+  function maxPerField() { return big ? 3200 : 1700; }
+  var DRY = new THREE.Color(1.0, 0.74, 0.42), WHITE = new THREE.Color(1, 1, 1);
+  function plant(year) {
+    planted.forEach(function (m) { scene.remove(m); m.dispose && m.dispose(); });
+    labels.forEach(function (l) { scene.remove(l); l.material.map.dispose(); l.material.dispose(); });
+    planted = []; labels = [];
+    var byCrop = {};
+    rects.forEach(function (r, fi) {
+      var crop = (DATA.plan[r.f.name] || [])[year];
+      var spec = CROPS[crop];
+      // Dry soil looks paler and dustier where the crop runs short of water.
+      var dry = stressLook(r.f.name, year);
+      soilBlocks[fi].material.color.setRGB(1 + 0.3 * dry, 1 + 0.18 * dry, 1 + 0.02 * dry);
+      if (!spec) return;
+      var w = r.x1 - r.x0 - 1.2, d = r.z1 - r.z0 - 1.2;
+      var rowGap = spec.row, step = spec.step;
+      var count = (w / rowGap) * (d / step);
+      if (count > maxPerField()) { var k = Math.sqrt(count / maxPerField()); rowGap *= k; step *= k; }
+      var rand = rng(1000 + fi * 97 + year * 13);
+      (byCrop[crop] = byCrop[crop] || []);
+      for (var z = r.z0 + 0.6 + rowGap / 2; z < r.z1 - 0.6; z += rowGap) {
+        for (var x = r.x0 + 0.6 + step / 2; x < r.x1 - 0.6; x += step) {
+          // Water stress, patchy like a real field: some plants yellow and stunted more than others.
+          var hit = Math.min(1, dry * (0.45 + rand() * 1.1));
+          byCrop[crop].push([x + (rand() - 0.5) * step * 0.35, z + (rand() - 0.5) * rowGap * 0.18,
+                             rand() * Math.PI * 2, (0.82 + rand() * 0.36) * (1 - 0.3 * hit), hit]);
+        }
+      }
+      var lab = label(r.f.name + " · " + r.f.acres + " ac",
+                      mode === "crops" ? "Year " + (year + 1) + " · " + DATA.labels[crop] : metricText(mode, r, year));
+      lab.position.set((r.x0 + r.x1) / 2, 6.5, (r.z0 + r.z1) / 2);
+      scene.add(lab); labels.push(lab);
+      sheets[fi].material.color.copy(mode === "crops" ? WHITE : shade(mode, r, year));
+      sheets[fi].visible = mode !== "crops" && !!ST;
+    });
+    var dummy = new THREE.Object3D(), tint = new THREE.Color();
+    Object.keys(byCrop).forEach(function (crop) {
+      var list = byCrop[crop];
+      var mesh = new THREE.InstancedMesh(CROPS[crop].geo, cropMat, list.length);
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i];
+        dummy.position.set(p[0], 0.18, p[1]);
+        dummy.rotation.set(p[4] * 0.12, p[2], p[4] * 0.1);    // stressed plants lean a little
+        dummy.scale.setScalar(p[3] * CROPS[crop].scale);
+        dummy.updateMatrix();
+        mesh.setMatrixAt(i, dummy.matrix);
+        mesh.setColorAt(i, tint.copy(WHITE).lerp(DRY, p[4]));
+      }
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      scene.add(mesh); planted.push(mesh);
+    });
+    growStart = performance.now();
+    summary(year);
+    if (hoverRect) showCard(hoverRect);
+  }
+
+  // Top-left: which year, acres of each crop, the farm's numbers that year, the colour key.
+  function summary(year) {
+    var acres = {};
+    rects.forEach(function (r) { var c = (DATA.plan[r.f.name] || [])[year]; if (c) acres[c] = (acres[c] || 0) + r.f.acres; });
+    var html = "<b>Year " + (year + 1) + " of " + DATA.years + "</b>";
+    Object.keys(acres).forEach(function (c) {
+      html += '<span><i style="background:' + DATA.colors[c] + '"></i>' + DATA.labels[c] + " " + Math.round(acres[c]) + " ac</span>";
+    });
+    if (ST && ST.farm_years[year]) {
+      var fy = ST.farm_years[year];
+      html += '<em class="whole"></em>' +
+        '<span class="stat' + (fy.profit < 0 ? " bad" : "") + '" title="Farm profit this year of the rotation, average weather 1981–2024">' + money(fy.profit) + " profit</span>" +
+        '<span class="stat" title="Water the crops needed but rain and soil did not supply, all fields">' + fy.short_acin.toLocaleString() + " ac-in short</span>" +
+        '<span class="stat" title="Soil health points per acre, area-weighted">Soil ' + signed(fy.soil, 2) + "/ac</span>";
+      if (big && ST.farm) {
+        html += '<span class="stat" title="Whole rotation, per year, and how often it made money in 1981–2024 weather">Whole rotation ' +
+          money(ST.farm.avg) + "/yr · profitable " + ST.farm.profitable + " of " + ST.farm.seasons + " seasons</span>";
+      }
+    }
+    if (mode !== "crops" && ST) {
+      html += '<em class="whole"></em><span class="key">' + KEYS[mode][0] + ' <i class="ramp"></i> ' + KEYS[mode][1] + "</span>";
+    } else if (ST && Object.keys(ST.fields).some(function (n) { return stressLook(n, year) > 0.15; })) {
+      html += '<em class="whole note-stress"></em><span class="key note-stress" title="From the model: water the crop needed minus what rain and soil supplied">Yellowed, shorter plants = water stress</span>';
+    }
+    document.getElementById("summary").innerHTML = html;
+  }
+
+  // ------------------------------------------------------------ day / night
+  var hour = 13;
+
+  // ------------------------------------------------------------ sky conditions (for looks only)
+  // Every so often the "auto sky" picks new weather and a new time of day and eases into it.
+  // Decorative: it has nothing to do with the model's weather data (the footnote says so).
+  var SKIES = [                                     // name, icon, cloud cover 0-1, rain 0-1, weight
+    {name: "Clear", icon: "☀", cloud: 0, rain: 0, w: 3},
+    {name: "Partly cloudy", icon: "⛅", cloud: 0.4, rain: 0, w: 3},
+    {name: "Cloudy", icon: "☁", cloud: 0.72, rain: 0, w: 2},
+    {name: "Overcast", icon: "☁", cloud: 0.92, rain: 0, w: 1},
+    {name: "Rain", icon: "🌧", cloud: 1, rain: 1, w: 1}
+  ];
+  var HOURS = [6.4, 8.5, 11, 13, 15.5, 17.2, 18.6, 21.5, 23.5];   // dawn ... night
+  var skyNow = {cloud: 0, rain: 0};
+  // The schedule comes from the clock, not from chance, so every copy of the farm (the small
+  // panel and full screen) shows the same sky and time at the same moment: a new slot every
+  // 30 s, eased in over the first 7 s.
+  var SLOT = 30000, EASE = 7000;
+  function hash(k, salt) { var x = Math.sin(k * 127.1 + salt * 311.7) * 43758.5453; return x - Math.floor(x); }
+  function skyRaw(k) {
+    var total = SKIES.reduce(function (a, q) { return a + q.w; }, 0), x = hash(k, 1) * total;
+    for (var i = 0; i < SKIES.length; i++) { x -= SKIES[i].w; if (x <= 0) return i; }
+    return 0;
+  }
+  function skyAt(k) { var i = skyRaw(k); return SKIES[i === skyRaw(k - 1) ? (i + 1) % SKIES.length : i]; }
+  function hourRaw(k) { return Math.floor(hash(k, 2) * HOURS.length); }
+  function hourAt(k) {
+    var i = hourRaw(k), p = hourRaw(k - 1);
+    return HOURS[Math.abs(HOURS[i] - HOURS[p]) < 1.5 ? (i + 3) % HOURS.length : i];
+  }
+
+  // Clouds: puffy clusters drifting high over the farm.
+  var cloudMat = new THREE.MeshStandardMaterial({color: 0xffffff, roughness: 1, flatShading: true,
+                                                 transparent: true, opacity: 0, depthWrite: false});
+  var clouds = [], crand = rng(31);
+  for (var ci = 0; ci < 18; ci++) {
+    var cg = new THREE.Group(), puffs = 4 + Math.floor(crand() * 4);
+    for (var pi = 0; pi < puffs; pi++) {
+      var pm = new THREE.Mesh(new THREE.IcosahedronGeometry(4 + crand() * 4, 1), cloudMat);
+      pm.position.set((pi - puffs / 2) * 4.2 + crand() * 2, crand() * 2.5, crand() * 5 - 2.5);
+      pm.scale.y = 0.6; cg.add(pm);
+    }
+    var ca = crand() * Math.PI * 2, cr = 135 + crand() * 60;    // a ring out by the horizon
+    cg.position.set(Math.cos(ca) * cr, 30 + crand() * 18, Math.sin(ca) * cr);
+    cg.userData.a0 = ca; cg.userData.r = cr;
+    cg.scale.setScalar(0.8 + crand() * 0.7);
+    cg.userData.speed = 1.5 + crand() * 2; cg.userData.x0 = cg.position.x;
+    cg.visible = false; scene.add(cg); clouds.push(cg);
+  }
+  // Rain: short falling streaks over the farm.
+  var DROPS = 2200, dropPos = new Float32Array(DROPS * 6), drand = rng(57);
+  for (var di = 0; di < DROPS; di++) {
+    var dx = drand() * 160 - 80, dy = drand() * 60, dz = drand() * 160 - 80;
+    dropPos.set([dx, dy, dz, dx - 0.15, dy + 1.1, dz], di * 6);
+  }
+  var rainGeo = new THREE.BufferGeometry();
+  rainGeo.setAttribute("position", new THREE.BufferAttribute(dropPos, 3));
+  var rainMat = new THREE.LineBasicMaterial({color: 0xcfe0ff, transparent: true, opacity: 0, depthWrite: false});
+  var rain = new THREE.LineSegments(rainGeo, rainMat);
+  rain.visible = false; rain.frustumCulled = false; scene.add(rain);
+
+  var skyEased = false;
+  function updateSky(now, dt) {
+    var t = Date.now(), k = Math.floor(t / SLOT), f = Math.min(1, (t - k * SLOT) / EASE);
+    if (f < 1 || !skyEased) {                       // only work while easing (and once at the start)
+      var e = f * f * (3 - 2 * f), from = skyAt(k - 1), to = skyAt(k), h0 = hourAt(k - 1), h1 = hourAt(k);
+      skyNow.cloud = from.cloud + (to.cloud - from.cloud) * e;
+      skyNow.rain = from.rain + (to.rain - from.rain) * e;
+      setHour(h0 + ((h1 - h0 + 24) % 24) * e);      // time only moves forward, like a real day
+      skyEased = f >= 1;
+    }
+    // Clouds drift; rain falls.
+    var c = skyNow.cloud;
+    clouds.forEach(function (g, i) {
+      var ga = g.userData.a0 + g.userData.speed * Date.now() / 1000 * 0.004;   // circle slowly, same in every window
+      g.position.x = Math.cos(ga) * g.userData.r; g.position.z = Math.sin(ga) * g.userData.r;
+      g.visible = c > 0.03 && (i / clouds.length) < 0.25 + c;
+    });
+    rain.visible = skyNow.rain > 0.02;
+    if (rain.visible) {
+      var a = rainGeo.attributes.position.array, fall = dt * 38;
+      for (var j = 0; j < DROPS; j++) {
+        var o = j * 6;
+        a[o + 1] -= fall; a[o + 4] -= fall; a[o] -= fall * 0.14; a[o + 3] -= fall * 0.14;
+        if (a[o + 1] < 0) { a[o + 1] += 60; a[o + 4] += 60; a[o] += 8.4; a[o + 3] += 8.4; }
+      }
+      rainGeo.attributes.position.needsUpdate = true;
+    }
+  }
+  var SKY_DAY = new THREE.Color(0x8fc3ff), SKY_DUSK = new THREE.Color(0xf09a62), SKY_NIGHT = new THREE.Color(0x0b1233);
+  function setHour(h) {
+    hour = (h + 24) % 24;
+    var ang = (hour - 6) / 12 * Math.PI;            // 6:00 sunrise, 12:00 noon, 18:00 sunset
+    var elev = Math.sin(ang);
+    var R = 170;
+    var sp = new THREE.Vector3(Math.cos(ang) * R, Math.max(elev, -0.3) * R, 0.35 * R);
+    sun.position.copy(sp);
+    sunDisc.position.copy(sp);
+    moonDisc.position.set(-sp.x, Math.max(-elev, -0.3) * R, -0.35 * R);
+    moon.position.copy(moonDisc.position);
+    var day = THREE.MathUtils.smoothstep(elev, -0.12, 0.3);
+    var dusk = Math.max(0, 1 - Math.abs(elev) / 0.28) * (elev > -0.2 ? 1 : 0);
+    var c = skyNow.cloud, wet = skyNow.rain;
+    var sky = SKY_NIGHT.clone().lerp(SKY_DAY, day).lerp(SKY_DUSK, dusk * 0.55 * (1 - 0.7 * c));
+    var grey = new THREE.Color(0x0e1220).lerp(new THREE.Color(wet > 0.5 ? 0x7a8494 : 0x9aa6b8), day);
+    sky.lerp(grey, c * 0.75);
+    scene.background = sky;
+    scene.fog.color.copy(sky);
+    scene.fog.near = 120 - 70 * wet; scene.fog.far = 260 - 110 * wet;
+    cloudMat.opacity = 0.35 + 0.55 * Math.min(1, c * 1.3);
+    cloudMat.color.setRGB(1, 1, 1).lerp(new THREE.Color(0x5c6474), 0.35 * c + 0.3 * wet).multiplyScalar(0.25 + 0.75 * day);
+    rainMat.opacity = 0.5 * wet * (0.45 + 0.55 * day);
+    sun.intensity = 1.25 * day * (1 - 0.72 * c);
+    sun.color.setHSL(0.1, 0.6, 0.62 + 0.3 * day);
+    hemi.intensity = 0.16 + 0.5 * day + 0.12 * c * day;   // cloudy light is flatter, softer
+    moon.intensity = 0.32 * (1 - day) * (1 - 0.7 * c);
+    starMat.opacity = Math.max(0, 1 - day * 1.6) * (1 - c);
+    sunDisc.visible = elev > -0.05 && c < 0.7;
+    moonDisc.visible = elev < 0.1 && c < 0.7;
+    night.forEach(function (n) {
+      if (n.isPointLight) n.intensity = 1.6 * (1 - day);
+      else n.emissiveIntensity = 1.4 * (1 - day);
+    });
+    renderer.toneMappingExposure = 1;
+    if (timeInput) timeInput.value = hour;
+    if (timeOut) timeOut.textContent = String(Math.floor(hour)).padStart(2, "0") + ":" + String(Math.floor((hour % 1) * 60)).padStart(2, "0");
+    if (dayBtn) {
+      dayBtn.textContent = (day > 0.5 ? "☾" : "☀") + (big ? (day > 0.5 ? " Night" : " Day") : "");
+      dayBtn.title = day > 0.5 ? "Switch to night" : "Switch to day";
+    }
+  }
+
+  // ------------------------------------------------------------ controls (bottom bar)
+  var ui = document.getElementById("ui"), year = 0, playing = false, lastSwap = 0;
+  var yearBtns = [];
+  function chip(text, onClick) {
+    var b = document.createElement("button"); b.className = "chip"; b.textContent = text;
+    b.addEventListener("click", onClick); ui.appendChild(b); return b;
+  }
+  for (var y = 0; y < DATA.years; y++) {
+    (function (yy) { yearBtns.push(chip("Y" + (yy + 1), function () { setPlaying(false, 0, 0); pick(yy); share(); })); })(y);
+  }
+  var playT0 = 0, playY0 = 0;
+  var playBtn = chip("▶", function () {
+    setPlaying(!playing, Date.now(), year); share();
+  });
+  function setPlaying(on, t0, y0) { playing = on; playT0 = t0; playY0 = y0; playBtn.classList.toggle("on", on); }
+  playBtn.title = "Play through the rotation";
+  function setView(v) {
+    mode = v;
+    viewBtns.forEach(function (b) { b.classList.toggle("on", b.dataset.v === v); });
+    if (cycleView) cycleView.textContent = "◐ " + VIEWS.filter(function (x) { return x[0] === v; })[0][1];
+    plant(year);
+  }
+  var viewBtns = [], cycleView = null;
+  if (ST) {
+    {                                                // grown: all four as a switch
+      var vbox = document.createElement("div"); vbox.className = "views"; ui.appendChild(vbox);
+      VIEWS.forEach(function (v) {
+        var b = document.createElement("button"); b.className = "chip"; b.textContent = v[1]; b.dataset.v = v[0];
+        b.addEventListener("click", function () { setView(v[0]); share(); }); vbox.appendChild(b); viewBtns.push(b);
+      });
+      viewBtns[0].classList.add("on");
+    }
+    {                                                // small panel: one chip that cycles
+      cycleView = chip("◐ Crops", function () {
+        var i = VIEWS.map(function (x) { return x[0]; }).indexOf(mode);
+        setView(VIEWS[(i + 1) % VIEWS.length][0]); share();
+      });
+      cycleView.title = "Colour the fields by water stress, profit or soil health"; cycleView.classList.add("cyc");
+    }
+  }
+  // No day/sky controls: the sky and time of day change by themselves (updateSky).
+  var timeInput = null, timeOut = null, dayBtn = null;
+  function pick(y) {
+    year = y;
+    yearBtns.forEach(function (b, i) { b.classList.toggle("on", i === y); });
+    plant(y);
+  }
+
+  // ------------------------------------------------------------ keep both windows in step
+  // The small panel and full screen are separate pages (two iframes). Year, view and play are
+  // shared through localStorage + BroadcastChannel (same origin), so opening full screen shows
+  // the same farm as the panel behind it, and changes in either show in the other.
+  var SYNC_KEY = "fs3d-state", bc = null, lastSeen = null;
+  try { bc = new BroadcastChannel("fs3d"); } catch (e) {}
+  function share() {
+    var st = {year: year, mode: mode, playing: playing, t0: playT0, y0: playY0, years: DATA.years};
+    lastSeen = JSON.stringify(st);
+    try { localStorage.setItem(SYNC_KEY, lastSeen); } catch (e) {}
+    try { bc && bc.postMessage(st); } catch (e) {}
+  }
+  function adopt(st) {
+    if (!st || st.years !== DATA.years) return;      // a different rotation length: ignore
+    if (st.mode && st.mode !== mode && (st.mode === "crops" || ST)) {
+      mode = st.mode;
+      viewBtns.forEach(function (b) { b.classList.toggle("on", b.dataset.v === mode); });
+      if (cycleView) cycleView.textContent = "◐ " + VIEWS.filter(function (x) { return x[0] === mode; })[0][1];
+    }
+    setPlaying(!!st.playing, st.t0 || 0, st.y0 || 0);
+    pick(playing ? playYear() : Math.min(st.year || 0, DATA.years - 1));
+  }
+  function playYear() { return (playY0 + Math.floor((Date.now() - playT0) / 2600)) % DATA.years; }
+  if (bc) bc.onmessage = function (e) { adopt(e.data); };
+  window.addEventListener("storage", function (e) { if (e.key === SYNC_KEY) { try { lastSeen = e.newValue; adopt(JSON.parse(e.newValue)); } catch (x) {} } });
+  // Fallback for browsers that don't deliver those events between iframes: look every 0.7 s.
+  var bigOpen = false;                              // (old two-window pause; one farm now)
+  setInterval(function () {
+    var v = null;
+    try { v = localStorage.getItem(SYNC_KEY); } catch (e) { return; }
+    if (v && v !== lastSeen) { lastSeen = v; try { adopt(JSON.parse(v)); } catch (e) {} }
+  }, 700);
+
+  // ------------------------------------------------------------ grow into full screen and back
+  // The farm's own iframe grows from its spot in the left panel to a big centred view over a
+  // dimmed page, and shrinks back: same scene, nothing reloads. Streamlit's component iframes
+  // are same-origin, so the farm can reach its frame on the page (window.frameElement). Only
+  // transform and opacity animate (smooth). Ancestors that would trap a fixed element
+  // (transform, filter, contain, will-change) are neutralised while it's grown.
+  var host = null, pdoc = null, pwin = null;
+  try { host = window.frameElement; pdoc = host && host.ownerDocument; pwin = pdoc && pdoc.defaultView; } catch (e) { host = null; }
+  var catcher = null, savedCss = "", savedMin = "", lifted = [], raised = [], growing = false, smallH = 0;
+  var GROW = "transform .6s cubic-bezier(.2, .8, .2, 1)";
+  function target() {
+    var W = pwin.innerWidth, H = pwin.innerHeight, w = Math.min(W * 0.92, 1500), h = Math.min(H * 0.86, 920);
+    return {left: (W - w) / 2, top: (H - h) / 2, width: w, height: h};
+  }
+  function liftAncestors() {
+    for (var el = host.parentElement; el && el !== pdoc.body; el = el.parentElement) {
+      var cs = pwin.getComputedStyle(el);
+      if (cs.transform !== "none" || cs.filter !== "none" || (cs.contain && cs.contain !== "none") ||
+          cs.willChange.indexOf("transform") >= 0 ||
+          (cs.backdropFilter && cs.backdropFilter !== "none")) {
+        lifted.push([el, el.style.cssText]);     // !important beats animations too; restored after
+        ["transform", "filter", "contain", "will-change", "backdrop-filter"].forEach(function (p) {
+          el.style.setProperty(p, p === "will-change" ? "auto" : "none", "important");
+        });
+      }
+      if (cs.position !== "static" && cs.zIndex !== "auto") {     // lift its stacking context to the top
+        raised.push([el, el.style.zIndex]); el.style.setProperty("z-index", "1000001", "important");
+      }
+    }
+  }
+  function restoreAncestors() {
+    lifted.forEach(function (x) { x[0].style.cssText = x[1]; }); lifted = [];
+    raised.forEach(function (x) { x[0].style.zIndex = x[1]; }); raised = [];
+  }
+  function place(t) {
+    host.style.left = t.left + "px"; host.style.top = t.top + "px";
+    host.style.width = t.width + "px"; host.style.height = t.height + "px";
+  }
+  function fitTo(r, t) {   // the transform that makes the big frame t cover rect r
+    return "translate(" + (r.left - t.left) + "px," + (r.top - t.top) + "px) scale(" +
+           (r.width / t.width) + "," + (r.height / t.height) + ")";
+  }
+  function setBig(on) {
+    big = on;
+    document.body.classList.toggle("big", on);
+    controls.enableZoom = on; controls.enablePan = on;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, on ? 2 : 1.25));
+    sun.shadow.mapSize.set(on ? 2048 : 1024, on ? 2048 : 1024);
+    if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; }
+    expandBtn.textContent = on ? "✕ Close" : "⤢";
+    expandBtn.title = on ? "Back to the small view (Esc)" : "Grow to full screen";
+    if (!on) { userMoved = false; controls.target.set(0, 0, 0); camera.zoom = 1; camera.updateProjectionMatrix(); }
+    resize(); plant(year);
+  }
+  function onKey(e) { if (e.key === "Escape") shrink(); }
+  function afterGrow(fn) {   // run once, when the grow/shrink transition ends (or 0.8 s at most)
+    var done = false;
+    function finish(e) {
+      if (done || (e && e.propertyName !== "transform")) return;
+      done = true; host.removeEventListener("transitionend", finish); fn();
+    }
+    host.addEventListener("transitionend", finish);
+    (pwin || window).setTimeout(finish, 800);
+  }
+  function onParentResize() { if (big && !growing) place(target()); }
+  function grow() {
+    if (!host || growing || shrinking || big) return;
+    growing = true;
+    var r0 = host.getBoundingClientRect(); smallH = r0.height;
+    savedCss = host.style.cssText; savedMin = host.parentElement.style.minHeight;
+    host.parentElement.style.minHeight = r0.height + "px";        // keep the panel's layout still
+    liftAncestors();
+    catcher = pdoc.createElement("div");                           // dims the page; click to close
+    catcher.style.cssText = "position:fixed;inset:0;z-index:1000000;background:rgba(6,9,22,.74);" +
+                            "opacity:0;transition:opacity .5s ease;cursor:zoom-out;";
+    catcher.addEventListener("click", shrink);
+    host.parentElement.insertBefore(catcher, host);
+    var t = target();
+    host.style.position = "fixed"; host.style.zIndex = "1000001"; host.style.margin = "0";
+    host.style.borderRadius = "18px"; host.style.boxShadow = "0 30px 90px rgba(0,0,0,.6)";
+    host.style.transformOrigin = "0 0"; host.style.transition = "none";
+    place(t); host.style.transform = fitTo(r0, t);
+    setBig(true);
+    host.getBoundingClientRect();                                  // apply the start before animating
+    requestAnimationFrame(function () {
+      host.style.transition = GROW; host.style.transform = "none"; catcher.style.opacity = "1";
+    });
+    afterGrow(function () { growing = false; });
+    pdoc.addEventListener("keydown", onKey); pwin.addEventListener("resize", onParentResize);
+  }
+  var shrinking = false;
+  function shrink() {                     // also works mid-grow: the animation just reverses
+    if (!host || shrinking || !big) return;
+    shrinking = true;
+    var p = host.parentElement.getBoundingClientRect();
+    var r0 = {left: p.left, top: p.top, width: p.width, height: smallH || p.height};
+    host.style.transition = GROW; host.style.transform = fitTo(r0, target());
+    if (catcher) catcher.style.opacity = "0";
+    afterGrow(function () {
+      host.style.cssText = savedCss; host.parentElement.style.minHeight = savedMin;
+      if (catcher) { catcher.remove(); catcher = null; }
+      restoreAncestors(); setBig(false); growing = false; shrinking = false;
+    });
+    pdoc.removeEventListener("keydown", onKey); pwin.removeEventListener("resize", onParentResize);
+  }
+  var expandBtn = document.createElement("button");
+  expandBtn.className = "chip expand"; expandBtn.textContent = "⤢"; expandBtn.title = "Grow to full screen";
+  expandBtn.addEventListener("click", function () { if (big) shrink(); else grow(); });
+  document.body.appendChild(expandBtn);
+  if (!host) expandBtn.style.display = "none";                     // can't reach the page: no grow
+  document.addEventListener("keydown", onKey);
+
+  // ------------------------------------------------------------ field info card (hover / tap)
+  var card = document.getElementById("card"), ray = new THREE.Raycaster(), ptr = new THREE.Vector2();
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
+  function showCard(r) {
+    var f = r.f, crops = DATA.plan[f.name] || [], st = ST && ST.fields[f.name];
+    var n = crops.length, prev = crops[(year - 1 + n) % n], cur = crops[year];
+    var rot = crops.map(function (c, i) {
+      var p = st ? "<small>" + money(st.years[i].profit) + "</small>" : "";
+      return '<em class="' + (i === year ? "now" : "") + '" style="background:' + DATA.colors[c] + '">Y' + (i + 1) + " " + DATA.labels[c] + p + "</em>";
+    }).join("");
+    var awc = ST && ST.soils ? (ST.soils[f.soil] || ST.soils["default"]) : null;
+    var html = "<h4>" + esc(f.name) + "</h4>" +
+      '<div><span class="k">Size</span> ' + f.acres + ' acres · <span class="k">Soil</span> ' + esc(f.soil || "—") +
+      (f.irrigated ? " · irrigated" : "") + "</div>" +
+      (awc ? '<div class="extra"><span class="k">Soil holds</span> ' + (awc / 25.4 * 0.3048).toFixed(1) + " in of water per ft of root depth</div>" : "") +
+      '<div class="extra"><span class="k">Last season</span> ' + (DATA.labels[f.last_crop] || "—") + "</div>" +
+      '<div class="sec"><span class="k">Y' + (year + 1) + "</span> <b>" + (DATA.labels[cur] || "—") + "</b>";
+    var eff = ST && ST.effects ? ST.effects[prev + ">" + cur] : null;
+    if (n > 1 && prev) {
+      html += ' <span class="k">after ' + DATA.labels[prev] + "</span>";
+      if (eff && (eff[0] !== 1 || eff[1] > 0)) {
+        var pct = Math.round((eff[0] - 1) * 100);
+        html += '<div class="' + (pct < 0 ? "warn" : "good") + '">' + (pct ? signed(pct, 0) + "% yield" : "") +
+                (pct && eff[1] > 0 ? " · " : "") + (eff[1] > 0 ? eff[1] + " lb/ac nitrogen credit" : "") + "</div>";
+      }
+    }
+    html += "</div>";
+    if (st) {
+      var y = st.years[year], share = y.need_in > 0 ? y.short_in / y.need_in : 0;
+      html += '<div class="nums">' +
+        '<span class="k">Profit</span><b class="' + (y.profit < 0 ? "warn" : "") + '">' + money(y.profit) + " (" + money(y.profit / f.acres) + "/ac)</b>" +
+        '<span class="k">Water</span><span>needs ' + y.need_in.toFixed(1) + ' in · <b class="' + (share > 0.15 ? "warn" : "") + '">short ' +
+          y.short_in.toFixed(1) + " in (" + Math.round(share * 100) + "%)</b></span>" +
+        (f.irrigated ? '<span class="k">Irrigation</span><span>' + y.irr_in.toFixed(1) + " in</span>" : "") +
+        '<span class="k">Soil</span><span class="' + (y.soil < 0 ? "warn" : "good") + '">' + signed(y.soil, 2) + " pts/ac</span>" +
+        (y.cover ? '<span class="k">After</span><span>rye cover crop</span>' : "") +
+        "</div>";
+    }
+    html += '<div class="rot">' + rot + "</div>";
+    if (st) {
+      var rec = st.record;
+      html += '<div class="sec"><span class="k">On 1981–2024 weather</span> profitable in <b>' + rec.profitable + " of " + rec.seasons +
+        "</b> seasons · toughest " + rec.worst_year + ': <b class="' + (rec.worst < 0 ? "warn" : "") + '">' + money(rec.worst) + "</b></div>";
+    }
+    html += '<div class="note">Average weather, per season. The rotation repeats: after Y' + n + " comes Y1.</div>";
+    card.innerHTML = html;
+    card.classList.add("show");
+  }
+  function onPointer(e) {
+    var rect = renderer.domElement.getBoundingClientRect();
+    ptr.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    ptr.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    ray.setFromCamera(ptr, camera);
+    var hit = ray.intersectObjects(soilBlocks)[0];
+    var r = hit ? hit.object.userData.rect : null;
+    if (r !== hoverRect) {
+      hoverRect = r;
+      if (r) showCard(r); else card.classList.remove("show");
+    }
+  }
+  renderer.domElement.addEventListener("pointermove", onPointer);
+  renderer.domElement.addEventListener("pointerdown", onPointer);
+  renderer.domElement.addEventListener("pointerleave", function () { hoverRect = null; card.classList.remove("show"); });
+
+  // ------------------------------------------------------------ run
+  var growStart = 0, visible = true, prev = performance.now();
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver(function (e) { visible = e[0].isIntersecting; }).observe(view);
+  }
+  document.addEventListener("visibilitychange", function () { visible = !document.hidden; });
+  resize();
+  updateSky(performance.now(), 0);
+  var saved = null;
+  try { lastSeen = localStorage.getItem(SYNC_KEY); saved = JSON.parse(lastSeen || "null"); } catch (e) {}
+  if (saved && saved.years === DATA.years) adopt(saved); else pick(0);
+  // The small panel draws at 30 frames a second (full screen at the screen's rate): at that
+  // size it looks the same and costs half. Nothing is drawn while hidden or behind full screen.
+  function minGap() { return big ? 0 : 1000 / 30 - 2; }
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!visible || bigOpen) { prev = now; return; }
+    if (now - prev < minGap()) return;
+    var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    uniforms.uTime.value = now / 1000;
+    var g = Math.min(1, (now - growStart) / 1300);
+    uniforms.uGrow.value = 0.08 + 0.92 * (1 - Math.pow(1 - g, 3));
+    var shortTarget = mode === "crops" ? 1 : 0.35;
+    uniforms.uShort.value += (shortTarget - uniforms.uShort.value) * Math.min(1, dt * 6);
+    if (playing) { var py = playYear(); if (py !== year) pick(py); }
+    updateSky(now, dt);
+    if (!userMoved) {                               // the clock-driven spin, same in both windows
+      var ang = CAM_A0 + Date.now() / 1000 * 0.037;
+      camera.position.set(controls.target.x + Math.cos(ang) * CAM_R, CAM_Y, controls.target.z + Math.sin(ang) * CAM_R);
+    }
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
