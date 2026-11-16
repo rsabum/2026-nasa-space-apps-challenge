@@ -1076,3 +1076,42 @@ div.fs-step {cursor: default;}
 .fs-dir-icon {color: #BFD7FF; transition: color .15s ease, background .15s ease, border-color .15s ease;}
 .fs-dir-svg {width: 18px; height: 18px; display: block;}
 a.fs-dir-link:hover .fs-dir-icon {color: #fff; background: var(--blue-soft); border-color: var(--border-glow);}
+
+
+/* ---------- Background stars that gently appear (Nov 15) ----------
+   18 small stars behind everything (fixed, z-index -1, like the comets). Each fades in, glows
+   for a moment and fades out on its own cycle (9-19 s), so now and then a star appears
+   somewhere. Opacity/transform only; positions are fixed so pages match. */
+.fs-stars {position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;}
+.fs-stars i {position: absolute; width: var(--s); height: var(--s); border-radius: 50%; background: var(--c);
+  box-shadow: 0 0 6px 1px var(--c), 0 0 14px 3px rgba(79, 139, 255, .35); opacity: 0;
+  will-change: opacity, transform; animation: fs-star-appear 12s ease-in-out infinite;}
+.fs-stars i::before, .fs-stars i::after {content: ""; position: absolute; left: 50%; top: 50%;   /* a soft 4-point glint */
+  background: linear-gradient(90deg, transparent, var(--c), transparent); opacity: .7;
+  width: calc(var(--s) * 6); height: 1px; transform: translate(-50%, -50%);}
+.fs-stars i::after {transform: translate(-50%, -50%) rotate(90deg);}
+@keyframes fs-star-appear {
+  0%, 58%, 100% {opacity: 0; transform: scale(.4);}
+  70%           {opacity: .95; transform: scale(1);}
+  78%           {opacity: .75; transform: scale(.85);}
+  90%           {opacity: 0; transform: scale(.5);}
+}
+.fs-stars i:nth-child(1) {left: 93.7%; top: 5.1%; --s: 2px; --c: #E6E9F5; animation-duration: 10.6s; animation-delay: -10.4s;}
+.fs-stars i:nth-child(2) {left: 8.2%; top: 78.0%; --s: 2px; --c: #BFD7FF; animation-duration: 17.6s; animation-delay: -17.6s;}
+.fs-stars i:nth-child(3) {left: 14.0%; top: 46.9%; --s: 2.5px; --c: #BFD7FF; animation-duration: 11.8s; animation-delay: -3.1s;}
+.fs-stars i:nth-child(4) {left: 90.9%; top: 23.0%; --s: 2.5px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -3.8s;}
+.fs-stars i:nth-child(5) {left: 24.8%; top: 45.9%; --s: 3px; --c: #BFD7FF; animation-duration: 13.9s; animation-delay: -6.4s;}
+.fs-stars i:nth-child(6) {left: 44.3%; top: 33.0%; --s: 3px; --c: #E6E9F5; animation-duration: 13.1s; animation-delay: -11.3s;}
+.fs-stars i:nth-child(7) {left: 49.1%; top: 90.9%; --s: 2px; --c: #E6E9F5; animation-duration: 11.0s; animation-delay: -5.9s;}
+.fs-stars i:nth-child(8) {left: 29.9%; top: 49.5%; --s: 2px; --c: #E6E9F5; animation-duration: 17.9s; animation-delay: -7.1s;}
+.fs-stars i:nth-child(9) {left: 47.1%; top: 81.3%; --s: 3.5px; --c: #BFD7FF; animation-duration: 12.0s; animation-delay: -11.0s;}
+.fs-stars i:nth-child(10) {left: 19.8%; top: 91.2%; --s: 2.5px; --c: #BFD7FF; animation-duration: 9.8s; animation-delay: -3.0s;}
+.fs-stars i:nth-child(11) {left: 80.5%; top: 33.3%; --s: 3px; --c: #E6E9F5; animation-duration: 12.4s; animation-delay: -5.5s;}
+.fs-stars i:nth-child(12) {left: 74.2%; top: 81.1%; --s: 2.5px; --c: #F5E6C4; animation-duration: 13.7s; animation-delay: -1.6s;}
+.fs-stars i:nth-child(13) {left: 39.6%; top: 5.4%; --s: 2.5px; --c: #BFD7FF; animation-duration: 18.3s; animation-delay: -13.5s;}
+.fs-stars i:nth-child(14) {left: 9.0%; top: 45.5%; --s: 2px; --c: #F5E6C4; animation-duration: 18.4s; animation-delay: -2.9s;}
+.fs-stars i:nth-child(15) {left: 56.1%; top: 84.3%; --s: 3px; --c: #E6E9F5; animation-duration: 9.4s; animation-delay: -0.6s;}
+.fs-stars i:nth-child(16) {left: 56.5%; top: 46.5%; --s: 3.5px; --c: #E6E9F5; animation-duration: 13.5s; animation-delay: -9.7s;}
+.fs-stars i:nth-child(17) {left: 60.4%; top: 9.2%; --s: 3px; --c: #BFD7FF; animation-duration: 13.3s; animation-delay: -0.7s;}
+.fs-stars i:nth-child(18) {left: 59.0%; top: 32.7%; --s: 2px; --c: #F5E6C4; animation-duration: 17.0s; animation-delay: -15.2s;}
+@media (prefers-reduced-motion: reduce) {.fs-stars {display: none;}}
